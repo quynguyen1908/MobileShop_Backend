@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client/user"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("USER_DB_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(30)
+  password  String    @db.VarChar(100)
+  phone     String?   @unique @db.VarChar(30)
+  email     String    @unique @db.VarChar(255)
+  roleId    Int       @map("role_id")
+  lastLogin DateTime? @map("last_login") @db.Timestamptz()
+  status    String    @default("active") @db.VarChar(50)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  
+  role        Role        @relation(fields: [roleId], references: [id])
+  customer    Customer?
+  employee    Employee?
+  oauth       UserOauth?
+  notifications Notification[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Customer {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique @map("user_id")
+  firstName     String?   @map("first_name") @db.VarChar(50)
+  lastName      String?   @map("last_name") @db.VarChar(50)
+  gender        String?   @db.VarChar(50)
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  pointsBalance Int       @default(0) @map("points_balance")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("customers")
+}
+
+model Employee {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique @map("user_id")
+  firstName   String?   @map("first_name") @db.VarChar(50)
+  lastName    String?   @map("last_name") @db.VarChar(50)
+  gender      String?   @db.VarChar(50)
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  hireDate    DateTime? @map("hire_date") @db.Date
+  position    String?   @db.VarChar(50)
+  salary      Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("employees")
+}
+
+model UserOauth {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique @map("user_id")
+  oauthProvider String   @map("oauth_provider") @db.VarChar(50)
+  oauthId       Int      @unique @map("ouath_id") // Chú ý: đây là ouath_id theo SQL, có thể là lỗi chính tả
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_oauth")
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  title     String    @db.VarChar(255)
+  message   String    @db.Text
+  type      String    @db.VarChar(50)
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at") @db.Timestamptz()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
