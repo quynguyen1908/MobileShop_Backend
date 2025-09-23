@@ -1,13 +1,29 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UserCreateDto, UserUpdateDto } from '@app/contracts/user';
 import type { IUserService, IUserRepository } from './user.port';
-import type { ITokenProvider } from '@app/contracts';
-import { USER_REPOSITORY, TOKEN_PROVIDER } from '@app/contracts';
+import type { IEventPublisher } from '@app/contracts';
+import { USER_REPOSITORY, EVENT_PUBLISHER } from '@app/contracts';
+import { Customer, CustomerCreateDto, customerSchema } from '@app/contracts/user';
 
 @Injectable()
 export class UserService implements IUserService {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-    @Inject(TOKEN_PROVIDER) private readonly tokenProvider: ITokenProvider,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
   ) {}
+
+  async createCustomer(customerCreateDto: CustomerCreateDto): Promise<number> {
+    const data = customerSchema.parse(customerCreateDto);
+
+    const customer: Customer = {
+      userId: data.userId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      dateOfBirth: data.dateOfBirth,
+      pointsBalance: 0,
+      isDeleted: false,
+    }
+
+    const createdCustomer = await this.userRepository.insertCustomer(customer);
+    return createdCustomer.id!;
+  }
 }

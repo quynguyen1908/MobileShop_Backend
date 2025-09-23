@@ -1,17 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AuthServiceModule } from './auth-service.module';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    AuthServiceModule,
-    {
-      transport: Transport.TCP,
-      options: {
-        port: 3001, 
-      },
-    }
-  );
-  await app.listen();
+  const app = await NestFactory.create(AuthServiceModule);
+  const rmqService = app.get<RabbitMQService>(RabbitMQService);
+
+  app.connectMicroservice(rmqService.authServiceOptions);
+  
+  await app.startAllMicroservices();
+  console.log('Auth Service is listening...');
 }
 bootstrap();

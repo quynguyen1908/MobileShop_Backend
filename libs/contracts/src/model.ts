@@ -25,49 +25,69 @@ export type Paginated<E> = {
 }
 
 export abstract class AppEvent<Payload> {
-    private _id: string;
-    private _occurredAt: Date;
-    private _senderId?: string;
+    private readonly _metadata: {
+        id: string;
+        occurredAt: Date;
+        senderId?: string;
+        correlationId?: string;
+        version: string;
+    };
 
     constructor(
         private readonly _eventName: string,
         private readonly _payload: Payload,
-        dtoProps?: {
-            id?: string,
-            occurredAt?: Date,
-            senderId?: string;
-        }
+        metadata?: Partial<{
+            id: string;
+            occurredAt: Date;
+            senderId: string;
+            correlationId: string;
+            version: string;
+        }>
     ) {
-        this._id = dtoProps?.id ?? uuidv4();
-        this._occurredAt = dtoProps?.occurredAt ?? new Date();
-        this._senderId = dtoProps?.senderId;
+        this._metadata = {
+            id: metadata?.id ?? uuidv4(),
+            occurredAt: metadata?.occurredAt ?? new Date(),
+            senderId: metadata?.senderId,
+            correlationId: metadata?.correlationId,
+            version: metadata?.version ?? '1.0',
+        };
     }
 
     get eventName(): string {
         return this._eventName;
     }
 
-    get id(): string {
-        return this._id;
-    }
-
-    get occurredAt(): Date {
-        return this._occurredAt;
-    }
-
-    get senderId(): string | undefined {
-        return this._senderId;
-    }
-
     get payload(): Payload {
         return this._payload;
     }
 
+    get id(): string {
+        return this._metadata.id;
+    }
+
+    get occurredAt(): Date {
+        return this._metadata.occurredAt;
+    }
+
+    get senderId(): string | undefined {
+        return this._metadata.senderId;
+    }
+
+    get correlationId(): string | undefined {
+        return this._metadata.correlationId;
+    }
+
+    get version(): string {
+        return this._metadata.version;
+    }
+
     plainObject() {
         return {
-            id: this._id,
-            occurredAt: this._occurredAt,
-            senderId: this._senderId,
+            id: this._metadata.id,
+            occurredAt: this._metadata.occurredAt,
+            senderId: this._metadata.senderId,
+            correlationId: this._metadata.correlationId,
+            version: this._metadata.version,
             eventName: this._eventName,
             payload: this._payload,
         };

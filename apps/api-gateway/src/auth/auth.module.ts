@@ -3,23 +3,21 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { ClientProxyFactory } from '@nestjs/microservices';
 import { AUTH_SERVICE } from '@app/contracts';
-import { ServiceConfigModule } from '../service-config/service-config.module';
-import { ServiceConfigService } from '../service-config/service-config.service';
+import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 
 @Module({
-  imports: [ServiceConfigModule],
+  imports: [RabbitMQModule.register()],
   controllers: [AuthController],
   providers: [
     AuthService,
     {
       provide: AUTH_SERVICE,
-      useFactory: (configService: ServiceConfigService) => {
-        const serverOptions = configService.authServiceOptions;
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.authServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
-      inject: [ServiceConfigService],
+      inject: [RabbitMQService],
     },
   ],
 })
-
 export class AuthModule {}

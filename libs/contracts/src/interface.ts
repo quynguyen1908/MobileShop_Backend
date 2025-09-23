@@ -1,8 +1,17 @@
 import { AppEvent } from "./model";
 
 export interface TokenPayload {
-    sub: number;
-    role: string;
+  sub: number;
+  username: string;
+  email?: string;
+  role: string;
+  iat?: number;
+}
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn: number;
 }
 
 export interface Requester extends TokenPayload {}
@@ -11,8 +20,12 @@ export interface ReqWithRequester { requester: Requester; }
 export interface ReqWithRequesterOpt { requester?: Requester; }
 
 export interface ITokenProvider {
-    generateToken(payload: TokenPayload): Promise<string>;
-    verifyToken(token: string): Promise<TokenPayload | null>;
+  generateTokens(payload: TokenPayload): Promise<TokenResponse>;
+  generateAccessToken(payload: TokenPayload): Promise<string>;
+  verifyAccessToken(token: string): Promise<TokenPayload | null>;
+  verifyRefreshToken(token: string): Promise<TokenPayload | null>;
+  refreshAccessToken(refreshToken: string): Promise<TokenResponse>;
+  decodeToken(token: string): Promise<TokenPayload | null>;
 }
 
 export type EventHandler = (msg: string) => void;
@@ -20,3 +33,8 @@ export type EventHandler = (msg: string) => void;
 export interface IEventPublisher {
   publish<T>(event: AppEvent<T>): Promise<void>;
 }
+
+export interface IEventSubscriber {
+  subscribe(topic: string, handler: EventHandler): Promise<void>;
+}
+  
