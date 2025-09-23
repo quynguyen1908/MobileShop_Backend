@@ -28,16 +28,16 @@ model Role {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  username  String    @unique @db.VarChar(30)
-  password  String    @db.VarChar(100)
-  phone     String?   @unique @db.VarChar(30)
-  email     String    @unique @db.VarChar(255)
-  roleId    Int       @map("role_id")
-  lastLogin DateTime? @map("last_login") @db.Timestamptz()
-  status    String    @default("active") @db.VarChar(50)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  id              Int       @id @default(autoincrement())
+  username        String    @unique @db.VarChar(30)
+  password        String    @db.VarChar(100)
+  phone           String?   @unique @db.VarChar(30)
+  email           String    @unique @db.VarChar(255)
+  roleId          Int       @map("role_id")
+  lastChangePass  DateTime? @map("last_change_pass") @db.Timestamptz()
+  status          String    @default("active") @db.VarChar(50)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
   
   role        Role        @relation(fields: [roleId], references: [id])
   customer    Customer?
@@ -91,7 +91,7 @@ model UserOauth {
   id            Int      @id @default(autoincrement())
   userId        Int      @unique @map("user_id")
   oauthProvider String   @map("oauth_provider") @db.VarChar(50)
-  oauthId       Int      @unique @map("ouath_id") // Chú ý: đây là ouath_id theo SQL, có thể là lỗi chính tả
+  oauthId       Int      @unique @map("oauth_id")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted     Boolean  @default(false) @map("is_deleted")

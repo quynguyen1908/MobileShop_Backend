@@ -1,67 +1,11 @@
 import { z } from "zod";
-import { userSchema, roleSchema, customerSchema, employeeSchema, oauthSchema, notificationSchema } from "./user.model";
-
-// User
-
-export const userCreateDtoSchema = userSchema.pick({
-    username: true,
-    password: true,
-    phone: true,
-    email: true,
-    roleId: true,
-}).required();
-
-export interface UserCreateDto extends z.infer<typeof userCreateDtoSchema> {}
-
-export const userUpdateDtoSchema = userSchema.pick({
-    username: true,
-    password: true,
-    roleId: true,
-    status: true,
-}).partial();
-
-export interface UserUpdateDto extends z.infer<typeof userUpdateDtoSchema> {}
-
-export const UserUpdateProfileDtoSchema = userUpdateDtoSchema.omit({
-    roleId: true,
-    status: true,
-}).partial();
-
-export interface UserUpdateProfileDto extends z.infer<typeof UserUpdateProfileDtoSchema> {}
-
-export const userFilterDtoSchema = userSchema.pick({
-    username: true,
-    phone: true,
-    email: true,
-    roleId: true,
-    status: true,
-}).partial();
-
-export interface UserFilterDto extends z.infer<typeof userFilterDtoSchema> {}
-
-// Role
-
-export const roleCreateDtoSchema = roleSchema.pick({
-    name: true,
-    description: true,
-}).required();
-
-export interface RoleCreateDto extends z.infer<typeof roleCreateDtoSchema> {}
-
-export const roleUpdateDtoSchema = roleSchema.pick({
-    name: true,
-    description: true,
-    isDeleted: true,
-}).partial();
-
-export interface RoleUpdateDto extends z.infer<typeof roleUpdateDtoSchema> {}
+import { customerSchema, employeeSchema, oauthSchema, notificationSchema } from "./user.model";
 
 // Customer
 
 export const customerCreateDtoSchema = customerSchema.pick({
     firstName: true,
     lastName: true,
-    gender: true,
     dateOfBirth: true,
     userId: true,
 }).required();
@@ -78,16 +22,6 @@ export const customerUpdateDtoSchema = customerSchema.pick({
 }).partial();
 
 export interface CustomerUpdateDto extends z.infer<typeof customerUpdateDtoSchema> {}
-
-export const customerUpdateProfileDtoSchema = customerUpdateDtoSchema.omit({
-    firstName: true,
-    lastName: true,
-    dateOfBirth: true,
-    pointBalance: true,
-    isDeleted: true,
-}).partial();
-
-export interface CustomerUpdateProfileDto extends z.infer<typeof customerUpdateProfileDtoSchema> {}
 
 // Employee
 

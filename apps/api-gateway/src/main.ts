@@ -7,10 +7,14 @@ async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
 
   app.setGlobalPrefix('api');
-  app.enableCors();
-  app.useGlobalPipes(new ValidationPipe({ 
-    whitelist: true, 
-    transform: true 
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
   }));
 
   const config = new DocumentBuilder()
@@ -23,6 +27,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.PORT || 3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`API Gateway is running on: http://localhost:${port}`);
+  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

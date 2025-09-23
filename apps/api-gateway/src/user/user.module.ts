@@ -3,21 +3,20 @@ import { ClientProxyFactory } from '@nestjs/microservices';
 import { USER_SERVICE } from '@app/contracts';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { ServiceConfigModule } from '../service-config/service-config.module';
-import { ServiceConfigService } from '../service-config/service-config.service';
+import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 
 @Module({
-  imports: [ServiceConfigModule],
+  imports: [RabbitMQModule.register()],
   controllers: [UserController],
   providers: [
     UserService,
     {
       provide: USER_SERVICE,
-      useFactory: (configService: ServiceConfigService) => {
-        const serverOptions = configService.userServiceOptions;
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.userServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
-      inject: [ServiceConfigService],
+      inject: [RabbitMQService],
     },
   ],
 })
