@@ -2,10 +2,14 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthEventHandler } from './auth-event.handler';
+import { RabbitMQModule } from '@app/contracts/rmq';
 import { AuthRepository, RoleRepository } from './auth.repository';
 import { AUTH_SERVICE, ROLE_REPOSITORY, AUTH_REPOSITORY } from '@app/contracts';
 
 @Module({
+  imports: [
+    RabbitMQModule.register(),
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

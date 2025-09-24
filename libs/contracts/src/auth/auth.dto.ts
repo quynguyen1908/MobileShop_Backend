@@ -20,6 +20,13 @@ export const registerDtoSchema = userSchema.pick({
 
 export interface RegisterDto extends z.infer<typeof registerDtoSchema> {}
 
+export const loginDtoSchema = userSchema.pick({
+    username: true,
+    password: true,
+}).required();
+
+export interface LoginDto extends z.infer<typeof loginDtoSchema> {}
+
 // User
 
 export const userCreateDtoSchema = userSchema.pick({

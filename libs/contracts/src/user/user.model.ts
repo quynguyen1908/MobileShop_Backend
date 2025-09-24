@@ -40,7 +40,23 @@ export const customerSchema = z.object({
         .max(50, ErrLastNameAtMost50Chars.message)
         .optional(),
     gender: z.nativeEnum(Gender).optional(),
-    dateOfBirth: z.date().optional(),
+    dateOfBirth: z.union([
+        z.string().refine((val) => !isNaN(new Date(val).getTime()), {
+            message: "Invalid date string format. Use ISO format (e.g. '2023-01-15T00:00:00.000Z')"
+        }),
+        z.date(),
+        z.undefined()
+    ]).transform(val => {
+        if (val === undefined || val === null) return undefined;
+        if (val instanceof Date) return val;
+        
+        try {
+            const date = new Date(val);
+            return isNaN(date.getTime()) ? undefined : date;
+        } catch (e) {
+            return undefined;
+        }
+    }).optional(),
     pointsBalance: z.number().int().nonnegative().optional().default(0),
     createAt: z.date().optional(),
     updateAt: z.date().optional(),

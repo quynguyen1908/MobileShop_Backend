@@ -3,7 +3,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
 import { AUTH_PATTERN } from '@app/contracts/auth';
 import type { UserCreateDto, UserUpdateProfileDto, UserUpdateDto, UserFilterDto, User } from '@app/contracts/auth';
-import { PagingDto, TokenResponse } from '@app/contracts';
+import type { PagingDto, Requester, TokenResponse } from '@app/contracts';
 
 @Controller()
 export class AuthController {
@@ -12,6 +12,31 @@ export class AuthController {
   @MessagePattern(AUTH_PATTERN.REGISTER)
   async register(@Payload() registerDto: any): Promise<{ userId: number; tokens: TokenResponse }> {
     return this.authService.register(registerDto);
+  }
+
+  @MessagePattern(AUTH_PATTERN.LOGIN)
+  async login(@Payload() loginDto: any): Promise<{ userId: number; tokens: TokenResponse }> {
+    return this.authService.login(loginDto);
+  }
+
+  @MessagePattern(AUTH_PATTERN.LOGOUT)
+  async logout(@Payload() request: Requester): Promise<boolean> {
+    return this.authService.logout(request);
+  }
+
+  @MessagePattern(AUTH_PATTERN.REFRESH_TOKEN)
+  async refreshToken(@Payload() refreshToken: string): Promise<TokenResponse> {
+    return this.authService.refreshToken(refreshToken);
+  }
+
+  @MessagePattern(AUTH_PATTERN.VALIDATE_TOKEN)
+  async validateToken(@Payload() accessToken: string): Promise<any> {
+    return this.authService.validateToken(accessToken);
+  }
+
+  @MessagePattern(AUTH_PATTERN.DECODE_TOKEN)
+  async decodeToken(@Payload() token: string): Promise<any> {
+    return this.authService.decodeToken(token);
   }
 
   @MessagePattern(AUTH_PATTERN.CREATE_USER)
@@ -53,6 +78,24 @@ export class AuthController {
       ...result,
       data: result.data.map(user => this._toResponseModel(user)),
     }));
+  }
+
+  @MessagePattern(AUTH_PATTERN.TEST)
+  async test(@Payload() payload: { timestamp: string }) {
+    console.log('Received test message with payload:', payload, 'at', new Date().toISOString());
+
+    await this.authService.test();
+
+    return { 
+      message: 'Auth service is working!', 
+      timestamp: new Date().toISOString(),
+      receivedTimestamp: payload.timestamp,
+      serviceInfo: {
+        name: 'Auth Service',
+        version: '1.0.0',
+        status: 'healthy'
+      }
+    };
   }
 
   private _toResponseModel(data: User): Omit<User, 'password'> {

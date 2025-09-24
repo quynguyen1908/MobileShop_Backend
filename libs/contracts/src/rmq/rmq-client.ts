@@ -53,6 +53,8 @@ export class RabbitMQClient implements IEventPublisher, IEventSubscriber, OnModu
             
             const message = JSON.stringify(event.plainObject());
             
+            this.logger.log(`Publishing event ${event.eventName} with id ${event.id}`);
+
             await this.channel.publish(
                 this.exchange,
                 event.eventName,
@@ -69,46 +71,53 @@ export class RabbitMQClient implements IEventPublisher, IEventSubscriber, OnModu
                 }
             );
             
-            this.logger.debug(`Published event ${event.eventName} with id ${event.id}`);
+            this.logger.log(`✅ Successfully published event ${event.eventName} to exchange ${this.exchange}`);
         } catch (error) {
-            this.logger.error(`Failed to publish event: ${(error as Error).message}`);
+            this.logger.error(`❌ Failed to publish event ${event.eventName}: ${error.message}`, error.stack);
             throw error;
         }
     }
 
-    async subscribe(topic: string, handler: EventHandler): Promise<void> {
+    async subscribe(topic: string, serviceName: string, handler: EventHandler): Promise<void> {
         try {
             if (!this.channel) {
                 await this.connect();
             }
             
-            // Create temporary queue
-            const { queue } = await this.channel.assertQueue('', { 
-                exclusive: true,
-                autoDelete: true 
+            // Tạo queue cố định theo service và topic
+            const queueName = `${serviceName}.${topic}`;
+            this.logger.log(`Creating queue: ${queueName} for topic: ${topic}`);
+
+            await this.channel.assertQueue(queueName, {
+                durable: true,
+                autoDelete: false, 
             });
             
-            // Bind queue to exchange with topic
-            await this.channel.bindQueue(queue, this.exchange, topic);
-            
-            // Consume from queue
-            await this.channel.consume(queue, async (msg: ConsumeMessage | null) => {
+            // Bind queue tới exchange với topic
+            this.logger.log(`Binding queue ${queueName} to exchange ${this.exchange} with topic ${topic}`);
+            await this.channel.bindQueue(queueName, this.exchange, topic);
+
+            // Consume từ queue
+            this.logger.log(`Setting up consumer for queue: ${queueName}`);
+            await this.channel.consume(queueName, async (msg: ConsumeMessage | null) => {
                 if (msg) {
                     try {
                         const content = msg.content.toString();
+                        this.logger.log(`✉️ Received message on topic ${topic}, queue ${queueName}`);
+                        
                         await handler(content);
                         this.channel.ack(msg);
                     } catch (error) {
-                        this.logger.error(`Error processing message: ${(error as Error).message}`);
-                        // Requeue message if needed
+                        this.logger.error(`Error processing message on topic ${topic}: ${error.message}`, error.stack);
                         this.channel.nack(msg, false, true);
                     }
                 }
             });
             
-            this.logger.log(`Subscribed to topic: ${topic}`);
+            this.logger.log(`✅ Successfully subscribed to topic: ${topic} with queue: ${queueName}`);
         } catch (error) {
-            this.logger.error(`Failed to subscribe: ${(error as Error).message}`);
+            this.logger.error(`❌ Failed to subscribe to topic ${topic}: ${error.message}`, error.stack);
+            throw error;
         }
     }
 

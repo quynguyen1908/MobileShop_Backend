@@ -21,6 +21,8 @@ export const ErrUsernameAlreadyExists = new Error("Username already exists");
 export const ErrPhoneAlreadyExists = new Error('Phone number already exists');
 export const ErrEmailAlreadyExists = new Error('Email already exists');
 export const ErrUserNotFound = new Error("User not found");
+export const ErrInvalidUsernameAndPassword = new Error('Invalid username and password');
+export const ErrUserInactivated = new Error('User is inactivated or banned');
 
 export const userSchema = z.object({
     id: z.number().int().positive().optional(),

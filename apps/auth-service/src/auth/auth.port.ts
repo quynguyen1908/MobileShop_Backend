@@ -1,10 +1,17 @@
-import { RegisterDto, UserCreateDto, User, UserUpdateDto, UserFilterDto, Role } from '@app/contracts/auth';
+import { RegisterDto, UserCreateDto, User, UserUpdateDto, UserFilterDto, Role, LoginDto } from '@app/contracts/auth';
+import { Requester, TokenPayload, TokenResponse } from '@app/contracts/interface';
 import { Paginated, PagingDto } from '@app/contracts/model';
 
 // User
 
 export interface IAuthService {
     register(data: RegisterDto): Promise<{ userId: number; tokens: any }>;
+    login(data: LoginDto): Promise<{ userId: number; tokens: any }>;
+    logout(requester: Requester): Promise<boolean>;
+    refreshToken(refreshToken: string): Promise<TokenResponse>;
+    validateToken(token: string): Promise<TokenPayload>;
+    decodeToken(token: string): Promise<TokenPayload | null>;
+
     create(userCreateDto: UserCreateDto): Promise<number>;
     get(id: number): Promise<User>;
     profile(id: number): Promise<Omit<User, 'password'>>;

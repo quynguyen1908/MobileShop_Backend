@@ -6,6 +6,7 @@ export interface TokenPayload {
   email?: string;
   role: string;
   iat?: number;
+  jti?: string;
 }
 
 export interface TokenResponse {
@@ -25,7 +26,18 @@ export interface ITokenProvider {
   verifyAccessToken(token: string): Promise<TokenPayload | null>;
   verifyRefreshToken(token: string): Promise<TokenPayload | null>;
   refreshAccessToken(refreshToken: string): Promise<TokenResponse>;
+  invalidateToken(userId: number, tokenId?: string): Promise<void>
   decodeToken(token: string): Promise<TokenPayload | null>;
+}
+
+export type TokenValidationResult = {
+  payload: TokenPayload | null;
+  error?: Error;
+  isValid: boolean;
+}
+
+export interface ITokenValidator {
+  validate(token: string): Promise<TokenValidationResult>;
 }
 
 export type EventHandler = (msg: string) => void;
@@ -35,6 +47,6 @@ export interface IEventPublisher {
 }
 
 export interface IEventSubscriber {
-  subscribe(topic: string, handler: EventHandler): Promise<void>;
+  subscribe(topic: string, serviceName: string, handler: EventHandler): Promise<void>;
 }
   
