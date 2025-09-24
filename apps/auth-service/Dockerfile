@@ -11,8 +11,8 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-COPY prisma/user ./prisma/user
-RUN npx prisma generate --schema=./prisma/user/schema.prisma
+RUN mkdir -p node_modules/.prisma/client
+RUN npm run prisma:generate:all
 
 RUN npm run build auth-service
 

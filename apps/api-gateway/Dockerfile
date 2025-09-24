@@ -10,6 +10,10 @@ FROM node:18-alpine AS build
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+
+RUN mkdir -p node_modules/.prisma/client
+RUN npm run prisma:generate:all
+
 RUN npm run build api-gateway
 
 FROM node:18-alpine AS production
@@ -18,6 +22,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/api-gateway ./dist
+COPY --from=build /app/prisma/user ./prisma/user 
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*
