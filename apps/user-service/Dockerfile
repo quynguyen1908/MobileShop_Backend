@@ -10,6 +10,10 @@ FROM node:18-alpine AS build
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+
+COPY prisma/user ./prisma/user
+RUN npx prisma generate --schema=./prisma/user/schema.prisma
+
 RUN npm run build user-service
 
 FROM node:18-alpine AS production
@@ -18,9 +22,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/user-service ./dist
-
-COPY prisma/user ./prisma/user
-RUN npx prisma generate --schema=./prisma/user/schema.prisma
+COPY --from=build /app/prisma/user ./prisma/user 
 
 RUN apk add --no-cache curl jq
 

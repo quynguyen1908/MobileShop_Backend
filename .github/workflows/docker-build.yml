@@ -9,6 +9,27 @@ on:
     branches: [ main ]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ api-gateway, auth-service, user-service ]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests for ${{ matrix.service }}
+      run: npm run test:${{ matrix.service }}
+
   build-services:
     runs-on: ubuntu-latest
     strategy:
@@ -34,23 +55,3 @@ jobs:
         file: ./apps/${{ matrix.service }}/Dockerfile
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-${{ matrix.service }}:latest
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [ api-gateway, auth-service, user-service ]
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run tests for ${{ matrix.service }}
-      run: npm test:${{ matrix.service }}
