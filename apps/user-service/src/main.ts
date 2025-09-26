@@ -8,10 +8,10 @@ async function bootstrap() {
 
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
 
-  const userEventHandler = app.get(UserEventHandler)
+  const userEventHandler = app.get(UserEventHandler);
 
   app.connectMicroservice(rmqService.userServiceOptions);
-  
+
   try {
     await userEventHandler.initSubscriptions();
     console.log('Event subscriptions initialized successfully');
@@ -23,4 +23,8 @@ async function bootstrap() {
 
   console.log('User Service is listening...');
 }
-bootstrap();
+
+void bootstrap().catch((err) => {
+  console.error('Failed to start User Service:', err);
+  process.exit(1);
+});

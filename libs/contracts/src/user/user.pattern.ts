@@ -1,3 +1,3 @@
 export const USER_PATTERN = {
-    CREATE_CUSTOMER: 'user.createCustomer',
-}
+  CREATE_CUSTOMER: 'user.createCustomer',
+};

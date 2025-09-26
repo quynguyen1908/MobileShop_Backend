@@ -6,7 +6,12 @@ import * as crypto from 'crypto';
 export class TokenWhitelistRepository {
   constructor(private readonly prisma: UserPrismaService) {}
 
-  async addToWhitelist(userId: number, tokenId: string, refreshToken: string, expiresAt: Date): Promise<void> {
+  async addToWhitelist(
+    userId: number,
+    tokenId: string,
+    refreshToken: string,
+    expiresAt: Date,
+  ): Promise<void> {
     const hashedToken = crypto
       .createHash('sha256')
       .update(refreshToken)

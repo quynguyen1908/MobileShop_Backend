@@ -5,18 +5,17 @@ import type { IAuthService } from './auth.port';
 
 @Injectable()
 export class AuthEventHandler implements OnModuleInit {
-    private readonly logger = new Logger(AuthEventHandler.name);
-    
-    constructor(
-        @Inject(EVENT_SUBSCRIBER) private readonly eventSubscriber: IEventSubscriber,
-        @Inject(AUTH_SERVICE) private readonly authService: IAuthService,
-    ) {}
+  private readonly logger = new Logger(AuthEventHandler.name);
 
-    async onModuleInit() {
-        await this.subscribe();
-    }
+  constructor(
+    @Inject(EVENT_SUBSCRIBER)
+    private readonly eventSubscriber: IEventSubscriber,
+    @Inject(AUTH_SERVICE) private readonly authService: IAuthService,
+  ) {}
 
-    private async subscribe() {
-        
-    }
+  async onModuleInit() {
+    await this.subscribe();
+  }
+
+  private async subscribe() {}
 }

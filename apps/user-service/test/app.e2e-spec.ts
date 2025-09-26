@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { UserServiceModule } from './../src/user-service.module';
 
 describe('UserServiceController (e2e)', () => {

@@ -7,9 +7,7 @@ import { AuthRepository, RoleRepository } from './auth.repository';
 import { AUTH_SERVICE, ROLE_REPOSITORY, AUTH_REPOSITORY } from '@app/contracts';
 
 @Module({
-  imports: [
-    RabbitMQModule.register(),
-  ],
+  imports: [RabbitMQModule.register()],
   controllers: [AuthController],
   providers: [
     AuthService,

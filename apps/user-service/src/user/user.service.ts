@@ -2,7 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IUserService, IUserRepository } from './user.port';
 import type { IEventPublisher } from '@app/contracts';
 import { USER_REPOSITORY, EVENT_PUBLISHER } from '@app/contracts';
-import { Customer, CustomerCreateDto, customerSchema } from '@app/contracts/user';
+import {
+  Customer,
+  CustomerCreateDto,
+  customerSchema,
+} from '@app/contracts/user';
 
 @Injectable()
 export class UserService implements IUserService {
@@ -21,7 +25,7 @@ export class UserService implements IUserService {
       dateOfBirth: data.dateOfBirth,
       pointsBalance: 0,
       isDeleted: false,
-    }
+    };
 
     const createdCustomer = await this.userRepository.insertCustomer(customer);
     return createdCustomer.id!;

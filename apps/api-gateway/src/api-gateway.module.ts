@@ -7,11 +7,10 @@ import { HealthController } from './api-gateway.controller';
 
 @Module({
   imports: [
-    AuthModule, 
-    ConfigModule.forRoot({  isGlobal: true }), 
+    AuthModule,
+    ConfigModule.forRoot({ isGlobal: true }),
     RabbitMQModule.register(),
     UserModule,
-    
   ],
   controllers: [HealthController],
   providers: [],

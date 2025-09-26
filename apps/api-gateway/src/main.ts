@@ -11,11 +11,13 @@ async function bootstrap() {
     origin: true,
     credentials: true,
   });
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Mobile Shop API')
@@ -32,4 +34,8 @@ async function bootstrap() {
   console.log(`API Gateway is running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+
+void bootstrap().catch((err) => {
+  console.error('Failed to start API Gateway:', err);
+  process.exit(1);
+});

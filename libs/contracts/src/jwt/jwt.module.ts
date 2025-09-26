@@ -9,37 +9,34 @@ import { UserPrismaService } from '../prisma';
 
 @Global()
 @Module({
-    imports: [
-        ConfigModule.forRoot({
-            isGlobal: true,
-        }),
-        RabbitMQModule.register(),
-    ],
-    providers: [
-        TokenWhitelistRepository,
-        UserPrismaService,
-        TokenValidator,
-        JwtTokenService,
-        {
-            provide: TOKEN_PROVIDER,
-            useExisting: JwtTokenService,
-        },
-        {
-            provide: TOKEN_VALIDATOR,
-            useExisting: TokenValidator,
-        },
-        {
-            provide: AUTH_SERVICE,
-            useFactory: (rmqConfigService: RabbitMQService) => {
-                const serverOptions = rmqConfigService.authServiceOptions;
-                return ClientProxyFactory.create(serverOptions);
-            },
-            inject: [RabbitMQService],
-        }
-    ],
-    exports: [
-        TOKEN_PROVIDER,
-        TOKEN_VALIDATOR,
-    ],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    RabbitMQModule.register(),
+  ],
+  providers: [
+    TokenWhitelistRepository,
+    UserPrismaService,
+    TokenValidator,
+    JwtTokenService,
+    {
+      provide: TOKEN_PROVIDER,
+      useExisting: JwtTokenService,
+    },
+    {
+      provide: TOKEN_VALIDATOR,
+      useExisting: TokenValidator,
+    },
+    {
+      provide: AUTH_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.authServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+  ],
+  exports: [TOKEN_PROVIDER, TOKEN_VALIDATOR],
 })
 export class JwtTokenModule {}

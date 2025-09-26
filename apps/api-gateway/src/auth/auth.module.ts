@@ -6,10 +6,7 @@ import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 import { JwtTokenModule } from '@app/contracts/jwt';
 
 @Module({
-  imports: [
-    RabbitMQModule.register(),
-    JwtTokenModule
-  ],
+  imports: [RabbitMQModule.register(), JwtTokenModule],
   controllers: [AuthController],
   providers: [
     {

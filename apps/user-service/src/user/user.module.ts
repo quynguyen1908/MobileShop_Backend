@@ -7,9 +7,7 @@ import { RabbitMQModule } from '@app/contracts/rmq';
 import { USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
 
 @Module({
-  imports: [
-    RabbitMQModule.register(),
-  ],
+  imports: [RabbitMQModule.register()],
   controllers: [UserController],
   providers: [
     UserService,
