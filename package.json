@@ -6,7 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "prisma:generate:user": "npx prisma generate --schema=./prisma/user/schema.prisma",
+    "prisma:generate:all": "npm run prisma:generate:user",
+    "build": "npm run prisma:generate:all && nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -15,8 +17,13 @@
     "start:api-gateway": "nest start api-gateway --watch",
     "start:auth-service": "nest start auth-service --watch",
     "start:user-service": "nest start user-service --watch",
+    "start:all": "concurrently --names \"API,AUTH,USER\" --prefix-colors \"green,blue,yellow\" \"npm run start:api-gateway\" \"npm run start:auth-service\" \"npm run start:user-service\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
+    "test:api-gateway": "jest --testPathPatterns=apps/api-gateway",
+    "test:auth-service": "jest --testPathPatterns=apps/auth-service",
+    "test:user-service": "jest --testPathPatterns=apps/user-service",
+    "test:contracts": "jest --testPathPatterns=libs/contracts",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -26,6 +33,7 @@
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^11.1.6",
     "@nestjs/platform-express": "^11.0.1",
@@ -50,6 +58,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
+    "@golevelup/ts-jest": "^0.7.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
@@ -59,6 +68,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "concurrently": "^9.2.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -96,6 +106,15 @@
     ],
     "moduleNameMapper": {
       "^@app/contracts(|/.*)$": "<rootDir>/libs/contracts/src/$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(uuid)/)"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.json",
+        "transpilation": true
+      }
     }
   }
 }

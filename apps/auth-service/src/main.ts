@@ -7,8 +7,11 @@ async function bootstrap() {
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
 
   app.connectMicroservice(rmqService.authServiceOptions);
-  
+
   await app.startAllMicroservices();
   console.log('Auth Service is listening...');
 }
-bootstrap();
+void bootstrap().catch((err) => {
+  console.error('Failed to start Auth Service:', err);
+  process.exit(1);
+});

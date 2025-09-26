@@ -3,9 +3,11 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { UserRepository } from './user.repository';
 import { UserEventHandler } from './user-event.handler';
+import { RabbitMQModule } from '@app/contracts/rmq';
 import { USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
 
 @Module({
+  imports: [RabbitMQModule.register()],
   controllers: [UserController],
   providers: [
     UserService,
@@ -18,7 +20,7 @@ import { USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
     {
       provide: USER_REPOSITORY,
       useExisting: UserRepository,
-    }
+    },
   ],
 })
 export class UserModule {}

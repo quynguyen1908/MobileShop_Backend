@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientProxyFactory } from '@nestjs/microservices';
 import { USER_SERVICE } from '@app/contracts';
-import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 
@@ -9,7 +8,6 @@ import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
   imports: [RabbitMQModule.register()],
   controllers: [UserController],
   providers: [
-    UserService,
     {
       provide: USER_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {

@@ -1,4 +1,4 @@
-import { AppEvent } from "./model";
+import { AppEvent } from './model';
 
 export interface TokenPayload {
   sub: number;
@@ -6,6 +6,7 @@ export interface TokenPayload {
   email?: string;
   role: string;
   iat?: number;
+  jti?: string;
 }
 
 export interface TokenResponse {
@@ -14,18 +15,33 @@ export interface TokenResponse {
   expiresIn: number;
 }
 
-export interface Requester extends TokenPayload {}
+export type Requester = TokenPayload;
 
-export interface ReqWithRequester { requester: Requester; }
-export interface ReqWithRequesterOpt { requester?: Requester; }
+export interface ReqWithRequester {
+  requester: Requester;
+}
+export interface ReqWithRequesterOpt {
+  requester?: Requester;
+}
 
 export interface ITokenProvider {
   generateTokens(payload: TokenPayload): Promise<TokenResponse>;
-  generateAccessToken(payload: TokenPayload): Promise<string>;
-  verifyAccessToken(token: string): Promise<TokenPayload | null>;
+  generateAccessToken(payload: TokenPayload): string;
+  verifyAccessToken(token: string): TokenPayload | null;
   verifyRefreshToken(token: string): Promise<TokenPayload | null>;
   refreshAccessToken(refreshToken: string): Promise<TokenResponse>;
-  decodeToken(token: string): Promise<TokenPayload | null>;
+  invalidateToken(userId: number, tokenId?: string): Promise<void>;
+  decodeToken(token: string): TokenPayload | null;
+}
+
+export type TokenValidationResult = {
+  payload: TokenPayload | null;
+  error?: Error;
+  isValid: boolean;
+};
+
+export interface ITokenValidator {
+  validate(token: string): Promise<TokenValidationResult>;
 }
 
 export type EventHandler = (msg: string) => void;
@@ -35,6 +51,9 @@ export interface IEventPublisher {
 }
 
 export interface IEventSubscriber {
-  subscribe(topic: string, handler: EventHandler): Promise<void>;
+  subscribe(
+    topic: string,
+    serviceName: string,
+    handler: EventHandler,
+  ): Promise<void>;
 }
-  

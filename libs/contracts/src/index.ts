@@ -6,6 +6,7 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
 
 export const TOKEN_PROVIDER = Symbol('TOKEN_PROVIDER');
+export const TOKEN_VALIDATOR = Symbol('TOKEN_VALIDATOR');
 export const EVENT_PUBLISHER = Symbol('EVENT_PUBLISHER');
 export const EVENT_SUBSCRIBER = Symbol('EVENT_SUBSCRIBER');
 

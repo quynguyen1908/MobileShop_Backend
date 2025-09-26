@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { ClientProxyFactory } from '@nestjs/microservices';
 import { AUTH_SERVICE } from '@app/contracts';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { JwtTokenModule } from '@app/contracts/jwt';
 
 @Module({
-  imports: [RabbitMQModule.register()],
+  imports: [RabbitMQModule.register(), JwtTokenModule],
   controllers: [AuthController],
   providers: [
-    AuthService,
     {
       provide: AUTH_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
