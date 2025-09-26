@@ -39,6 +39,7 @@ import {
   ErrInvalidUsernameAndPassword,
   ErrUserInactivated,
   AuthTestEvent,
+  AUTH_SERVICE_NAME,
 } from '@app/contracts/auth';
 import { randomInt } from 'crypto';
 
@@ -85,7 +86,7 @@ export class AuthService implements IAuthService {
         lastName: registerDto.lastName,
         dateOfBirth: registerDto.dateOfBirth,
       },
-      'auth-service',
+      AUTH_SERVICE_NAME,
     );
 
     await this.eventPublisher.publish(event);
@@ -287,7 +288,7 @@ export class AuthService implements IAuthService {
         message: 'Test message from Auth Service',
         timestamp: new Date().toISOString(),
       },
-      'auth-service',
+      AUTH_SERVICE_NAME,
     );
 
     await this.eventPublisher.publish(event);

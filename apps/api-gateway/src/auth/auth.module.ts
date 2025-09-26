@@ -4,9 +4,10 @@ import { ClientProxyFactory } from '@nestjs/microservices';
 import { AUTH_SERVICE } from '@app/contracts';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 import { JwtTokenModule } from '@app/contracts/jwt';
+import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 
 @Module({
-  imports: [RabbitMQModule.register(), JwtTokenModule],
+  imports: [RabbitMQModule.register(), JwtTokenModule, CircuitBreakerModule],
   controllers: [AuthController],
   providers: [
     {

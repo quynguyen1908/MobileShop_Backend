@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RabbitMQModule } from '@app/contracts/rmq';
 import { UserModule } from './user/user.module';
 import { HealthController } from './api-gateway.controller';
+import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { HealthController } from './api-gateway.controller';
     ConfigModule.forRoot({ isGlobal: true }),
     RabbitMQModule.register(),
     UserModule,
+    CircuitBreakerModule,
   ],
   controllers: [HealthController],
   providers: [],
