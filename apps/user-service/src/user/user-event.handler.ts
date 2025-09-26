@@ -10,6 +10,7 @@ import {
   AuthEventJson,
 } from '@app/contracts/auth';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { USER_SERVICE_NAME } from '@app/contracts/user';
 
 interface TypedError {
   message: string;
@@ -96,7 +97,7 @@ export class UserEventHandler {
 
     await this.eventSubscriber.subscribe(
       EVT_AUTH_REGISTERED,
-      'user-service',
+      USER_SERVICE_NAME,
       (msg: string): void => {
         void (async () => {
           try {
@@ -132,7 +133,7 @@ export class UserEventHandler {
 
     await this.eventSubscriber.subscribe(
       EVT_AUTH_TEST,
-      'user-service',
+      USER_SERVICE_NAME,
       (msg: string): void => {
         try {
           this.logger.log(`Received ${EVT_AUTH_TEST} event: ${msg}`);

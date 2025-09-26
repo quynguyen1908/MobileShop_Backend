@@ -1,6 +1,6 @@
 import { AUTH_SERVICE } from '@app/contracts';
 import type { ReqWithRequester } from '@app/contracts';
-import { AUTH_PATTERN } from '@app/contracts/auth';
+import { AUTH_PATTERN, AUTH_SERVICE_NAME } from '@app/contracts/auth';
 import type { LoginDto, RegisterDto } from '@app/contracts/auth';
 import {
   Body,
@@ -15,19 +15,21 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
 import type { Response } from 'express';
 import { ApiResponseDto } from '../dto/response.dto';
-import type { ServiceError } from '../dto/error.dto';
+import type { ServiceError, FallbackResponse } from '../dto/error.dto';
 import { formatError } from '../utils/error';
-import { AuthGuard } from '@app/contracts/auth/auth.guard';
+import { isFallbackResponse } from '../utils/fallback';
+import { AuthGuard } from '@app/contracts/auth';
 import * as AuthInterface from './auth.interface';
+import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 
 @ApiTags('Authentication')
 @Controller('v1/auth')
 export class AuthController {
   constructor(
     @Inject(AUTH_SERVICE) private readonly authServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
   @Post('register')
@@ -81,22 +83,44 @@ export class AuthController {
   })
   async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
     try {
-      const result = await firstValueFrom<AuthInterface.LoginResponse>(
-        this.authServiceClient.send(AUTH_PATTERN.REGISTER, registerDto),
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.LoginResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.REGISTER,
+        registerDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
-      const response = new ApiResponseDto(
-        HttpStatus.CREATED,
-        'User registered successfully',
-        {
-          userId: result.userId,
-          tokens: result.tokens,
-        },
-      );
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'User registered successfully',
+          {
+            userId: result.userId,
+            tokens: result.tokens,
+          },
+        );
 
-      return res.status(HttpStatus.CREATED).json(response);
+        return res.status(HttpStatus.CREATED).json(response);
+      }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.status || HttpStatus.BAD_REQUEST;
@@ -148,22 +172,44 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
     try {
-      const result = await firstValueFrom<AuthInterface.LoginResponse>(
-        this.authServiceClient.send(AUTH_PATTERN.LOGIN, loginDto),
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.LoginResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.LOGIN,
+        loginDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
-      const response = new ApiResponseDto(
-        HttpStatus.OK,
-        'User logged in successfully',
-        {
-          userId: result.userId,
-          tokens: result.tokens,
-        },
-      );
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User logged in successfully',
+          {
+            userId: result.userId,
+            tokens: result.tokens,
+          },
+        );
 
-      return res.status(HttpStatus.OK).json(response);
+        return res.status(HttpStatus.OK).json(response);
+      }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
 
@@ -210,23 +256,42 @@ export class AuthController {
   async logout(@Req() req: ReqWithRequester, @Res() res: Response) {
     try {
       const requester = req.requester;
-      const result = await firstValueFrom<AuthInterface.LogoutResponse>(
-        this.authServiceClient.send(AUTH_PATTERN.LOGOUT, requester),
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.LogoutResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.LOGOUT,
+        requester,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
       );
 
-      console.log(
-        'Auth Service logout response:',
-        JSON.stringify(result, null, 2),
-      );
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
-      const response = new ApiResponseDto(
-        HttpStatus.OK,
-        'User logged out successfully',
-        result,
-        null,
-      );
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User logged out successfully',
+          result,
+          null,
+        );
 
-      return res.status(HttpStatus.OK).json(response);
+        return res.status(HttpStatus.OK).json(response);
+      }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
@@ -247,24 +312,60 @@ export class AuthController {
     try {
       console.log('Sending test message to Auth Service...');
 
-      const result = await firstValueFrom<AuthInterface.TestResponse>(
-        this.authServiceClient.send(AUTH_PATTERN.TEST, {
-          timestamp: new Date().toISOString(),
-        }),
+      // const result = await firstValueFrom<AuthInterface.TestResponse>(
+      //   this.authServiceClient.send(AUTH_PATTERN.TEST, {
+      //     timestamp: new Date().toISOString(),
+      //   }),
+      // );
+
+      // console.log(
+      //   'Auth Service test response:',
+      //   JSON.stringify(result, null, 2),
+      // );
+
+      // const response = new ApiResponseDto(
+      //   HttpStatus.OK,
+      //   'Test message processed successfully',
+      //   result,
+      // );
+
+      // return res.status(HttpStatus.OK).json(response);
+
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.TestResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.TEST,
+        { timestamp: new Date().toISOString() },
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
       );
 
-      console.log(
-        'Auth Service test response:',
-        JSON.stringify(result, null, 2),
-      );
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
-      const response = new ApiResponseDto(
-        HttpStatus.OK,
-        'Test message processed successfully',
-        result,
-      );
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Test message processed successfully',
+          result,
+        );
 
-      return res.status(HttpStatus.OK).json(response);
+        return res.status(HttpStatus.OK).json(response);
+      }
     } catch (error: unknown) {
       console.error('Error during test message:', error);
 

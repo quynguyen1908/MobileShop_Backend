@@ -16,3 +16,5 @@ export const AUTH_PATTERN = {
 
   TEST: 'auth.test',
 };
+
+export const AUTH_SERVICE_NAME = 'auth-service';
