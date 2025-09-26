@@ -5,17 +5,7 @@ export interface IUserService {
   createCustomer(data: CustomerCreateDto): Promise<number>;
 }
 
-export interface IUserRepository
-  extends IUserCommandRepository,
-    IUserQueryRepository {}
-
-export interface IUserCommandRepository {
+export interface IUserRepository {
   // Customer
   insertCustomer(data: Customer): Promise<Customer>;
-}
-
-export interface IUserQueryRepository {
-  // Customer
-  findCustomerByUserId(userId: number): Promise<Customer | null>;
-  findCustomerById(id: number): Promise<Customer | null>;
 }

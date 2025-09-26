@@ -57,8 +57,8 @@ export const userSchema = z.object({
   roleId: z.number().int().positive(),
   lastChangePass: z.date().optional(),
   status: z.nativeEnum(UserStatus).optional().default(UserStatus.ACTIVE),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -85,8 +85,8 @@ export const roleSchema = z.object({
     .string()
     .max(255, ErrRoleDescriptionAtMost255Chars.message)
     .optional(),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
 });
 

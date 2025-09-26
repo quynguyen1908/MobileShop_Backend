@@ -9,7 +9,27 @@ import {
 } from '@app/contracts/auth';
 import { PagingDto, Paginated } from '@app/contracts';
 import { UserPrismaService } from '@app/contracts/prisma';
-import { Role as RolePrisma, User as UserPrisma } from '.prisma/client/user';
+
+interface PrismaUser {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+  roleId: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface PrismaRole {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
 
 @Injectable()
 export class AuthRepository implements IAuthRepository {
@@ -18,9 +38,11 @@ export class AuthRepository implements IAuthRepository {
   async insert(data: User): Promise<User> {
     const prismaService = this.prisma as unknown as {
       user: {
-        create: (params: { data: any }) => Promise<UserPrisma>;
+        create: (params: { data: any }) => Promise<PrismaUser>;
       };
     };
+
+    // Sử dụng kiểu dữ liệu cụ thể
     const user = await prismaService.user.create({ data });
     return this._toModel(user);
   }
@@ -28,27 +50,23 @@ export class AuthRepository implements IAuthRepository {
   async update(id: number, data: UserUpdateDto): Promise<void> {
     const prismaService = this.prisma as unknown as {
       user: {
-        update: (params: { where: { id: number }; data: any }) => Promise<UserPrisma>;
+        update: (params: {
+          where: { id: number };
+          data: any;
+        }) => Promise<PrismaUser>;
       };
     };
     await prismaService.user.update({ where: { id }, data });
   }
 
-  // Hard delete
-  // async delete(id: number): Promise<void> {
-  //   const prismaService = this.prisma as unknown as {
-  //     user: {
-  //       delete: (params: { where: { id: number } }) => Promise<UserPrisma>;
-  //     };
-  //   };
-  //   await prismaService.user.delete({ where: { id } });
-  // }
-
   // Soft delete
   async delete(id: number): Promise<void> {
     const prismaService = this.prisma as unknown as {
       user: {
-        update: (params: { where: { id: number }; data: any }) => Promise<UserPrisma>;
+        update: (params: {
+          where: { id: number };
+          data: any;
+        }) => Promise<PrismaUser>;
       };
     };
     await prismaService.user.update({
@@ -60,7 +78,9 @@ export class AuthRepository implements IAuthRepository {
   async findById(id: number): Promise<User | null> {
     const prismaService = this.prisma as unknown as {
       user: {
-        findUnique: (params: { where: { id: number } }) => Promise<UserPrisma | null>;
+        findUnique: (params: {
+          where: { id: number };
+        }) => Promise<PrismaUser | null>;
       };
     };
     const user = await prismaService.user.findUnique({ where: { id } });
@@ -70,7 +90,7 @@ export class AuthRepository implements IAuthRepository {
   async findByFilter(filter: UserFilterDto): Promise<User | null> {
     const prismaService = this.prisma as unknown as {
       user: {
-        findFirst: (params: { where: any }) => Promise<UserPrisma | null>;
+        findFirst: (params: { where: any }) => Promise<PrismaUser | null>;
       };
     };
     const user = await prismaService.user.findFirst({
@@ -94,12 +114,12 @@ export class AuthRepository implements IAuthRepository {
     const prismaService = this.prisma as unknown as {
       user: {
         count: (params: { where: any }) => Promise<number>;
-        findMany: (params: { 
-          where: any; 
-          take: number; 
-          skip: number; 
-          orderBy: any 
-        }) => Promise<UserPrisma[]>;
+        findMany: (params: {
+          where: any;
+          take: number;
+          skip: number;
+          orderBy: any;
+        }) => Promise<PrismaUser[]>;
       };
     };
     const total = await prismaService.user.count({ where: whereCondition });
@@ -120,7 +140,7 @@ export class AuthRepository implements IAuthRepository {
   async findByIds(ids: number[]): Promise<User[]> {
     const prismaService = this.prisma as unknown as {
       user: {
-        findMany: (params: { where: any }) => Promise<UserPrisma[]>;
+        findMany: (params: { where: any }) => Promise<PrismaUser[]>;
       };
     };
     const users = await prismaService.user.findMany({
@@ -143,7 +163,7 @@ export class AuthRepository implements IAuthRepository {
     if (filters.phone) conditions.push({ phone: filters.phone });
     const prismaService = this.prisma as unknown as {
       user: {
-        findFirst: (params: { where: any }) => Promise<UserPrisma | null>;
+        findFirst: (params: { where: any }) => Promise<PrismaUser | null>;
       };
     };
     const user = await prismaService.user.findFirst({
@@ -155,12 +175,28 @@ export class AuthRepository implements IAuthRepository {
     return user ? this._toModel(user) : null;
   }
 
-  private _toModel(data: UserPrisma): User {
-    const typedData = data as unknown as {
-      status: unknown;
-      [key: string]: unknown;
+  private _toModel(data: PrismaUser): User {
+    let typedStatus: UserStatus | undefined;
+    if (data.status !== null && data.status !== undefined) {
+      if (typeof data.status === 'string') {
+        const validStatuses = Object.values(UserStatus) as string[];
+        if (validStatuses.includes(data.status)) {
+          typedStatus = data.status as UserStatus;
+        }
+      }
+    }
+
+    return {
+      id: data.id,
+      username: data.username,
+      password: data.password,
+      email: data.email,
+      phone: data.phone,
+      roleId: data.roleId,
+      status: typedStatus!,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
     };
-    return { ...data, status: typedData.status as UserStatus } as User;
   }
 }
 
@@ -171,14 +207,23 @@ export class RoleRepository implements IRoleQueryRepository {
   async findById(id: number): Promise<Role | null> {
     const prismaService = this.prisma as unknown as {
       role: {
-        findUnique: (params: { where: { id: number } }) => Promise<RolePrisma | null>;
+        findUnique: (params: {
+          where: { id: number };
+        }) => Promise<PrismaRole | null>;
       };
     };
     const role = await prismaService.role.findUnique({ where: { id } });
     return role ? this._toModel(role) : null;
   }
 
-  private _toModel(data: RolePrisma): Role {
-    return { ...data } as Role;
+  private _toModel(data: PrismaRole): Role {
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
+    };
   }
 }

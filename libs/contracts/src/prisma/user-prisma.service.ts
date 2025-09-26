@@ -6,6 +6,9 @@ type LogDefinition = {
   level: LogLevel;
   emit: 'stdout' | 'event';
 };
+type PrismaClientOptions = {
+  log?: (LogLevel | LogDefinition)[];
+};
 
 interface TypedPrismaClient {
   $connect(): Promise<void>;
@@ -13,7 +16,10 @@ interface TypedPrismaClient {
 }
 
 @Injectable()
-export class UserPrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class UserPrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     super({
       log: [
@@ -21,8 +27,8 @@ export class UserPrismaService extends PrismaClient implements OnModuleInit, OnM
         { level: 'info', emit: 'stdout' },
         { level: 'warn', emit: 'stdout' },
         { level: 'error', emit: 'stdout' },
-      ] as (LogLevel | LogDefinition)[],
-    });
+      ],
+    } as PrismaClientOptions);
   }
 
   async onModuleInit(): Promise<void> {

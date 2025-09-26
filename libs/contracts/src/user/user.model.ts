@@ -60,8 +60,8 @@ export const customerSchema = z.object({
     })
     .optional(),
   pointsBalance: z.number().int().nonnegative().optional().default(0),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
 });
 
@@ -79,8 +79,8 @@ export const employeeSchema = z.object({
   hireDate: z.date().optional(),
   position: z.nativeEnum(EmployeePosition).optional(),
   salary: z.number().nonnegative().optional().default(0),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
 });
 
@@ -93,8 +93,8 @@ export const oauthSchema = z.object({
   userId: z.number().int().positive(),
   oauthProvider: z.nativeEnum(OAuthProvider),
   oauthId: z.string(),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
 });
 
@@ -113,8 +113,8 @@ export const notificationSchema = z.object({
     .default(NotificationType.INFO),
   isRead: z.boolean().optional().default(false),
   readAt: z.date().optional(),
-  createAt: z.date().optional(),
-  updateAt: z.date().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
 });
 

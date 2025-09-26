@@ -43,12 +43,12 @@ export class TokenWhitelistRepository {
   async isWhitelisted(userId: number, tokenId: string): Promise<boolean> {
     const prismaService = this.prisma as unknown as {
       refreshToken: {
-        findFirst: (params: { 
-          where: { 
-            id: string; 
-            userId: number; 
-            expiresAt: { gt: Date } 
-          } 
+        findFirst: (params: {
+          where: {
+            id: string;
+            userId: number;
+            expiresAt: { gt: Date };
+          };
         }) => Promise<RefreshToken | null>;
       };
     };
@@ -68,8 +68,8 @@ export class TokenWhitelistRepository {
   async removeFromWhitelist(userId: number, tokenId: string): Promise<void> {
     const prismaService = this.prisma as unknown as {
       refreshToken: {
-        deleteMany: (params: { 
-          where: { id: string; userId: number } 
+        deleteMany: (params: {
+          where: { id: string; userId: number };
         }) => Promise<{ count: number }>;
       };
     };
@@ -84,8 +84,8 @@ export class TokenWhitelistRepository {
   async removeAllUserTokens(userId: number): Promise<void> {
     const prismaService = this.prisma as unknown as {
       refreshToken: {
-        deleteMany: (params: { 
-          where: { userId: number } 
+        deleteMany: (params: {
+          where: { userId: number };
         }) => Promise<{ count: number }>;
       };
     };
