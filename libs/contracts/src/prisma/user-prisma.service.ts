@@ -21,6 +21,7 @@ export class UserPrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super({
       log: [
         { level: 'query', emit: 'stdout' },
