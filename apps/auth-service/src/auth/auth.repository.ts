@@ -16,34 +16,64 @@ export class AuthRepository implements IAuthRepository {
   constructor(private prisma: UserPrismaService) {}
 
   async insert(data: User): Promise<User> {
-    const user = await this.prisma.user.create({ data });
+    const prismaService = this.prisma as unknown as {
+      user: {
+        create: (params: { data: any }) => Promise<UserPrisma>;
+      };
+    };
+    const user = await prismaService.user.create({ data });
     return this._toModel(user);
   }
 
   async update(id: number, data: UserUpdateDto): Promise<void> {
-    await this.prisma.user.update({ where: { id }, data });
+    const prismaService = this.prisma as unknown as {
+      user: {
+        update: (params: { where: { id: number }; data: any }) => Promise<UserPrisma>;
+      };
+    };
+    await prismaService.user.update({ where: { id }, data });
   }
 
   // Hard delete
   // async delete(id: number): Promise<void> {
-  //     await this.prisma.user.delete({ where: { id } });
+  //   const prismaService = this.prisma as unknown as {
+  //     user: {
+  //       delete: (params: { where: { id: number } }) => Promise<UserPrisma>;
+  //     };
+  //   };
+  //   await prismaService.user.delete({ where: { id } });
   // }
 
   // Soft delete
   async delete(id: number): Promise<void> {
-    await this.prisma.user.update({
+    const prismaService = this.prisma as unknown as {
+      user: {
+        update: (params: { where: { id: number }; data: any }) => Promise<UserPrisma>;
+      };
+    };
+    await prismaService.user.update({
       where: { id },
       data: { status: UserStatus.DELETED },
     });
   }
 
   async findById(id: number): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const prismaService = this.prisma as unknown as {
+      user: {
+        findUnique: (params: { where: { id: number } }) => Promise<UserPrisma | null>;
+      };
+    };
+    const user = await prismaService.user.findUnique({ where: { id } });
     return user ? this._toModel(user) : null;
   }
 
   async findByFilter(filter: UserFilterDto): Promise<User | null> {
-    const user = await this.prisma.user.findFirst({
+    const prismaService = this.prisma as unknown as {
+      user: {
+        findFirst: (params: { where: any }) => Promise<UserPrisma | null>;
+      };
+    };
+    const user = await prismaService.user.findFirst({
       where: {
         ...filter,
         status: { not: UserStatus.DELETED },
@@ -61,8 +91,19 @@ export class AuthRepository implements IAuthRepository {
       ...filter,
       status: { not: UserStatus.DELETED },
     };
-    const total = await this.prisma.user.count({ where: whereCondition });
-    const data = await this.prisma.user.findMany({
+    const prismaService = this.prisma as unknown as {
+      user: {
+        count: (params: { where: any }) => Promise<number>;
+        findMany: (params: { 
+          where: any; 
+          take: number; 
+          skip: number; 
+          orderBy: any 
+        }) => Promise<UserPrisma[]>;
+      };
+    };
+    const total = await prismaService.user.count({ where: whereCondition });
+    const data = await prismaService.user.findMany({
       where: whereCondition,
       take: paging.limit,
       skip,
@@ -77,7 +118,12 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async findByIds(ids: number[]): Promise<User[]> {
-    const users = await this.prisma.user.findMany({
+    const prismaService = this.prisma as unknown as {
+      user: {
+        findMany: (params: { where: any }) => Promise<UserPrisma[]>;
+      };
+    };
+    const users = await prismaService.user.findMany({
       where: {
         id: { in: ids },
         status: { not: UserStatus.DELETED },
@@ -95,7 +141,12 @@ export class AuthRepository implements IAuthRepository {
     if (filters.username) conditions.push({ username: filters.username });
     if (filters.email) conditions.push({ email: filters.email });
     if (filters.phone) conditions.push({ phone: filters.phone });
-    const user = await this.prisma.user.findFirst({
+    const prismaService = this.prisma as unknown as {
+      user: {
+        findFirst: (params: { where: any }) => Promise<UserPrisma | null>;
+      };
+    };
+    const user = await prismaService.user.findFirst({
       where: {
         OR: conditions,
         status: { not: UserStatus.DELETED },
@@ -105,7 +156,11 @@ export class AuthRepository implements IAuthRepository {
   }
 
   private _toModel(data: UserPrisma): User {
-    return { ...data, status: data.status as UserStatus } as User;
+    const typedData = data as unknown as {
+      status: unknown;
+      [key: string]: unknown;
+    };
+    return { ...data, status: typedData.status as UserStatus } as User;
   }
 }
 
@@ -114,7 +169,12 @@ export class RoleRepository implements IRoleQueryRepository {
   constructor(private prisma: UserPrismaService) {}
 
   async findById(id: number): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({ where: { id } });
+    const prismaService = this.prisma as unknown as {
+      role: {
+        findUnique: (params: { where: { id: number } }) => Promise<RolePrisma | null>;
+      };
+    };
+    const role = await prismaService.role.findUnique({ where: { id } });
     return role ? this._toModel(role) : null;
   }
 

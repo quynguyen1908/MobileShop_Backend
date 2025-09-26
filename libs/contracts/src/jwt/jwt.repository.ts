@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { UserPrismaService } from '../prisma';
 import * as crypto from 'crypto';
 
+interface RefreshToken {
+  id: string;
+  token: string;
+  userId: number;
+  expiresAt: Date;
+}
+
 @Injectable()
 export class TokenWhitelistRepository {
   constructor(private readonly prisma: UserPrismaService) {}
@@ -17,7 +24,13 @@ export class TokenWhitelistRepository {
       .update(refreshToken)
       .digest('hex');
 
-    await this.prisma.refreshToken.create({
+    const prismaService = this.prisma as unknown as {
+      refreshToken: {
+        create: (params: { data: any }) => Promise<RefreshToken>;
+      };
+    };
+
+    await prismaService.refreshToken.create({
       data: {
         id: tokenId,
         token: hashedToken,
@@ -28,7 +41,18 @@ export class TokenWhitelistRepository {
   }
 
   async isWhitelisted(userId: number, tokenId: string): Promise<boolean> {
-    const token = await this.prisma.refreshToken.findFirst({
+    const prismaService = this.prisma as unknown as {
+      refreshToken: {
+        findFirst: (params: { 
+          where: { 
+            id: string; 
+            userId: number; 
+            expiresAt: { gt: Date } 
+          } 
+        }) => Promise<RefreshToken | null>;
+      };
+    };
+    const token = await prismaService.refreshToken.findFirst({
       where: {
         id: tokenId,
         userId: userId,
@@ -42,7 +66,14 @@ export class TokenWhitelistRepository {
   }
 
   async removeFromWhitelist(userId: number, tokenId: string): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+    const prismaService = this.prisma as unknown as {
+      refreshToken: {
+        deleteMany: (params: { 
+          where: { id: string; userId: number } 
+        }) => Promise<{ count: number }>;
+      };
+    };
+    await prismaService.refreshToken.deleteMany({
       where: {
         id: tokenId,
         userId: userId,
@@ -51,7 +82,14 @@ export class TokenWhitelistRepository {
   }
 
   async removeAllUserTokens(userId: number): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+    const prismaService = this.prisma as unknown as {
+      refreshToken: {
+        deleteMany: (params: { 
+          where: { userId: number } 
+        }) => Promise<{ count: number }>;
+      };
+    };
+    await prismaService.refreshToken.deleteMany({
       where: {
         userId: userId,
       },
