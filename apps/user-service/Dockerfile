@@ -16,6 +16,19 @@ RUN npm run prisma:generate:all
 
 RUN npm run build user-service
 
+FROM node:18-alpine AS development
+WORKDIR /app
+ENV NODE_ENV=development
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY nest-cli.json ./
+COPY apps/user-service/tsconfig.app.json ./apps/user-service/tsconfig.app.json
+RUN npm ci --include=dev
+RUN npm install -g @nestjs/cli
+COPY --from=build /app/dist/apps/user-service ./dist
+COPY --from=build /app/prisma/user ./prisma/user 
+CMD ["npm", "run", "start:dev"]
+
 FROM node:18-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
