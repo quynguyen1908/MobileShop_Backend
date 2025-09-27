@@ -13,7 +13,6 @@ services:
     image: quynguyen1908/phone-store-api-gateway:latest
     volumes:
       - ./apps/api-gateway:/app/apps/api-gateway:ro
-      - api_gateway_node_modules:/app/node_modules
       - ./libs:/app/libs:ro
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
@@ -46,7 +45,6 @@ services:
     image: quynguyen1908/phone-store-auth-service:latest
     volumes:
       - ./apps/auth-service:/app/apps/auth-service:ro
-      - auth_service_node_modules:/app/node_modules
       - ./libs:/app/libs:ro
       - ./prisma/user:/app/prisma/user:ro
       - ./package.json:/app/package.json:ro
@@ -82,7 +80,6 @@ services:
     image: quynguyen1908/phone-store-user-service:latest
     volumes:
       - ./apps/user-service:/app/apps/user-service:ro
-      - user_service_node_modules:/app/node_modules
       - ./libs:/app/libs:ro
       - ./prisma/user:/app/prisma/user:ro
       - ./package.json:/app/package.json:ro

@@ -99,13 +99,9 @@ docker compose up -d
 ```bash
 npx prisma migrate dev --schema=prisma/user/schema.prisma
 npx prisma generate --schema=prisma/user/schema.prisma
+// Các schema khác ...
 ```
 
-### 6. Khởi động hệ thống
-```bash
-npm run start:all
-```
-
-### 7. Truy cập hệ thống
+### 6. Truy cập hệ thống
 - **API Gateway**: [API Gateway](http://localhost:3000)
 - **Swagger Docs**: [Swagger Docs](http://localhost:3000/api/v1/docs)

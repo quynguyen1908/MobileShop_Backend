@@ -12,7 +12,7 @@ import { ROLES_KEY, RoleType } from './roles.decorator';
 import { Request } from 'express';
 
 // Định nghĩa interface cho request với requester
-interface RequestWithRequester extends Request {
+export interface RequestWithRequester extends Request {
   requester?: Requester;
 }
 
