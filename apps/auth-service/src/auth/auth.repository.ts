@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { IAuthRepository, IRoleQueryRepository } from './auth.port';
+import {
+  IAuthRepository,
+  IOAuthRepository,
+  IRoleQueryRepository,
+} from './auth.port';
 import {
   User,
   UserFilterDto,
   UserStatus,
   UserUpdateDto,
   Role,
+  OAuth,
+  OAuthProvider,
 } from '@app/contracts/auth';
 import { PagingDto, Paginated } from '@app/contracts';
 import { UserPrismaService } from '@app/contracts/prisma';
@@ -26,6 +32,16 @@ interface PrismaRole {
   id: number;
   name: string;
   description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
+
+interface PrismaOAuth {
+  id: number;
+  userId: number;
+  oauthProvider: string;
+  oauthId: string;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -95,8 +111,14 @@ export class AuthRepository implements IAuthRepository {
     };
     const user = await prismaService.user.findFirst({
       where: {
-        ...filter,
-        status: { not: UserStatus.DELETED },
+        username: filter.username,
+        email: filter.email,
+        phone: filter.phone,
+        roleId: filter.roleId,
+        status: {
+          not: UserStatus.DELETED,
+          equals: filter.status,
+        },
       },
     });
     return user ? this._toModel(user) : null;
@@ -221,6 +243,62 @@ export class RoleRepository implements IRoleQueryRepository {
       id: data.id,
       name: data.name,
       description: data.description,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
+    };
+  }
+}
+
+@Injectable()
+export class OAuthRepository implements IOAuthRepository {
+  constructor(private prisma: UserPrismaService) {}
+
+  async insert(data: OAuth): Promise<OAuth> {
+    const prismaService = this.prisma as unknown as {
+      userOauth: {
+        create: (params: { data: any }) => Promise<PrismaOAuth>;
+      };
+    };
+
+    const oauth = await prismaService.userOauth.create({ data });
+    return this._toModel(oauth);
+  }
+
+  async findByProviderAndOAuthId(
+    provider: OAuthProvider,
+    oauthId: string,
+  ): Promise<OAuth | null> {
+    const prismaService = this.prisma as unknown as {
+      userOauth: {
+        findFirst: (params: { where: any }) => Promise<PrismaOAuth | null>;
+      };
+    };
+    const oauth = await prismaService.userOauth.findFirst({
+      where: {
+        oauthProvider: provider as string,
+        oauthId: oauthId,
+        isDeleted: false,
+      },
+    });
+    return oauth ? this._toModel(oauth) : null;
+  }
+
+  private _toModel(data: PrismaOAuth): OAuth {
+    let typedProvider: OAuthProvider | undefined;
+    if (data.oauthProvider !== null && data.oauthProvider !== undefined) {
+      if (typeof data.oauthProvider === 'string') {
+        const validProviders = Object.values(OAuthProvider) as string[];
+        if (validProviders.includes(data.oauthProvider)) {
+          typedProvider = data.oauthProvider as OAuthProvider;
+        }
+      }
+    }
+    return {
+      id: data.id,
+      userId: data.userId,
+      oauthProvider: typedProvider!,
+      oauthId: data.oauthId,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

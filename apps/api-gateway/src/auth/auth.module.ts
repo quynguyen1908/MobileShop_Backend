@@ -5,9 +5,16 @@ import { AUTH_SERVICE } from '@app/contracts';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 import { JwtTokenModule } from '@app/contracts/jwt';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
+import { PassportModule } from '@nestjs/passport';
+import { GoogleStrategy } from '@app/contracts/auth';
 
 @Module({
-  imports: [RabbitMQModule.register(), JwtTokenModule, CircuitBreakerModule],
+  imports: [
+    RabbitMQModule.register(),
+    JwtTokenModule,
+    CircuitBreakerModule,
+    PassportModule.register({ defaultStrategy: 'google' }),
+  ],
   controllers: [AuthController],
   providers: [
     {
@@ -18,6 +25,7 @@ import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module'
       },
       inject: [RabbitMQService],
     },
+    GoogleStrategy,
   ],
 })
 export class AuthModule {}

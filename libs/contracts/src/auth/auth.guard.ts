@@ -17,7 +17,7 @@ interface RequestWithRequester extends Request {
 }
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class RemoteAuthGuard implements CanActivate {
   constructor(
     @Inject(TOKEN_VALIDATOR) private readonly tokenValidator: ITokenValidator,
   ) {}
@@ -60,7 +60,7 @@ function extractTokenFromHeader(
 
 @Injectable()
 export class OptionalAuthGuard implements CanActivate {
-  constructor(private readonly authGuard: AuthGuard) {}
+  constructor(private readonly authGuard: RemoteAuthGuard) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithRequester>();

@@ -10,6 +10,7 @@ import type {
   UserUpdateDto,
   UserFilterDto,
   User,
+  GoogleResponseDto,
 } from '@app/contracts/auth';
 import type { PagingDto, Requester, TokenResponse } from '@app/contracts';
 
@@ -51,6 +52,13 @@ export class AuthController {
     return this.authService.decodeToken(token);
   }
 
+  @MessagePattern(AUTH_PATTERN.GOOGLE_LOGIN)
+  async googleLogin(
+    @Payload() profile: GoogleResponseDto,
+  ): Promise<{ userId: number; tokens: TokenResponse }> {
+    return this.authService.loginWithGoogle(profile);
+  }
+
   @MessagePattern(AUTH_PATTERN.CREATE_USER)
   async create(@Payload() userCreateDto: UserCreateDto): Promise<number> {
     return this.authService.create(userCreateDto);
@@ -59,6 +67,15 @@ export class AuthController {
   @MessagePattern(AUTH_PATTERN.GET_USER)
   async get(@Payload() id: number) {
     return this.authService.get(id).then((user) => this._toResponseModel(user));
+  }
+
+  @MessagePattern(AUTH_PATTERN.GET_USER_BY_EMAIL)
+  async getByEmail(@Payload() email: string) {
+    const user = await this.authService.getByFilter({ email } as UserFilterDto);
+    if (!user) {
+      return null;
+    }
+    return this._toResponseModel(user);
   }
 
   @MessagePattern(AUTH_PATTERN.GET_PROFILE)

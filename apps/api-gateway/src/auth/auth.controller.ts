@@ -1,7 +1,15 @@
 import { AUTH_SERVICE } from '@app/contracts';
-import type { ReqWithRequester } from '@app/contracts';
-import { AUTH_PATTERN, AUTH_SERVICE_NAME } from '@app/contracts/auth';
-import type { LoginDto, RegisterDto } from '@app/contracts/auth';
+import type { ReqWithRequester, TokenResponse } from '@app/contracts';
+import {
+  AUTH_PATTERN,
+  AUTH_SERVICE_NAME,
+} from '@app/contracts/auth';
+import type {
+  GoogleResponseDto,
+  LoginDto,
+  RegisterDto,
+  User,
+} from '@app/contracts/auth';
 import {
   Body,
   Controller,
@@ -20,9 +28,11 @@ import { ApiResponseDto } from '../dto/response.dto';
 import type { ServiceError, FallbackResponse } from '../dto/error.dto';
 import { formatError } from '../utils/error';
 import { isFallbackResponse } from '../utils/fallback';
-import { AuthGuard } from '@app/contracts/auth';
+import { RemoteAuthGuard } from '@app/contracts/auth';
 import * as AuthInterface from './auth.interface';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
+import { AuthGuard } from '@nestjs/passport';
+import type { Request } from 'express';
 
 @ApiTags('Authentication')
 @Controller('v1/auth')
@@ -252,7 +262,7 @@ export class AuthController {
       },
     },
   })
-  @UseGuards(AuthGuard)
+  @UseGuards(RemoteAuthGuard)
   async logout(@Req() req: ReqWithRequester, @Res() res: Response) {
     try {
       const requester = req.requester;
@@ -307,29 +317,191 @@ export class AuthController {
     }
   }
 
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleLoginCallback(@Req() req: Request, @Res() res: Response) {
+    try {
+      const googleUser = req.user as GoogleResponseDto;
+
+      const userExists = await this.circuitBreakerService.sendRequest<
+        User | FallbackResponse | null
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.GET_USER_BY_EMAIL,
+        googleUser.email,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      if (isFallbackResponse(userExists)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          userExists.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        if (userExists) {
+          const result = await this.circuitBreakerService.sendRequest<
+            AuthInterface.LoginResponse | FallbackResponse
+          >(
+            this.authServiceClient,
+            AUTH_SERVICE_NAME,
+            AUTH_PATTERN.GOOGLE_LOGIN,
+            googleUser,
+            () => {
+              return {
+                fallback: true,
+                message: 'Auth service is temporarily unavailable',
+              } as FallbackResponse;
+            },
+            { timeout: 5000 },
+          );
+
+          if (isFallbackResponse(result)) {
+            const fallbackResponse = new ApiResponseDto(
+              HttpStatus.SERVICE_UNAVAILABLE,
+              result.message,
+            );
+            return res
+              .status(HttpStatus.SERVICE_UNAVAILABLE)
+              .json(fallbackResponse);
+          } else {
+            const response = new ApiResponseDto(
+              HttpStatus.OK,
+              'User logged in successfully',
+              {
+                userId: result.userId,
+                tokens: result.tokens,
+              },
+            );
+
+            return res.status(HttpStatus.OK).json(response);
+          }
+        } else {
+          const response = new ApiResponseDto(
+            HttpStatus.OK,
+            'User not found, proceed to registration',
+            googleUser,
+          );
+          return res.status(HttpStatus.OK).json(response);
+        }
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.message || 'Google login failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiBody({
+    description: 'Refresh token data',
+    schema: {
+      type: 'object',
+      properties: {
+        refreshToken: { type: 'string', example: 'someRefreshToken' },
+      },
+      required: ['refreshToken'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token refreshed successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Token refreshed successfully',
+          data: {
+            accessToken: 'newAccessToken',
+            refreshToken: 'newRefreshToken',
+            expiresIn: 3600,
+          },
+          errors: null,
+        },
+      },
+    },
+  })
+  async refreshToken(
+    @Body() body: { refreshToken: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        TokenResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.REFRESH_TOKEN,
+        body.refreshToken,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Token refreshed successfully',
+          result,
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.message || 'Token refresh failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('test')
   async test(@Res() res: Response) {
     try {
       console.log('Sending test message to Auth Service...');
-
-      // const result = await firstValueFrom<AuthInterface.TestResponse>(
-      //   this.authServiceClient.send(AUTH_PATTERN.TEST, {
-      //     timestamp: new Date().toISOString(),
-      //   }),
-      // );
-
-      // console.log(
-      //   'Auth Service test response:',
-      //   JSON.stringify(result, null, 2),
-      // );
-
-      // const response = new ApiResponseDto(
-      //   HttpStatus.OK,
-      //   'Test message processed successfully',
-      //   result,
-      // );
-
-      // return res.status(HttpStatus.OK).json(response);
 
       const result = await this.circuitBreakerService.sendRequest<
         AuthInterface.TestResponse | FallbackResponse

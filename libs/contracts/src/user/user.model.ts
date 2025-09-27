@@ -6,11 +6,6 @@ export enum Gender {
   UNKNOWN = 'unknown',
 }
 
-export enum OAuthProvider {
-  GOOGLE = 'google',
-  FACEBOOK = 'facebook',
-}
-
 export enum EmployeePosition {
   MANAGER = 'manager',
   SALE = 'sale',
@@ -85,20 +80,6 @@ export const employeeSchema = z.object({
 });
 
 export type Employee = z.infer<typeof employeeSchema>;
-
-// OAuth
-
-export const oauthSchema = z.object({
-  id: z.number().int().positive().optional(),
-  userId: z.number().int().positive(),
-  oauthProvider: z.nativeEnum(OAuthProvider),
-  oauthId: z.string(),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
-  isDeleted: z.boolean().optional().default(false),
-});
-
-export type OAuth = z.infer<typeof oauthSchema>;
 
 // Notification
 

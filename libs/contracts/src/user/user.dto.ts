@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   customerSchema,
   employeeSchema,
-  oauthSchema,
   notificationSchema,
 } from './user.model';
 
@@ -63,28 +62,6 @@ export const employeeUpdateDtoSchema = employeeSchema
   .partial();
 
 export type EmployeeUpdateDto = z.infer<typeof employeeUpdateDtoSchema>;
-
-// OAuth
-
-export const oauthCreateDtoSchema = oauthSchema
-  .pick({
-    oauthProvider: true,
-    oauthId: true,
-    userId: true,
-  })
-  .required();
-
-export type OAuthCreateDto = z.infer<typeof oauthCreateDtoSchema>;
-
-export const oauthUpdateDtoSchema = oauthSchema
-  .pick({
-    oauthProvider: true,
-    oauthId: true,
-    isDeleted: true,
-  })
-  .partial();
-
-export type OAuthUpdateDto = z.infer<typeof oauthUpdateDtoSchema>;
 
 // Notification
 

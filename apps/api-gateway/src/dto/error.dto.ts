@@ -1,3 +1,4 @@
+import { User } from '@app/contracts/auth';
 import {
   LoginResponse,
   LogoutResponse,
@@ -12,7 +13,8 @@ export interface ServiceError {
 export interface FallbackResponse
   extends LoginResponse,
     LogoutResponse,
-    TestResponse {
+    TestResponse,
+    User {
   fallback: boolean;
   message: string;
 }

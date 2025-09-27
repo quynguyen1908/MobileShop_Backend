@@ -31,6 +31,15 @@ export class CircuitBreakerService {
       name: serviceId,
       allowWarmUp: true,
       volumeThreshold: 5,
+      errorFilter: (err: unknown) => {
+        return (
+          typeof err === 'object' &&
+          err !== null &&
+          'statusCode' in err &&
+          typeof (err as { statusCode?: unknown }).statusCode === 'number' &&
+          (err as { statusCode: number }).statusCode === 404
+        );
+      },
       ...options,
     };
 
