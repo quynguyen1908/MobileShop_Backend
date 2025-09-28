@@ -5,9 +5,11 @@ export const AUTH_PATTERN = {
   REFRESH_TOKEN: 'auth.refreshToken',
   VALIDATE_TOKEN: 'auth.validateToken',
   DECODE_TOKEN: 'auth.decodeToken',
+  GOOGLE_LOGIN: 'auth.googleLogin',
 
   CREATE_USER: 'auth.createUser',
   GET_USER: 'auth.getUser',
+  GET_USER_BY_EMAIL: 'auth.getUserByEmail',
   GET_PROFILE: 'auth.getProfile',
   UPDATE_PROFILE: 'auth.updateProfile',
   UPDATE_USER: 'auth.updateUser',

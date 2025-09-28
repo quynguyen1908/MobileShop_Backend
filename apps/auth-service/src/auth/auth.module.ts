@@ -3,8 +3,17 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthEventHandler } from './auth-event.handler';
 import { RabbitMQModule } from '@app/contracts/rmq';
-import { AuthRepository, RoleRepository } from './auth.repository';
-import { AUTH_SERVICE, ROLE_REPOSITORY, AUTH_REPOSITORY } from '@app/contracts';
+import {
+  AuthRepository,
+  OAuthRepository,
+  RoleRepository,
+} from './auth.repository';
+import {
+  AUTH_SERVICE,
+  ROLE_REPOSITORY,
+  AUTH_REPOSITORY,
+  OAUTH_REPOSITORY,
+} from '@app/contracts';
 
 @Module({
   imports: [RabbitMQModule.register()],
@@ -14,6 +23,7 @@ import { AUTH_SERVICE, ROLE_REPOSITORY, AUTH_REPOSITORY } from '@app/contracts';
     AuthEventHandler,
     AuthRepository,
     RoleRepository,
+    OAuthRepository,
     {
       provide: AUTH_SERVICE,
       useExisting: AuthService,
@@ -25,6 +35,10 @@ import { AUTH_SERVICE, ROLE_REPOSITORY, AUTH_REPOSITORY } from '@app/contracts';
     {
       provide: ROLE_REPOSITORY,
       useExisting: RoleRepository,
+    },
+    {
+      provide: OAUTH_REPOSITORY,
+      useExisting: OAuthRepository,
     },
   ],
 })

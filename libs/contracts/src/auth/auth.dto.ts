@@ -1,6 +1,6 @@
 import { customerSchema } from '../user';
 import { z } from 'zod';
-import { roleSchema, userSchema } from './auth.model';
+import { roleSchema, userSchema, oauthSchema } from './auth.model';
 
 // Auth
 
@@ -31,6 +31,15 @@ export const loginDtoSchema = userSchema
   .required();
 
 export type LoginDto = z.infer<typeof loginDtoSchema>;
+
+export const googleResponseDtoSchema = z.object({
+  googleId: z.string(),
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+
+export type GoogleResponseDto = z.infer<typeof googleResponseDtoSchema>;
 
 // User
 
@@ -98,3 +107,25 @@ export const roleUpdateDtoSchema = roleSchema
   .partial();
 
 export type RoleUpdateDto = z.infer<typeof roleUpdateDtoSchema>;
+
+// OAuth
+
+export const oauthCreateDtoSchema = oauthSchema
+  .pick({
+    oauthProvider: true,
+    oauthId: true,
+    userId: true,
+  })
+  .required();
+
+export type OAuthCreateDto = z.infer<typeof oauthCreateDtoSchema>;
+
+export const oauthUpdateDtoSchema = oauthSchema
+  .pick({
+    oauthProvider: true,
+    oauthId: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type OAuthUpdateDto = z.infer<typeof oauthUpdateDtoSchema>;

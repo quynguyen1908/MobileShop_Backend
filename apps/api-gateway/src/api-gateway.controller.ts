@@ -1,8 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import {
   CircuitBreakerMetricsService,
   CircuitBreakerService,
 } from './circuit-breaker/circuit-breaker.service';
+import { RemoteAuthGuard, RolesGuard } from '@app/contracts/auth';
+import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 
 @Controller('v1/health')
 export class HealthController {
@@ -16,14 +18,16 @@ export class HealthController {
     return { status: 'OK', timestamp: new Date().toISOString() };
   }
 
-  // TODO: Add authentication and authorization to these endpoints
-
   @Get('circuit-breakers')
+  @UseGuards(RemoteAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   getCircuitBreakers() {
     return this.circuitBreakerMetricsService.getAllMetrics();
   }
 
   @Get('circuit-breakers/:serviceId/reset')
+  @UseGuards(RemoteAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   resetCircuitBreaker(@Param('serviceId') serviceId: string) {
     const success = this.circuitBreakerService.resetBreaker(serviceId);
     return {
@@ -35,6 +39,8 @@ export class HealthController {
   }
 
   @Get('circuit-breakers/:serviceId/open')
+  @UseGuards(RemoteAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   openCircuitBreaker(@Param('serviceId') serviceId: string) {
     const success = this.circuitBreakerService.openBreaker(serviceId);
     return {

@@ -6,6 +6,9 @@ import {
   UserFilterDto,
   Role,
   LoginDto,
+  OAuth,
+  OAuthCreateDto,
+  GoogleResponseDto,
 } from '@app/contracts/auth';
 import {
   Requester,
@@ -23,6 +26,9 @@ export interface IAuthService {
   refreshToken(refreshToken: string): Promise<TokenResponse>;
   validateToken(token: string): Promise<TokenPayload>;
   decodeToken(token: string): TokenPayload | null;
+  loginWithGoogle(
+    profile: GoogleResponseDto,
+  ): Promise<{ userId: number; tokens: any }>;
 
   create(userCreateDto: UserCreateDto): Promise<number>;
   get(id: number): Promise<User>;
@@ -30,6 +36,8 @@ export interface IAuthService {
   update(id: number, data: UserUpdateDto): Promise<void>;
   delete(id: number): Promise<void>;
   list(filter: UserFilterDto, paging: PagingDto): Promise<Paginated<User>>;
+
+  createOAuth(oauthCreateDto: OAuthCreateDto): Promise<number>;
 }
 
 export interface IAuthRepository
@@ -58,4 +66,21 @@ export interface IAuthQueryRepository {
 
 export interface IRoleQueryRepository {
   findById(id: number): Promise<Role | null>;
+}
+
+//  OAuth
+
+export interface IOAuthRepository
+  extends IOAuthCommandRepository,
+    IOAuthQueryRepository {}
+
+export interface IOAuthCommandRepository {
+  insert(data: OAuth): Promise<OAuth>;
+}
+
+export interface IOAuthQueryRepository {
+  findByProviderAndOAuthId(
+    provider: string,
+    oauthId: string,
+  ): Promise<OAuth | null>;
 }

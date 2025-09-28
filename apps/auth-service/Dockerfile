@@ -1,7 +1,7 @@
 FROM node:18-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 FROM dependencies AS security-scan
 RUN npm audit --production --audit-level=high
@@ -15,6 +15,17 @@ RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 
 RUN npm run build auth-service
+
+FROM node:18-alpine AS development
+WORKDIR /app
+ENV NODE_ENV=development
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+COPY --from=build /app/dist/apps/auth-service ./dist
+COPY --from=build /app/prisma/user ./prisma/user
+RUN mkdir -p node_modules/.prisma/client
+RUN npm run prisma:generate:all
+CMD ["npm", "run", "start:auth-service"]
 
 FROM node:18-alpine AS production
 WORKDIR /app

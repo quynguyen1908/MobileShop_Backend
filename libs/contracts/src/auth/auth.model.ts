@@ -8,6 +8,11 @@ export enum UserStatus {
   DELETED = 'deleted',
 }
 
+export enum OAuthProvider {
+  GOOGLE = 'google',
+  FACEBOOK = 'facebook',
+}
+
 // User
 
 export const ErrUsernameAtLeast3Chars = new Error(
@@ -91,3 +96,19 @@ export const roleSchema = z.object({
 });
 
 export type Role = z.infer<typeof roleSchema>;
+
+// OAuth
+
+export const ErrOAuthAlreadyExists = new Error('OAuth entry already exists');
+
+export const oauthSchema = z.object({
+  id: z.number().int().positive().optional(),
+  userId: z.number().int().positive(),
+  oauthProvider: z.nativeEnum(OAuthProvider),
+  oauthId: z.string(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
+});
+
+export type OAuth = z.infer<typeof oauthSchema>;

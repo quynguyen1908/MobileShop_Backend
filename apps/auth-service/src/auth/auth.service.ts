@@ -2,6 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type {
   IAuthRepository,
   IAuthService,
+  IOAuthRepository,
   IRoleQueryRepository,
 } from './auth.port';
 import type {
@@ -20,6 +21,7 @@ import {
   TOKEN_PROVIDER,
   ROLE_REPOSITORY,
   AUTH_REPOSITORY,
+  OAUTH_REPOSITORY,
 } from '@app/contracts';
 import {
   ErrUsernameAlreadyExists,
@@ -40,6 +42,11 @@ import {
   ErrUserInactivated,
   AuthTestEvent,
   AUTH_SERVICE_NAME,
+  OAuthCreateDto,
+  ErrOAuthAlreadyExists,
+  OAuth,
+  GoogleResponseDto,
+  OAuthProvider,
 } from '@app/contracts/auth';
 import { randomInt } from 'crypto';
 
@@ -49,6 +56,8 @@ export class AuthService implements IAuthService {
     @Inject(AUTH_REPOSITORY) private readonly authRepository: IAuthRepository,
     @Inject(ROLE_REPOSITORY)
     private readonly roleRepository: IRoleQueryRepository,
+    @Inject(OAUTH_REPOSITORY)
+    private readonly oauthRepository: IOAuthRepository,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     @Inject(TOKEN_PROVIDER) private readonly tokenProvider: ITokenProvider,
   ) {}
@@ -205,6 +214,46 @@ export class AuthService implements IAuthService {
     }
   }
 
+  async loginWithGoogle(
+    profile: GoogleResponseDto,
+  ): Promise<{ userId: number; tokens: any }> {
+    const user = await this.authRepository.findByFilter({
+      email: profile.email,
+    });
+    if (!user) {
+      throw AppError.from(ErrUserNotFound, 404);
+    }
+
+    const role = await this.roleRepository.findById(user.roleId);
+
+    const tokens = await this.tokenProvider.generateTokens({
+      sub: user.id!,
+      username: user.username,
+      email: user.email,
+      role: role ? role.name : 'customer',
+    });
+
+    const oauth = await this.oauthRepository.findByProviderAndOAuthId(
+      'google',
+      profile.googleId,
+    );
+
+    if (!oauth) {
+      const oauthCreateDto: OAuthCreateDto = {
+        oauthProvider: OAuthProvider.GOOGLE,
+        oauthId: profile.googleId,
+        userId: user.id!,
+      };
+
+      await this.createOAuth(oauthCreateDto);
+    }
+
+    return {
+      userId: user.id!,
+      tokens,
+    };
+  }
+
   async create(userCreateDto: UserCreateDto): Promise<number> {
     const data = userSchema.parse(userCreateDto);
 
@@ -244,6 +293,14 @@ export class AuthService implements IAuthService {
     const user = await this.authRepository.findById(id);
     if (!user) {
       throw AppError.from(ErrUserNotFound, 404);
+    }
+    return user;
+  }
+
+  async getByFilter(filter: UserFilterDto): Promise<User | null> {
+    const user = await this.authRepository.findByFilter(filter);
+    if (!user) {
+      return null;
     }
     return user;
   }
@@ -292,6 +349,28 @@ export class AuthService implements IAuthService {
     );
 
     await this.eventPublisher.publish(event);
+  }
+
+  async createOAuth(oauthCreateDto: OAuthCreateDto): Promise<number> {
+    const oauthExists = await this.oauthRepository.findByProviderAndOAuthId(
+      oauthCreateDto.oauthProvider,
+      oauthCreateDto.oauthId,
+    );
+
+    if (oauthExists) {
+      throw AppError.from(ErrOAuthAlreadyExists, 400);
+    }
+
+    const oauth: OAuth = {
+      userId: oauthCreateDto.userId,
+      oauthProvider: oauthCreateDto.oauthProvider,
+      oauthId: oauthCreateDto.oauthId,
+      isDeleted: false,
+    };
+
+    const newOAuth = await this.oauthRepository.insert(oauth);
+
+    return newOAuth.id!;
   }
 
   private async hashPassword(password: string): Promise<string> {
