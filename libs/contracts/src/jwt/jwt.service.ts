@@ -53,7 +53,7 @@ export class JwtTokenService implements ITokenProvider {
   async generateTokens(payload: TokenPayload): Promise<TokenResponse> {
     try {
       const currentTime = Math.floor(Date.now() / 1000);
-      const tokenId = uuidv4();
+      const tokenId: string = uuidv4();
 
       const tokenPayload = {
         ...payload,
@@ -91,9 +91,17 @@ export class JwtTokenService implements ITokenProvider {
         refreshToken,
         expiresIn,
       };
-    } catch (error) {
-      this.logger.error('Error generating tokens', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error generating tokens', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error generating tokens', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -104,9 +112,17 @@ export class JwtTokenService implements ITokenProvider {
         this.accessTokenSecret,
         { expiresIn: this.accessTokenExpiration } as SignOptions,
       );
-    } catch (error) {
-      this.logger.error('Error generating access token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error generating access token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error generating access token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -121,9 +137,17 @@ export class JwtTokenService implements ITokenProvider {
         'Decoded access token does not match TokenPayload structure',
       );
       return null;
-    } catch (error) {
-      this.logger.error('Error verifying access token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error verifying access token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error verifying access token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -149,9 +173,17 @@ export class JwtTokenService implements ITokenProvider {
       }
 
       return decoded;
-    } catch (error) {
-      this.logger.error('Error verifying refresh token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error verifying refresh token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error verifying refresh token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -165,7 +197,7 @@ export class JwtTokenService implements ITokenProvider {
       }
 
       const currentTime = Math.floor(Date.now() / 1000);
-      const newTokenId = uuidv4();
+      const newTokenId: string = uuidv4();
       const accessToken = this.generateAccessToken({
         sub: payload.sub,
         username: payload.username,
@@ -212,9 +244,17 @@ export class JwtTokenService implements ITokenProvider {
         refreshToken: newRefreshToken,
         expiresIn,
       };
-    } catch (error) {
-      this.logger.error('Error refreshing access token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error refreshing access token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error refreshing access token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -228,9 +268,17 @@ export class JwtTokenService implements ITokenProvider {
       } else {
         await this.tokenWhitelist.removeAllUserTokens(userId);
       }
-    } catch (error) {
-      this.logger.error('Error invalidating token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error invalidating token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error invalidating token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 
@@ -243,9 +291,17 @@ export class JwtTokenService implements ITokenProvider {
 
       this.logger.warn('Decoded token does not match TokenPayload structure');
       return null;
-    } catch (error) {
-      this.logger.error('Error decoding token', error);
-      throw error;
+    } catch (error: unknown) {
+      let errMsg: string;
+      if (error instanceof Error) {
+        errMsg = error.message;
+        this.logger.error('Error decoding token', error);
+        throw error;
+      } else {
+        errMsg = typeof error === 'string' ? error : JSON.stringify(error);
+        this.logger.error('Error decoding token', errMsg);
+        throw new Error(errMsg);
+      }
     }
   }
 

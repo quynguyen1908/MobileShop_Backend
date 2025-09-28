@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '.prisma/client/user';
 
@@ -21,6 +22,7 @@ export class UserPrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super({
       log: [
         { level: 'query', emit: 'stdout' },

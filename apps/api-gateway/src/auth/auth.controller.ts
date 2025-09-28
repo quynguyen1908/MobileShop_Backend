@@ -1,9 +1,6 @@
 import { AUTH_SERVICE } from '@app/contracts';
 import type { ReqWithRequester, TokenResponse } from '@app/contracts';
-import {
-  AUTH_PATTERN,
-  AUTH_SERVICE_NAME,
-} from '@app/contracts/auth';
+import { AUTH_PATTERN, AUTH_SERVICE_NAME } from '@app/contracts/auth';
 import type {
   GoogleResponseDto,
   LoginDto,
