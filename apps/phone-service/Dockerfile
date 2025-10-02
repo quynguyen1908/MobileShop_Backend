@@ -12,7 +12,6 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 RUN mkdir -p node_modules/.prisma/client
-RUN npm run prisma:generate:all
 
 RUN npm run build phone-service
 
@@ -21,18 +20,18 @@ WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-COPY --from=build /app/dist/apps/phone-service ./dist
+COPY --from=build /app/dist/apps/phone-service ./dist/apps/phone-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
-CMD ["npm", "run", "start:phone-service"]
+CMD ["node", "dist/apps/phone-service/main.js"]
 
 FROM node:18-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
-COPY --from=build /app/dist/apps/phone-service ./dist
+COPY --from=build /app/dist/apps/phone-service ./dist/apps/phone-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
@@ -46,4 +45,4 @@ USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD node healthcheck.js
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/apps/phone-service/main.js"]
