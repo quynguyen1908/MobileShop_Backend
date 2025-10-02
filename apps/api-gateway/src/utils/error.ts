@@ -12,7 +12,7 @@ type ErrorWithResponse = {
     statusCode?: number;
   };
   errors?: unknown[];
-  message?: string;
+  logMessage?: string;
   stack?: string;
 };
 
@@ -40,8 +40,8 @@ export function formatError(error: unknown): ErrorDetail[] {
   }
 
   const errorMessage =
-    typeof typedError.message === 'string'
-      ? typedError.message
+    typeof typedError.logMessage === 'string'
+      ? typedError.logMessage
       : 'Unknown error';
 
   return [{ message: errorMessage }];

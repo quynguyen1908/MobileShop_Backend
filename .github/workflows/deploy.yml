@@ -24,6 +24,7 @@ jobs:
           
           declare -A schema_service_map=(
             ["user"]="user-service"
+            ["phone"]="phone-service"
           )
 
           for schema in "${!schema_service_map[@]}"; do
@@ -46,6 +47,7 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-api-gateway:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-auth-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-user-service:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-phone-service:latest
           docker-compose up -d
 
     - name: Slack Notification

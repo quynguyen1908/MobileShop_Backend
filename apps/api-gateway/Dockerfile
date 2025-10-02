@@ -22,7 +22,7 @@ ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 COPY --from=build /app/dist/apps/api-gateway ./dist
-COPY --from=build /app/prisma/user ./prisma/user
+COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 CMD ["npm", "run", "start:api-gateway"]
@@ -33,7 +33,9 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/api-gateway ./dist
-COPY --from=build /app/prisma/user ./prisma/user 
+COPY --from=build /app/prisma ./prisma
+RUN mkdir -p node_modules/.prisma/client
+RUN npm run prisma:generate:all
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*

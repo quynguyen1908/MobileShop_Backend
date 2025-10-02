@@ -4,17 +4,19 @@ import {
   LogoutResponse,
   TestResponse,
 } from '../auth/auth.interface';
+import { PhoneDto } from '@app/contracts/phone/phone.dto';
 
 export interface ServiceError {
-  status?: number;
-  message?: string;
+  statusCode?: number;
+  logMessage?: string;
 }
 
 export interface FallbackResponse
   extends LoginResponse,
     LogoutResponse,
     TestResponse,
-    User {
+    User,
+    PhoneDto {
   fallback: boolean;
   message: string;
 }

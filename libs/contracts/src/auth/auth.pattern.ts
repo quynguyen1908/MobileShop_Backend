@@ -2,6 +2,7 @@ export const AUTH_PATTERN = {
   REGISTER: 'auth.register',
   LOGIN: 'auth.login',
   LOGOUT: 'auth.logout',
+  CHANGE_PASSWORD: 'auth.changePassword',
   REFRESH_TOKEN: 'auth.refreshToken',
   VALIDATE_TOKEN: 'auth.validateToken',
   DECODE_TOKEN: 'auth.decodeToken',

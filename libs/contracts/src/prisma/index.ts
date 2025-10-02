@@ -1,2 +1,3 @@
 export * from './user-prisma.service';
 export * from './prisma.module';
+export * from './phone-prisma.service';

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '.prisma/client/user';
+import { PrismaClient } from '.prisma/client/phone';
 
 @Injectable()
-export class UserPrismaService
+export class PhonePrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
