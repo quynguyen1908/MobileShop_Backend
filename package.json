@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "prisma:generate:user": "npx prisma generate --schema=./prisma/user/schema.prisma",
-    "prisma:generate:all": "npm run prisma:generate:user",
+    "prisma:generate:phone": "npx prisma generate --schema=./prisma/phone/schema.prisma",
+    "prisma:generate:all": "npm run prisma:generate:user && npm run prisma:generate:phone",
     "build": "npm run prisma:generate:all && nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",

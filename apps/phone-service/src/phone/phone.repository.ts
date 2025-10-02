@@ -387,7 +387,10 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return {
       id: data.id,
       variantId: data.variantId,
-      price: data.price.toNumber(),
+      price:
+        data.price instanceof Decimal
+          ? data.price.toNumber()
+          : Number(data.price),
       startDate: data.startDate,
       endDate: data.endDate,
       createdAt: data.createdAt,
@@ -402,7 +405,10 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return {
       id: data.id,
       variantId: data.variantId,
-      discountPercent: data.discountPercent.toNumber(),
+      discountPercent:
+        data.discountPercent instanceof Decimal
+          ? data.discountPercent.toNumber()
+          : Number(data.discountPercent),
       startDate: data.startDate,
       endDate: data.endDate,
       createdAt: data.createdAt,

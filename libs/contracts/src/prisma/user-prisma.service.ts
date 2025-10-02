@@ -1,19 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '.prisma/client/user';
-
-type LogLevel = 'info' | 'query' | 'warn' | 'error';
-type LogDefinition = {
-  level: LogLevel;
-  emit: 'stdout' | 'event';
-};
-type PrismaClientOptions = {
-  log?: (LogLevel | LogDefinition)[];
-};
-
-interface TypedPrismaClient {
-  $connect(): Promise<void>;
-  $disconnect(): Promise<void>;
-}
+import { PrismaClient, Prisma } from '.prisma/client/user';
 
 @Injectable()
 export class UserPrismaService
@@ -28,16 +14,14 @@ export class UserPrismaService
         { level: 'warn', emit: 'stdout' },
         { level: 'error', emit: 'stdout' },
       ],
-    } as PrismaClientOptions);
+    } satisfies Prisma.PrismaClientOptions);
   }
 
   async onModuleInit(): Promise<void> {
-    const client = this as unknown as TypedPrismaClient;
-    await client.$connect();
+    await this.$connect();
   }
 
   async onModuleDestroy(): Promise<void> {
-    const client = this as unknown as TypedPrismaClient;
-    await client.$disconnect();
+    await this.$disconnect();
   }
 }
