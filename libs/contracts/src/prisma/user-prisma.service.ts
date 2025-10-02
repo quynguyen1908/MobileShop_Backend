@@ -13,8 +13,8 @@ export class UserPrismaService
         { level: 'info', emit: 'stdout' },
         { level: 'warn', emit: 'stdout' },
         { level: 'error', emit: 'stdout' },
-      ],
-    } satisfies Prisma.PrismaClientOptions);
+      ] as Prisma.LogDefinition[],
+    } as Prisma.PrismaClientOptions);
   }
 
   async onModuleInit(): Promise<void> {

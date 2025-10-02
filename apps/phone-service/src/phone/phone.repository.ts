@@ -14,7 +14,7 @@ import {
   VariantPrice,
   VariantSpecification,
 } from '@app/contracts/phone';
-import { Decimal } from '.prisma/client/phone/runtime/library';
+import { Decimal } from '@prisma/client/runtime/library';
 
 interface PrismaPhone {
   id: number;
