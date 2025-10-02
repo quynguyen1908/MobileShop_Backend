@@ -37,6 +37,23 @@ export class AuthController {
     return this.authService.logout(request);
   }
 
+  @MessagePattern(AUTH_PATTERN.CHANGE_PASSWORD)
+  async changePassword(
+    @Payload()
+    payload: {
+      requester: Requester;
+      currentPassword: string;
+      newPassword: string;
+    },
+  ): Promise<boolean> {
+    const { requester, currentPassword, newPassword } = payload;
+    return this.authService.changePassword(
+      requester,
+      currentPassword,
+      newPassword,
+    );
+  }
+
   @MessagePattern(AUTH_PATTERN.REFRESH_TOKEN)
   async refreshToken(@Payload() refreshToken: string): Promise<TokenResponse> {
     return this.authService.refreshToken(refreshToken);

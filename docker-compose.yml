@@ -103,6 +103,41 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  phone-service:
+    build:
+      context: .
+      dockerfile: apps/phone-service/Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: phone-service
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    image: quynguyen1908/phone-store-phone-service:latest
+    volumes:
+      - ./apps/phone-service:/app/apps/phone-service:ro
+      - ./libs:/app/libs:ro
+      - ./prisma/phone:/app/prisma/phone:ro
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
   postgres:
     image: postgres:16-alpine
     container_name: postgres-multi-db
@@ -161,6 +196,8 @@ volumes:
   auth_service_node_modules:
     driver: local
   user_service_node_modules:
+    driver: local
+  phone_service_node_modules:
     driver: local
 
 networks:

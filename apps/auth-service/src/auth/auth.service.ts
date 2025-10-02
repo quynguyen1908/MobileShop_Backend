@@ -49,6 +49,7 @@ import {
   OAuthProvider,
 } from '@app/contracts/auth';
 import { randomInt } from 'crypto';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -113,27 +114,37 @@ export class AuthService implements IAuthService {
     if (isEmail) {
       user = await this.authRepository.findByFilter({ email: data.username });
       if (!user)
-        throw AppError.from(ErrInvalidUsernameAndPassword, 400).withLog(
-          'Email not found',
+        throw new RpcException(
+          AppError.from(ErrInvalidUsernameAndPassword, 400)
+            .withLog('Email not found')
+            .toJson(false),
         );
     } else {
       user = await this.authRepository.findByFilter({
         username: data.username,
       });
       if (!user)
-        throw AppError.from(ErrInvalidUsernameAndPassword, 400).withLog(
-          'Username not found',
+        throw new RpcException(
+          AppError.from(ErrInvalidUsernameAndPassword, 400)
+            .withLog('Username not found')
+            .toJson(false),
         );
     }
 
     const isMatch = await bcrypt.compare(data.password, user.password);
     if (!isMatch)
-      throw AppError.from(ErrInvalidUsernameAndPassword, 400).withLog(
-        'Invalid password',
+      throw new RpcException(
+        AppError.from(ErrInvalidUsernameAndPassword, 400)
+          .withLog('Invalid password')
+          .toJson(false),
       );
 
     if (user.status !== UserStatus.ACTIVE)
-      throw AppError.from(ErrUserInactivated, 400);
+      throw new RpcException(
+        AppError.from(ErrUserInactivated, 400)
+          .withLog('User is inactive')
+          .toJson(false),
+      );
 
     const role = await this.roleRepository.findById(user.roleId);
 
@@ -154,19 +165,49 @@ export class AuthService implements IAuthService {
     return true;
   }
 
+  async changePassword(
+    requester: Requester,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    const user = await this.authRepository.findById(requester.sub);
+    if (!user) {
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new RpcException(
+        AppError.from(new Error('Current password is incorrect'), 400)
+          .withLog('Current password is incorrect')
+          .toJson(false),
+      );
+    }
+
+    const hashedNewPassword = await this.hashPassword(newPassword);
+    await this.authRepository.update(user.id!, { password: hashedNewPassword });
+    return true;
+  }
+
   async refreshToken(refreshToken: string): Promise<TokenResponse> {
     try {
       const tokens = await this.tokenProvider.refreshAccessToken(refreshToken);
       return tokens;
     } catch (error: unknown) {
       if (error instanceof UnauthorizedException) {
-        throw error;
+        throw new RpcException(error);
       }
       const typedError =
         error instanceof Error ? error : new Error('Unknown error');
 
-      throw AppError.from(new Error('Invalid refresh token'), 401).withLog(
-        `Failed to refresh token: ${typedError.message}`,
+      throw new RpcException(
+        AppError.from(new Error('Invalid refresh token'), 401).withLog(
+          `Failed to refresh token: ${typedError.message}`,
+        ),
       );
     }
   }
@@ -175,28 +216,32 @@ export class AuthService implements IAuthService {
     try {
       const payload = this.tokenProvider.verifyAccessToken(token);
       if (!payload) {
-        throw new UnauthorizedException('Invalid or expired token');
+        throw new RpcException(
+          new UnauthorizedException('Invalid or expired token'),
+        );
       }
 
       const user = await this.authRepository.findById(payload.sub);
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new RpcException(new UnauthorizedException('User not found'));
       }
 
       if (user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException('User is inactive');
+        throw new RpcException(new UnauthorizedException('User is inactive'));
       }
 
       return payload;
     } catch (error: unknown) {
       if (error instanceof UnauthorizedException) {
-        throw error;
+        throw new RpcException(error);
       }
       const typedError =
         error instanceof Error ? error : new Error('Unknown error');
 
-      throw AppError.from(new Error('Invalid token'), 401).withLog(
-        `Failed to validate token: ${typedError.message}`,
+      throw new RpcException(
+        AppError.from(new Error('Invalid token'), 401).withLog(
+          `Failed to validate token: ${typedError.message}`,
+        ),
       );
     }
   }
@@ -208,8 +253,10 @@ export class AuthService implements IAuthService {
       const typedError =
         error instanceof Error ? error : new Error('Unknown error');
 
-      throw AppError.from(new Error('Failed to decode token'), 400).withLog(
-        `Token decode error: ${typedError.message}`,
+      throw new RpcException(
+        AppError.from(new Error('Failed to decode token'), 400).withLog(
+          `Token decode error: ${typedError.message}`,
+        ),
       );
     }
   }
@@ -221,7 +268,11 @@ export class AuthService implements IAuthService {
       email: profile.email,
     });
     if (!user) {
-      throw AppError.from(ErrUserNotFound, 404);
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
     }
 
     const role = await this.roleRepository.findById(user.roleId);
@@ -265,13 +316,25 @@ export class AuthService implements IAuthService {
 
     if (userExists) {
       if (userExists.username === data.username) {
-        throw AppError.from(ErrUsernameAlreadyExists, 400);
+        throw new RpcException(
+          AppError.from(ErrUsernameAlreadyExists, 400)
+            .withLog('Username already exists')
+            .toJson(false),
+        );
       }
       if (userExists.email === data.email) {
-        throw AppError.from(ErrEmailAlreadyExists, 400);
+        throw new RpcException(
+          AppError.from(ErrEmailAlreadyExists, 400)
+            .withLog('Email already exists')
+            .toJson(false),
+        );
       }
       if (userExists.phone === data.phone) {
-        throw AppError.from(ErrPhoneAlreadyExists, 400);
+        throw new RpcException(
+          AppError.from(ErrPhoneAlreadyExists, 400)
+            .withLog('Phone already exists')
+            .toJson(false),
+        );
       }
     }
 
@@ -292,7 +355,11 @@ export class AuthService implements IAuthService {
   async get(id: number): Promise<User> {
     const user = await this.authRepository.findById(id);
     if (!user) {
-      throw AppError.from(ErrUserNotFound, 404);
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
     }
     return user;
   }
@@ -308,7 +375,11 @@ export class AuthService implements IAuthService {
   async profile(id: number): Promise<Omit<User, 'password'>> {
     const user = await this.authRepository.findById(id);
     if (!user) {
-      throw AppError.from(ErrUserNotFound, 404);
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
     }
     const { password: _, ...profile } = user;
     return profile;
@@ -317,7 +388,11 @@ export class AuthService implements IAuthService {
   async update(id: number, data: UserUpdateDto): Promise<void> {
     const userExists = await this.authRepository.findById(id);
     if (!userExists) {
-      throw AppError.from(ErrUserNotFound, 404);
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
     }
     await this.authRepository.update(id, data);
   }
@@ -325,7 +400,11 @@ export class AuthService implements IAuthService {
   async delete(id: number): Promise<void> {
     const userExists = await this.authRepository.findById(id);
     if (!userExists) {
-      throw AppError.from(ErrUserNotFound, 404);
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
     }
     await this.authRepository.delete(id);
   }
@@ -358,7 +437,11 @@ export class AuthService implements IAuthService {
     );
 
     if (oauthExists) {
-      throw AppError.from(ErrOAuthAlreadyExists, 400);
+      throw new RpcException(
+        AppError.from(ErrOAuthAlreadyExists, 400)
+          .withLog('OAuth already exists')
+          .toJson(false),
+      );
     }
 
     const oauth: OAuth = {

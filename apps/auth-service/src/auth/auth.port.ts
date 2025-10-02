@@ -23,6 +23,11 @@ export interface IAuthService {
   register(data: RegisterDto): Promise<{ userId: number; tokens: any }>;
   login(data: LoginDto): Promise<{ userId: number; tokens: any }>;
   logout(requester: Requester): Promise<boolean>;
+  changePassword(
+    requester: Requester,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<boolean>;
   refreshToken(refreshToken: string): Promise<TokenResponse>;
   validateToken(token: string): Promise<TokenPayload>;
   decodeToken(token: string): TokenPayload | null;

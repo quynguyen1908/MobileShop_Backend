@@ -14,32 +14,32 @@ COPY . .
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 
-RUN npm run build user-service
+RUN npm run build phone-service
 
 FROM node:18-alpine AS development
 WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-COPY --from=build /app/dist/apps/user-service ./dist
-COPY --from=build /app/prisma/user ./prisma/user
+COPY --from=build /app/dist/apps/phone-service ./dist
+COPY --from=build /app/prisma/phone ./prisma/phone
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
-CMD ["npm", "run", "start:user-service"]
+CMD ["npm", "run", "start:phone-service"]
 
 FROM node:18-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
-COPY --from=build /app/dist/apps/user-service ./dist
-COPY --from=build /app/prisma/user ./prisma/user 
+COPY --from=build /app/dist/apps/phone-service ./dist
+COPY --from=build /app/prisma/phone ./prisma/phone
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 
 RUN apk add --no-cache curl jq
 
-COPY --chown=nestjs:nodejs apps/user-service/healthcheck.js ./healthcheck.js
+COPY --chown=nestjs:nodejs apps/phone-service/healthcheck.js ./healthcheck.js
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*

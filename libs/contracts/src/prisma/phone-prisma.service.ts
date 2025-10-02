@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '.prisma/client/user';
+import { PrismaClient } from '.prisma/client/phone';
 
 type LogLevel = 'info' | 'query' | 'warn' | 'error';
 type LogDefinition = {
@@ -16,7 +16,7 @@ interface TypedPrismaClient {
 }
 
 @Injectable()
-export class UserPrismaService
+export class PhonePrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {

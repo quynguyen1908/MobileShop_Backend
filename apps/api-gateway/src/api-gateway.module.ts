@@ -5,6 +5,7 @@ import { RabbitMQModule } from '@app/contracts/rmq';
 import { UserModule } from './user/user.module';
 import { HealthController } from './api-gateway.controller';
 import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
+import { PhoneModule } from './phone/phone.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
     RabbitMQModule.register(),
     UserModule,
     CircuitBreakerModule,
+    PhoneModule,
   ],
   controllers: [HealthController],
   providers: [],

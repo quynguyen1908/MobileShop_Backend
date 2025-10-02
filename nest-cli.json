@@ -30,6 +30,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "phone-service": {
+      "type": "application",
+      "root": "apps/phone-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/phone-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/phone-service/tsconfig.app.json"
+      }
+    },
     "user-service": {
       "type": "application",
       "root": "apps/user-service",

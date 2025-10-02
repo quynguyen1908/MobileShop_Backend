@@ -15,7 +15,7 @@ import { ConfigService } from '@nestjs/config/dist/config.service';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { TokenWhitelistRepository } from './jwt.repository';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { AUTH_SERVICE } from '..';
 import { AUTH_PATTERN } from '../auth';
 import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
@@ -193,7 +193,9 @@ export class JwtTokenService implements ITokenProvider {
 
       if (!payload || !payload.jti) {
         this.logger.warn('Refresh token payload is null or missing jti');
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new RpcException(
+          new UnauthorizedException('Invalid refresh token'),
+        );
       }
 
       const currentTime = Math.floor(Date.now() / 1000);

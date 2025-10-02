@@ -130,8 +130,8 @@ export class AuthController {
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
-      const statusCode = typedError.status || HttpStatus.BAD_REQUEST;
-      const errorMessage = typedError.message || 'Registration failed';
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Registration failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -158,7 +158,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Úser logged in successfully.',
+    description: 'User logged in successfully.',
     content: {
       'application/json': {
         example: {
@@ -221,16 +221,16 @@ export class AuthController {
       const typedError = error as ServiceError;
 
       let statusCode = HttpStatus.BAD_REQUEST;
-      if (typedError.status) {
-        statusCode = typedError.status;
+      if (typedError.statusCode) {
+        statusCode = typedError.statusCode;
       } else if (
-        typedError.message &&
-        typedError.message.includes('credentials')
+        typedError.logMessage &&
+        typedError.logMessage.includes('credentials')
       ) {
         statusCode = HttpStatus.UNAUTHORIZED;
       }
 
-      const errorMessage = typedError.message || 'Login failed';
+      const errorMessage = typedError.logMessage || 'Login failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -301,8 +301,97 @@ export class AuthController {
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
-      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.message || 'Logout failed';
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Logout failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('change-password')
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiBody({
+    description: 'User current and new password',
+    schema: {
+      type: 'object',
+      properties: {
+        currentPassword: { type: 'string', example: 'strongPassword123' },
+        newPassword: { type: 'string', example: 'newStrongPassword123' },
+      },
+      required: ['currentPassword', 'newPassword'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully.',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Password changed successfully',
+          data: true,
+          errors: null,
+        },
+      },
+    },
+  })
+  @UseGuards(RemoteAuthGuard)
+  async changePassword(
+    @Req() req: ReqWithRequester,
+    @Body() body: { currentPassword: string; newPassword: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const { currentPassword, newPassword } = body;
+
+      const result = await this.circuitBreakerService.sendRequest<
+        boolean | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.CHANGE_PASSWORD,
+        { requester, currentPassword, newPassword },
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Password changed successfully',
+          result,
+          null,
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Change password failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -397,8 +486,9 @@ export class AuthController {
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
-      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.message || 'Google login failed';
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Google login failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -481,9 +571,11 @@ export class AuthController {
         return res.status(HttpStatus.OK).json(response);
       }
     } catch (error: unknown) {
+      console.error('Error during token refresh:', error);
       const typedError = error as ServiceError;
-      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.message || 'Token refresh failed';
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Token refresh failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -539,8 +631,9 @@ export class AuthController {
       console.error('Error during test message:', error);
 
       const typedError = error as ServiceError;
-      const statusCode = typedError.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.message || 'Test message failed';
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Test message failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -548,7 +641,7 @@ export class AuthController {
         null,
         formatError(error),
       );
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(errorResponse);
+      return res.status(statusCode).json(errorResponse);
     }
   }
 }

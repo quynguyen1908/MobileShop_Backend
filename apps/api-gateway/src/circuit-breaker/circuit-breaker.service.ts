@@ -25,20 +25,23 @@ export class CircuitBreakerService {
     const defaultOptions: CircuitBreaker.Options = {
       timeout: 5000,
       resetTimeout: 10000,
-      errorThresholdPercentage: 50,
+      errorThresholdPercentage: 70,
       rollingCountTimeout: 10000,
       rollingCountBuckets: 10,
       name: serviceId,
       allowWarmUp: true,
-      volumeThreshold: 5,
+      volumeThreshold: 20,
       errorFilter: (err: unknown) => {
-        return (
+        if (
           typeof err === 'object' &&
           err !== null &&
           'statusCode' in err &&
-          typeof (err as { statusCode?: unknown }).statusCode === 'number' &&
-          (err as { statusCode: number }).statusCode === 404
-        );
+          typeof (err as { statusCode: unknown }).statusCode === 'number'
+        ) {
+          const statusCode = (err as { statusCode: number }).statusCode;
+          if (statusCode >= 400 && statusCode < 500) return true;
+        }
+        return false;
       },
       ...options,
     };

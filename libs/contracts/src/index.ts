@@ -1,10 +1,12 @@
 export const AUTH_SERVICE = Symbol('AUTH_SERVICE');
 export const USER_SERVICE = Symbol('USER_SERVICE');
+export const PHONE_SERVICE = Symbol('PHONE_SERVICE');
 
 export const AUTH_REPOSITORY = Symbol('AUTH_REPOSITORY');
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
 export const OAUTH_REPOSITORY = Symbol('OAUTH_REPOSITORY');
+export const PHONE_REPOSITORY = Symbol('PHONE_REPOSITORY');
 
 export const TOKEN_PROVIDER = Symbol('TOKEN_PROVIDER');
 export const TOKEN_VALIDATOR = Symbol('TOKEN_VALIDATOR');

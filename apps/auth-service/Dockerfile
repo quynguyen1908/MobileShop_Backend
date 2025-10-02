@@ -34,6 +34,8 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/auth-service ./dist
 COPY --from=build /app/prisma/user ./prisma/user 
+RUN mkdir -p node_modules/.prisma/client
+RUN npm run prisma:generate:all
 
 RUN apk add --no-cache curl jq
 
