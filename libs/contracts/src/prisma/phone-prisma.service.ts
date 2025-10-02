@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, Prisma } from '.prisma/client/phone';
+import { PrismaClient } from '.prisma/client/phone';
 
 @Injectable()
 export class PhonePrismaService
@@ -13,8 +14,8 @@ export class PhonePrismaService
         { level: 'info', emit: 'stdout' },
         { level: 'warn', emit: 'stdout' },
         { level: 'error', emit: 'stdout' },
-      ] as Prisma.LogDefinition[],
-    } as Prisma.PrismaClientOptions);
+      ],
+    });
   }
 
   async onModuleInit(): Promise<void> {

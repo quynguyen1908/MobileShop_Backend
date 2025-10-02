@@ -22,7 +22,7 @@ ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 COPY --from=build /app/dist/apps/phone-service ./dist
-COPY --from=build /app/prisma/phone ./prisma/phone
+COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 CMD ["npm", "run", "start:phone-service"]
@@ -33,10 +33,9 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/phone-service ./dist
-COPY --from=build /app/prisma/phone ./prisma/phone
+COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
-
 RUN apk add --no-cache curl jq
 
 COPY --chown=nestjs:nodejs apps/phone-service/healthcheck.js ./healthcheck.js

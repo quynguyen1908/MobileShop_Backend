@@ -22,7 +22,7 @@ ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 COPY --from=build /app/dist/apps/auth-service ./dist
-COPY --from=build /app/prisma/user ./prisma/user
+COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 CMD ["npm", "run", "start:auth-service"]
@@ -33,7 +33,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/auth-service ./dist
-COPY --from=build /app/prisma/user ./prisma/user 
+COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 
