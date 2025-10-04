@@ -52,7 +52,7 @@
 ---
 
 ## Containerize with Docker
-- **Docker Compose**: api-gateway, auth-service, user-service, postgres, rabbitmq
+- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, postgres, rabbitmq
 
 ---
 
@@ -99,7 +99,7 @@ docker compose up -d
 ```bash
 npx prisma migrate dev --schema=prisma/user/schema.prisma
 npx prisma generate --schema=prisma/user/schema.prisma
-// Các schema khác ...
+// Các schema khác tương tự như phone, order, ...
 ```
 
 ### 6. Truy cập hệ thống

@@ -3,8 +3,9 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { UserRepository } from './user.repository';
 import { UserEventHandler } from './user-event.handler';
-import { RabbitMQModule } from '@app/contracts/rmq';
-import { USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
+import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { AUTH_SERVICE, USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
+import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 
 @Module({
   imports: [RabbitMQModule.register()],
@@ -20,6 +21,14 @@ import { USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
     {
       provide: USER_REPOSITORY,
       useExisting: UserRepository,
+    },
+    {
+      provide: AUTH_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.authServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
     },
   ],
 })

@@ -4,8 +4,29 @@ import {
   employeeSchema,
   notificationSchema,
 } from './user.model';
+import { userSchema } from '../auth/auth.model';
 
 // Customer
+
+export const customerDtoSchema = customerSchema
+  .omit({
+    userId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    user: userSchema.omit({
+      password: true,
+      roleId: true,
+      status: true,
+      lastChangePass: true,
+      createdAt: true,
+      updatedAt: true,
+    }),
+  });
+
+export type CustomerDto = z.infer<typeof customerDtoSchema>;
 
 export const customerCreateDtoSchema = customerSchema
   .pick({

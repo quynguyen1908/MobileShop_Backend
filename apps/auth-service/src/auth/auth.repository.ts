@@ -23,6 +23,7 @@ interface PrismaUser {
   email: string;
   phone: string;
   roleId: number;
+  lastChangePass: Date | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -215,6 +216,7 @@ export class AuthRepository implements IAuthRepository {
       email: data.email,
       phone: data.phone,
       roleId: data.roleId,
+      lastChangePass: data.lastChangePass ?? undefined,
       status: typedStatus!,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,

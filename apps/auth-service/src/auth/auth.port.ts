@@ -17,7 +17,7 @@ import {
 } from '@app/contracts/interface';
 import { Paginated, PagingDto } from '@app/contracts/model';
 
-// User
+// Auth
 
 export interface IAuthService {
   register(data: RegisterDto): Promise<{ userId: number; tokens: any }>;

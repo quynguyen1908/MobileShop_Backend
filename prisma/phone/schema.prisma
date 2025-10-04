@@ -161,6 +161,8 @@ model VariantSpecification {
   variantId     Int           @map("variant_id")
   specId        Int           @map("spec_id")
   info          String        @db.VarChar(255)
+  valueNumeric  Float?        @map("value_numeric")
+  unit          String?       @map("unit")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt     DateTime      @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted     Boolean       @default(false) @map("is_deleted")

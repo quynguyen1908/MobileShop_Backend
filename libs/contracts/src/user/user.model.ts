@@ -26,6 +26,7 @@ export const ErrFirstNameAtMost50Chars = new Error(
 export const ErrLastNameAtMost50Chars = new Error(
   'Last name must be at most 50 characters long',
 );
+export const ErrCustomerNotFound = new Error('Customer not found');
 
 export const customerSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -100,3 +101,48 @@ export const notificationSchema = z.object({
 });
 
 export type Notification = z.infer<typeof notificationSchema>;
+
+// Commune
+
+export const communeSchema = z.object({
+  id: z.number().int().positive().optional(),
+  code: z.number().int().positive(),
+  name: z.string(),
+  divisionType: z.string(),
+  codename: z.string(),
+  provinceCode: z.number().int().positive(),
+});
+
+export type Commune = z.infer<typeof communeSchema>;
+
+// Province
+
+export const provinceSchema = z.object({
+  id: z.number().int().positive().optional(),
+  code: z.number().int().positive(),
+  name: z.string(),
+  divisionType: z.string(),
+  codename: z.string(),
+  phoneCode: z.number().int().positive(),
+});
+
+export type Province = z.infer<typeof provinceSchema>;
+
+// Address
+
+export const addressSchema = z.object({
+  id: z.number().int().positive().optional(),
+  customerId: z.number().int().positive(),
+  recipientName: z.string(),
+  recipientPhone: z.string(),
+  street: z.string(),
+  communeId: z.number().int().positive(),
+  provinceId: z.number().int().positive(),
+  portalCode: z.string().optional(),
+  isDefault: z.boolean().optional().default(false),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
+});
+
+export type Address = z.infer<typeof addressSchema>;
