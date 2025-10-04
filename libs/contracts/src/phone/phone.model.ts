@@ -172,6 +172,8 @@ export const variantSpecificationSchema = z.object({
   variantId: z.number().int().positive(),
   specId: z.number().int().positive(),
   info: z.string(),
+  valueNumeric: z.number().optional().nullable(),
+  unit: z.string().optional().nullable(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),

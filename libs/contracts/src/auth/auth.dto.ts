@@ -61,6 +61,7 @@ export const userUpdateDtoSchema = userSchema
     password: true,
     roleId: true,
     status: true,
+    lastChangePass: true,
   })
   .partial();
 

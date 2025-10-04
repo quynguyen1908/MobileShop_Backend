@@ -189,7 +189,22 @@ export class AuthService implements IAuthService {
     }
 
     const hashedNewPassword = await this.hashPassword(newPassword);
-    await this.authRepository.update(user.id!, { password: hashedNewPassword });
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new RpcException(
+        AppError.from(
+          new Error('New password must be different from the current password'),
+          400,
+        )
+          .withLog('New password must be different from the current password')
+          .toJson(false),
+      );
+    }
+
+    await this.authRepository.update(user.id!, {
+      password: hashedNewPassword,
+      lastChangePass: new Date(),
+    });
     return true;
   }
 

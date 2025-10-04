@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PhoneController } from './phone.controller';
+import { CategoryController, PhoneController } from './phone.controller';
 import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 import { PHONE_SERVICE } from '@app/contracts';
@@ -8,7 +8,7 @@ import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module'
 
 @Module({
   imports: [RabbitMQModule.register(), CircuitBreakerModule],
-  controllers: [PhoneController],
+  controllers: [PhoneController, CategoryController],
   providers: [
     {
       provide: PHONE_SERVICE,
