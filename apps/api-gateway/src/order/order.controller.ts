@@ -47,7 +47,7 @@ export class OrderController {
               id: 1,
               customerId: 1,
               orderCode: 'ORD-001',
-              orderDate: "2025-10-04T00:00:00.000Z",
+              orderDate: '2025-10-04T00:00:00.000Z',
               totalAmount: 35200000,
               discountAmount: 0,
               shippingFee: 0,
@@ -83,11 +83,11 @@ export class OrderController {
                   variant: {
                     id: 1,
                     phoneId: 1,
-                    variantName: "Ultra 1TB",
-                    color: "Đen",
-                    name: "Samsung Galaxy S25",
-                    imageUrl: "https://example.com/samsung-galaxy-s25.jpg",
-                  }
+                    variantName: 'Ultra 1TB',
+                    color: 'Đen',
+                    name: 'Samsung Galaxy S25',
+                    imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                  },
                 },
               ],
               statusHistory: [
@@ -95,7 +95,7 @@ export class OrderController {
                   id: 1,
                   orderId: 1,
                   status: 'pending',
-                  createdAt: "2025-10-04T07:32:50.838Z",
+                  createdAt: '2025-10-04T07:32:50.838Z',
                 },
               ],
               transactions: [
@@ -106,15 +106,15 @@ export class OrderController {
                   type: 'earn',
                   point: 352000,
                   moneyValue: 35200000,
-                  createdAt: "2025-10-04T07:34:19.622Z",
-                }
+                  createdAt: '2025-10-04T07:34:19.622Z',
+                },
               ],
               shipments: [],
-            }
-          ]
-        }
-      }
-    }
+            },
+          ],
+        },
+      },
+    },
   })
   @UseGuards(RemoteAuthGuard)
   async getMyOrders(@Req() req: ReqWithRequester, @Res() res: Response) {

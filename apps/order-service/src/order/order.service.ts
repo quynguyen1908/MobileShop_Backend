@@ -123,15 +123,26 @@ export class OrderService implements IOrderService {
 
     const orderDtos: OrderDto[] = orders.map((order) => {
       const items = orderItemsDto.filter((item) => item.orderId === order.id);
-      const histories = orderStatusHistories.filter(
-        (history) => history.orderId === order.id,
-      ).map(({ updatedAt, isDeleted, ...rest }) => rest);
-      const transactions = pointTransactions.filter(
-        (transaction) => transaction.orderId === order.id,
-      ).map(({ updatedAt, isDeleted, ...rest }) => rest);
-      const orderShipments = shipments.filter(
-        (s) => s.orderId === order.id
-      ).map(({ createdAt, updatedAt, isDeleted, ...rest }) => rest);
+      const histories = orderStatusHistories
+        .filter((history) => history.orderId === order.id)
+        .map(
+          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
+        );
+      const transactions = pointTransactions
+        .filter((transaction) => transaction.orderId === order.id)
+        .map(
+          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
+        );
+      const orderShipments = shipments
+        .filter((s) => s.orderId === order.id)
+        .map(
+          ({
+            createdAt: _createdAt,
+            updatedAt: _updatedAt,
+            isDeleted: _isDeleted,
+            ...rest
+          }) => rest,
+        );
 
       const commune = communes.find((c) => c.id === order.communeId);
       if (!commune) {
