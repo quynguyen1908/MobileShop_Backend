@@ -14,9 +14,11 @@ export interface IUserService {
 
   // Province
   getAllProvinces(): Promise<Province[]>;
+  getProvincesByIds(ids: number[]): Promise<Province[]>;
 
-  // District
+  // Commune
   getCommunesByProvinceCode(provinceCode: number): Promise<Commune[]>;
+  getCommunesByIds(ids: number[]): Promise<Commune[]>;
 }
 
 export interface IUserRepository
@@ -34,7 +36,9 @@ export interface IUserQueryRepository {
 
   // Province
   findAllProvinces(): Promise<Province[]>;
+  findProvincesByIds(ids: number[]): Promise<Province[]>;
 
-  // District
+  // Commune
   findCommunesByProvinceCode(provinceCode: number): Promise<Commune[]>;
+  findCommunesByIds(ids: number[]): Promise<Commune[]>;
 }

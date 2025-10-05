@@ -360,6 +360,7 @@ export class AuthService implements IAuthService {
       email: userCreateDto.email,
       roleId: userCreateDto.roleId,
       status: UserStatus.ACTIVE,
+      isDeleted: false,
     };
 
     const newUser = await this.authRepository.insert(user);

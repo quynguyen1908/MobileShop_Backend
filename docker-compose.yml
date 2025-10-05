@@ -138,6 +138,41 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: order-service
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    image: quynguyen1908/phone-store-order-service:latest
+    volumes:
+      - ./apps/order-service:/app/apps/order-service:ro
+      - ./libs:/app/libs:ro
+      - ./prisma/order:/app/prisma/order:ro
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
   postgres:
     image: postgres:16-alpine
     container_name: postgres-multi-db
@@ -198,6 +233,8 @@ volumes:
   user_service_node_modules:
     driver: local
   phone_service_node_modules:
+    driver: local
+  order_service_node_modules:
     driver: local
 
 networks:

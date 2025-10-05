@@ -8,6 +8,7 @@ import {
   PhoneDto,
   PhoneFilterDto,
   PhoneVariant,
+  VariantDto,
   Review,
   Specification,
   VariantDiscount,
@@ -23,9 +24,13 @@ export interface IPhoneService {
     filter: PhoneFilterDto,
     paging: PagingDto,
   ): Promise<Paginated<PhoneDto>>;
+  getPhonesByIds(ids: number[]): Promise<Phone[]>;
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;
+
+  // Phone Variant
+  getVariantsByIds(ids: number[]): Promise<VariantDto[]>;
 }
 
 export interface IPhoneQueryRepository {
@@ -48,6 +53,7 @@ export interface IPhoneQueryRepository {
     filter: PhoneFilterDto,
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariant>>;
+  findVariantsByIds(ids: number[]): Promise<PhoneVariant[]>;
 
   // Review
   findReviewsByPhoneId(phoneId: number): Promise<Review[]>;

@@ -38,6 +38,7 @@ model User {
   status          String    @default("active") @db.VarChar(50)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted       Boolean   @default(false) @map("is_deleted")
   
   role        Role        @relation(fields: [roleId], references: [id])
   customer    Customer?
@@ -159,6 +160,7 @@ model Commune {
   province     Province   @relation(fields: [provinceCode], references: [code])
   addresses    Address[]
 
+  @@index([provinceCode])
   @@map("communes")
 }
 

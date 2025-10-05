@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { HealthController } from './api-gateway.controller';
 import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
 import { PhoneModule } from './phone/phone.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PhoneModule } from './phone/phone.module';
     UserModule,
     CircuitBreakerModule,
     PhoneModule,
+    OrderModule,
   ],
   controllers: [HealthController],
   providers: [],

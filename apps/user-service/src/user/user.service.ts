@@ -8,6 +8,7 @@ import {
   AUTH_SERVICE,
 } from '@app/contracts';
 import {
+  Commune,
   Customer,
   CustomerCreateDto,
   CustomerDto,
@@ -91,9 +92,17 @@ export class UserService implements IUserService {
     return this.userRepository.findAllProvinces();
   }
 
+  async getProvincesByIds(ids: number[]): Promise<Province[]> {
+    return this.userRepository.findProvincesByIds(ids);
+  }
+
   // Commune
 
-  async getCommunesByProvinceCode(provinceCode: number): Promise<any[]> {
+  async getCommunesByProvinceCode(provinceCode: number): Promise<Commune[]> {
     return this.userRepository.findCommunesByProvinceCode(provinceCode);
+  }
+
+  async getCommunesByIds(ids: number[]): Promise<Commune[]> {
+    return this.userRepository.findCommunesByIds(ids);
   }
 }

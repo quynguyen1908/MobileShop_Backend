@@ -30,6 +30,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "order-service": {
+      "type": "application",
+      "root": "apps/order-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/order-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/order-service/tsconfig.app.json"
+      }
+    },
     "phone-service": {
       "type": "application",
       "root": "apps/phone-service",

@@ -67,4 +67,10 @@ export class RabbitMQService {
       this.configService.get<string>('PHONE_SERVICE_QUEUE', 'phone_queue'),
     );
   }
+
+  get orderServiceOptions(): RmqOptions {
+    return this.getRmqOptions(
+      this.configService.get<string>('ORDER_SERVICE_QUEUE', 'order_queue'),
+    );
+  }
 }
