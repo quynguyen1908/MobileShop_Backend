@@ -33,7 +33,7 @@ export const customerSchema = z.object({
   userId: z.number().int().positive(),
   firstName: z.string().max(50, ErrFirstNameAtMost50Chars.message).optional(),
   lastName: z.string().max(50, ErrLastNameAtMost50Chars.message).optional(),
-  gender: z.nativeEnum(Gender).optional(),
+  gender: z.enum(Gender).optional(),
   dateOfBirth: z
     .union([
       z.string().refine((val) => !isNaN(new Date(val).getTime()), {
@@ -70,10 +70,10 @@ export const employeeSchema = z.object({
   userId: z.number().int().positive(),
   firstName: z.string().max(50, ErrFirstNameAtMost50Chars.message).optional(),
   lastName: z.string().max(50, ErrLastNameAtMost50Chars.message).optional(),
-  gender: z.nativeEnum(Gender).optional(),
+  gender: z.enum(Gender).optional(),
   dateOfBirth: z.date().optional(),
   hireDate: z.date().optional(),
-  position: z.nativeEnum(EmployeePosition).optional(),
+  position: z.enum(EmployeePosition).optional(),
   salary: z.number().nonnegative().optional().default(0),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
@@ -89,10 +89,7 @@ export const notificationSchema = z.object({
   userId: z.number().int().positive(),
   title: z.string(),
   message: z.string(),
-  type: z
-    .nativeEnum(NotificationType)
-    .optional()
-    .default(NotificationType.INFO),
+  type: z.enum(NotificationType).optional().default(NotificationType.INFO),
   isRead: z.boolean().optional().default(false),
   readAt: z.date().optional(),
   createdAt: z.date().optional(),
@@ -103,6 +100,8 @@ export const notificationSchema = z.object({
 export type Notification = z.infer<typeof notificationSchema>;
 
 // Commune
+
+export const ErrCommuneNotFound = new Error('Commune not found');
 
 export const communeSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -116,6 +115,8 @@ export const communeSchema = z.object({
 export type Commune = z.infer<typeof communeSchema>;
 
 // Province
+
+export const ErrProvinceNotFound = new Error('Province not found');
 
 export const provinceSchema = z.object({
   id: z.number().int().positive().optional(),

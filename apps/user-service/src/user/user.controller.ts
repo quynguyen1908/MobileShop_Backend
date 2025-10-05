@@ -18,8 +18,18 @@ export class UserController {
     return this.userService.getAllProvinces();
   }
 
+  @MessagePattern(USER_PATTERN.GET_PROVINCES_BY_IDS)
+  async getProvincesByIds(@Payload() ids: number[]) {
+    return this.userService.getProvincesByIds(ids);
+  }
+
   @MessagePattern(USER_PATTERN.GET_COMMUNES_BY_PROVINCE_CODE)
   async getCommunesByProvinceCode(@Payload() provinceCode: number) {
     return this.userService.getCommunesByProvinceCode(provinceCode);
+  }
+
+  @MessagePattern(USER_PATTERN.GET_COMMUNES_BY_IDS)
+  async getCommunesByIds(@Payload() ids: number[]) {
+    return this.userService.getCommunesByIds(ids);
   }
 }

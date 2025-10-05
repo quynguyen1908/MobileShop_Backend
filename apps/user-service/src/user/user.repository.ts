@@ -77,6 +77,20 @@ export class UserRepository implements IUserRepository {
     return provinces.map((province) => this._toProvinceModel(province));
   }
 
+  async findProvincesByIds(ids: number[]): Promise<Province[]> {
+    const prismaService = this.prisma as unknown as {
+      province: {
+        findMany: (params: {
+          where: { id: { in: number[] } };
+        }) => Promise<PrismaProvince[]>;
+      };
+    };
+    const provinces = await prismaService.province.findMany({
+      where: { id: { in: ids } },
+    });
+    return provinces.map((province) => this._toProvinceModel(province));
+  }
+
   // Commune
 
   async findCommunesByProvinceCode(provinceCode: number): Promise<Commune[]> {
@@ -89,6 +103,20 @@ export class UserRepository implements IUserRepository {
     };
     const communes = await prismaService.commune.findMany({
       where: { provinceCode },
+    });
+    return communes.map((commune) => this._toCommuneModel(commune));
+  }
+
+  async findCommunesByIds(ids: number[]): Promise<Commune[]> {
+    const prismaService = this.prisma as unknown as {
+      commune: {
+        findMany: (params: {
+          where: { id: { in: number[] } };
+        }) => Promise<PrismaCommune[]>;
+      };
+    };
+    const communes = await prismaService.commune.findMany({
+      where: { id: { in: ids } },
     });
     return communes.map((commune) => this._toCommuneModel(commune));
   }

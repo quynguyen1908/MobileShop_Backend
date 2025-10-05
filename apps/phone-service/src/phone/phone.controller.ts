@@ -13,9 +13,19 @@ export class PhoneController {
     return this.phoneService.getPhone(phoneId);
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_PHONES_BY_IDS)
+  async getPhonesByIds(@Payload() phoneIds: number[]) {
+    return this.phoneService.getPhonesByIds(phoneIds);
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_ALL_CATEGORIES)
   async getAllCategories() {
     return this.phoneService.getAllCategories();
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_VARIANTS_BY_IDS)
+  async getVariantsByIds(@Payload() variantIds: number[]) {
+    return this.phoneService.getVariantsByIds(variantIds);
   }
 
   @MessagePattern(PHONE_PATTERN.LIST_PHONES)

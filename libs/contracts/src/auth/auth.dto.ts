@@ -62,6 +62,8 @@ export const userUpdateDtoSchema = userSchema
     roleId: true,
     status: true,
     lastChangePass: true,
+    updatedAt: true,
+    isDeleted: true,
   })
   .partial();
 
@@ -71,6 +73,9 @@ export const UserUpdateProfileDtoSchema = userUpdateDtoSchema
   .omit({
     roleId: true,
     status: true,
+    lastChangePass: true,
+    updatedAt: true,
+    isDeleted: true,
   })
   .partial();
 

@@ -5,7 +5,6 @@ export enum UserStatus {
   INACTIVE = 'inactive',
   BANNED = 'banned',
   SUSPENDED = 'suspended',
-  DELETED = 'deleted',
 }
 
 export enum OAuthProvider {
@@ -61,9 +60,10 @@ export const userSchema = z.object({
   email: z.string().email(ErrEmailInvalid.message),
   roleId: z.number().int().positive(),
   lastChangePass: z.date().optional(),
-  status: z.nativeEnum(UserStatus).optional().default(UserStatus.ACTIVE),
+  status: z.enum(UserStatus).optional().default(UserStatus.ACTIVE),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -104,7 +104,7 @@ export const ErrOAuthAlreadyExists = new Error('OAuth entry already exists');
 export const oauthSchema = z.object({
   id: z.number().int().positive().optional(),
   userId: z.number().int().positive(),
-  oauthProvider: z.nativeEnum(OAuthProvider),
+  oauthProvider: z.enum(OAuthProvider),
   oauthId: z.string(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

@@ -98,7 +98,7 @@ export type PhoneVariant = z.infer<typeof phoneVariantSchema>;
 export const variantImageSchema = z.object({
   id: z.number().int().positive().optional(),
   variantId: z.number().int().positive(),
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),

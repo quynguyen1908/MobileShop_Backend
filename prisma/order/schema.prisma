@@ -6,10 +6,121 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../../node_modules/.prisma/client/order"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("ORDER_DB_URL")
+}
+
+model Order {
+  id              Int       @id @default(autoincrement())
+  customerId      Int       @map("customer_id")
+  orderCode       String    @unique @map("order_code") @db.VarChar(50)
+  orderDate       DateTime  @map("order_date") @db.Date
+  totalAmount     Int       @map("total_amount")
+  discountAmount  Int       @default(0) @map("discount_amount")
+  shippingFee     Int       @default(0) @map("shipping_fee")
+  finalAmount     Int       @map("final_amount")
+  recipientName   String    @map("recipient_name") @db.VarChar(255)
+  recipientPhone  String    @map("recipient_phone") @db.VarChar(50)
+  status          String    @default("PENDING") @db.VarChar(50)
+  street          String    @db.VarChar(255)
+  communeId       Int       @map("commune_id")
+  provinceId      Int       @map("province_id")
+  postalCode      String?   @map("postal_code") @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  transactions    PointTransaction[]
+  shipments       Shipment[]
+
+  @@index([customerId])
+  @@index([communeId])
+  @@index([provinceId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  orderId   Int   @map("order_id")
+  variantId Int   @map("variant_id")
+  quantity  Int
+  price     Int
+  discount  Int   @default(0)
+
+  order     Order @relation(fields: [orderId], references: [id])
+
+  @@unique([orderId, variantId])
+  @@index([variantId])
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  status    String   @db.VarChar(50)
+  note      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model PointTransaction {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @map("customer_id")
+  orderId    Int      @map("order_id")
+  type       String   @db.VarChar(50)
+  points     Int
+  moneyValue Int      @map("money_value")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+
+  order      Order    @relation(fields: [orderId], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+  @@map("point_transactions")
+}
+
+model PointConfig {
+  id            Int       @id @default(autoincrement())
+  earnRate      Int       @map("earn_rate")
+  redeemRate    Int       @map("redeem_rate")
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+
+  @@map("point_config")
+}
+
+model Shipment {
+  id                    Int       @id @default(autoincrement())
+  orderId               Int       @map("order_id")
+  provider              String    @db.VarChar(100)
+  trackingCode          String?   @map("tracking_code") @db.VarChar(100)
+  status                String    @db.VarChar(50)
+  fee                   Int       @default(0)
+  estimatedDeliveryDate DateTime? @map("estimated_delivery_date") @db.Date
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted             Boolean   @default(false) @map("is_deleted")
+
+  order                 Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("shipment")
 }

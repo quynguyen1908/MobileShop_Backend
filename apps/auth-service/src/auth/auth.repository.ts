@@ -27,6 +27,7 @@ interface PrismaUser {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  isDeleted: boolean;
 }
 
 interface PrismaRole {
@@ -88,7 +89,7 @@ export class AuthRepository implements IAuthRepository {
     };
     await prismaService.user.update({
       where: { id },
-      data: { status: UserStatus.DELETED },
+      data: { isDeleted: true },
     });
   }
 
@@ -117,9 +118,9 @@ export class AuthRepository implements IAuthRepository {
         phone: filter.phone,
         roleId: filter.roleId,
         status: {
-          not: UserStatus.DELETED,
           equals: filter.status,
         },
+        isDeleted: false,
       },
     });
     return user ? this._toModel(user) : null;
@@ -132,7 +133,7 @@ export class AuthRepository implements IAuthRepository {
     const skip = (paging.page - 1) * paging.limit;
     const whereCondition = {
       ...filter,
-      status: { not: UserStatus.DELETED },
+      isDeleted: false,
     };
     const prismaService = this.prisma as unknown as {
       user: {
@@ -169,7 +170,7 @@ export class AuthRepository implements IAuthRepository {
     const users = await prismaService.user.findMany({
       where: {
         id: { in: ids },
-        status: { not: UserStatus.DELETED },
+        isDeleted: false,
       },
     });
     return users.map((user) => this._toModel(user));
@@ -192,7 +193,7 @@ export class AuthRepository implements IAuthRepository {
     const user = await prismaService.user.findFirst({
       where: {
         OR: conditions,
-        status: { not: UserStatus.DELETED },
+        isDeleted: false,
       },
     });
     return user ? this._toModel(user) : null;
@@ -220,6 +221,7 @@ export class AuthRepository implements IAuthRepository {
       status: typedStatus!,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
     };
   }
 }

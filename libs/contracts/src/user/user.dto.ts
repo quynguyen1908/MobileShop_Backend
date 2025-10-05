@@ -23,6 +23,7 @@ export const customerDtoSchema = customerSchema
       lastChangePass: true,
       createdAt: true,
       updatedAt: true,
+      isDeleted: true,
     }),
   });
 
