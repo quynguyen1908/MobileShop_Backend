@@ -602,10 +602,17 @@ export class PhoneRepository implements IPhoneQueryRepository {
 
     queryParams.push(paging.limit, skip);
 
-    const [countResult, variantResults] = await Promise.all([
-      (this.prisma.$queryRawUnsafe(countQuery, ...queryParams.slice(0, -2)) as unknown) as { count: bigint }[],
-      (this.prisma.$queryRawUnsafe(dataQuery, ...queryParams) as unknown) as PhoneVariantViewDto[],
-    ]);
+    const countPromise = this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
+      countQuery,
+      ...queryParams.slice(0, -2),
+    );
+
+    const variantsPromise = this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
+      dataQuery,
+      ...queryParams,
+    );
+
+    const [countResult, variantResults] = await Promise.all([countPromise, variantsPromise]);
 
     const total = Number(countResult[0]?.count || 0);
     const variantIds = variantResults.map((row) => row.variant_id);
