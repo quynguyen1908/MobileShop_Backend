@@ -60,8 +60,8 @@ export interface IPhoneQueryRepository {
   findReviewsByPhoneIds(phoneIds: number[]): Promise<Review[]>;
 
   // Color
-  findColorByVariantId(variantId: number): Promise<Color | null>;
-  findColorsByVariantIds(variantIds: number[]): Promise<Color[]>;
+  findColorById(id: number): Promise<Color | null>;
+  findColorsByIds(ids: number[]): Promise<Color[]>;
 
   // Variant Price
   findPriceByVariantId(variantId: number): Promise<VariantPrice | null>;

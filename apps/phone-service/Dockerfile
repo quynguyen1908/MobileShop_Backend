@@ -35,6 +35,10 @@ COPY --from=build /app/dist/apps/phone-service ./dist/apps/phone-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
+
+COPY ./apps/phone-service/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 RUN apk add --no-cache curl jq
 
 COPY --chown=nestjs:nodejs apps/phone-service/healthcheck.js ./healthcheck.js
@@ -45,4 +49,4 @@ USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD node healthcheck.js
 
-CMD ["node", "dist/apps/phone-service/main.js"]
+ENTRYPOINT ["/entrypoint.sh"]

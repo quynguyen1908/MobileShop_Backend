@@ -210,8 +210,13 @@ export class PhoneService implements IPhoneService {
     const variantIds = variants
       .map((v) => v.id)
       .filter((id): id is number => typeof id === 'number');
-    const colors =
-      await this.phoneRepository.findColorsByVariantIds(variantIds);
+
+    const colorIds = variants
+      .map((v) => v.colorId)
+      .filter((id): id is number => typeof id === 'number');
+
+    const colors = await this.phoneRepository.findColorsByIds(colorIds);
+
     const prices =
       await this.phoneRepository.findPricesByVariantIds(variantIds);
     const discounts =
@@ -225,7 +230,7 @@ export class PhoneService implements IPhoneService {
       await this.phoneRepository.findSpecificationByIds(specificationIds);
 
     const variantsDto: VariantDto[] = variants.map((variant) => {
-      const color = colors.find((c) => c.id === variant.id);
+      const color = colors.find((c) => c.id === variant.colorId);
       if (!color) {
         throw new RpcException(
           AppError.from(ErrVariantColorNotFound, 404)
