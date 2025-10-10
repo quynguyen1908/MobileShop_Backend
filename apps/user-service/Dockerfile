@@ -36,7 +36,7 @@ COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 
-COPY ./entrypoint.sh /entrypoint.sh
+COPY ./apps/user-service/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 RUN apk add --no-cache curl jq
@@ -49,4 +49,4 @@ USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD node healthcheck.js
 
-CMD ["node", "dist/apps/user-service/main.js"]
+ENTRYPOINT ["/entrypoint.sh"]
