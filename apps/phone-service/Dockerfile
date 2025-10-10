@@ -35,6 +35,8 @@ COPY --from=build /app/dist/apps/phone-service ./dist/apps/phone-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
+RUN npm run prisma:migrate:all
+
 RUN apk add --no-cache curl jq
 
 COPY --chown=nestjs:nodejs apps/phone-service/healthcheck.js ./healthcheck.js

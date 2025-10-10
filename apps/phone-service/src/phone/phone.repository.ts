@@ -8,6 +8,7 @@ import {
   Phone,
   PhoneFilterDto,
   PhoneVariant,
+  PhoneVariantViewDto,
   Review,
   Specification,
   VariantDiscount,
@@ -17,7 +18,6 @@ import {
 } from '@app/contracts/phone';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Paginated, PagingDto } from '@app/contracts';
-import { normalizeStorage } from '@app/contracts/utils';
 
 interface PrismaPhone {
   id: number;
@@ -282,14 +282,14 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return reviews.map((review) => this._toReviewModel(review));
   }
 
-  async findColorByVariantId(variantId: number): Promise<Color | null> {
+  async findColorById(id: number): Promise<Color | null> {
     const prismaService = this.prisma as unknown as {
       color: {
         findFirst: (params: { where: any }) => Promise<PrismaColor | null>;
       };
     };
     const color = await prismaService.color.findFirst({
-      where: { id: variantId },
+      where: { id: id },
     });
     if (!color || color.isDeleted) {
       return null;
@@ -297,14 +297,14 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return this._toColorModel(color);
   }
 
-  async findColorsByVariantIds(variantIds: number[]): Promise<Color[]> {
+  async findColorsByIds(ids: number[]): Promise<Color[]> {
     const prismaService = this.prisma as unknown as {
       color: {
         findMany: (params: { where: any }) => Promise<PrismaColor[]>;
       };
     };
     const colors = await prismaService.color.findMany({
-      where: { id: { in: variantIds }, isDeleted: false },
+      where: { id: { in: ids }, isDeleted: false },
     });
     return colors.map((color) => this._toColorModel(color));
   }
@@ -495,156 +495,130 @@ export class PhoneRepository implements IPhoneQueryRepository {
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariant>> {
     const skip = (paging.page - 1) * paging.limit;
-    const includeCondition = {
-      prices: {
-        where: {
-          startDate: { lte: new Date() },
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
-        orderBy: { startDate: 'desc' },
-        take: 1,
-      },
-      discounts: {
-        where: {
-          startDate: { lte: new Date() },
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
-        orderBy: { startDate: 'desc' },
-        take: 1,
-      },
-      specifications: {
-        include: {
-          specification: true,
-        },
-      },
-    };
-
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
+        count: (params: { where: any }) => Promise<number>;
         findMany: (params: {
           where: any;
-          include: any;
-          take: number;
           skip: number;
+          take: number;
           orderBy: any;
         }) => Promise<PrismaPhoneVariant[]>;
       };
     };
 
-    const data = await prismaService.phoneVariant.findMany({
-      where: { isDeleted: false },
-      include: includeCondition,
-      take: paging.limit,
-      skip,
-      orderBy: { id: 'asc' },
-    });
-
-    const isFilterEmpty = this.isFilterEmpty(filter);
-    if (isFilterEmpty) {
-      const total = data.length;
+    if (this.isFilterEmpty(filter)) {
+      const total = await prismaService.phoneVariant.count({
+        where: { isDeleted: false },
+      });
+      const variants = await prismaService.phoneVariant.findMany({
+        where: { isDeleted: false },
+        skip,
+        take: paging.limit,
+        orderBy: { id: 'asc' },
+      });
       return {
-        data: data.map((variant) => this._toPhoneVariantModel(variant)),
+        data: variants.map((variant) => this._toPhoneVariantModel(variant)),
         paging,
         total,
       };
     }
 
-    const filteredData = data.filter((variant) => {
-      const price =
-        variant.prices && variant.prices[0]?.price !== undefined
-          ? Number(variant.prices[0].price)
-          : 0;
-      const discount =
-        variant.discounts && variant.discounts[0]?.discountPercent !== undefined
-          ? Number(variant.discounts[0].discountPercent)
-          : 0;
-      const finalPrice = price - Math.floor((price * discount) / 100);
+    const queryConditions: string[] = ['1=1'];
+    const queryParams: any[] = [];
 
-      if (filter.minPrice !== undefined && finalPrice < filter.minPrice)
-        return false;
-      if (filter.maxPrice !== undefined && finalPrice > filter.maxPrice)
-        return false;
-
-      for (const vs of variant.specifications || []) {
-        const specName = vs.specification?.name.toLowerCase();
-        const info = vs.info.toLowerCase();
-
-        if (specName?.includes('chipset') && filter.chipset) {
-          if (Array.isArray(filter.chipset)) {
-            if (
-              !filter.chipset.some((chip) => info.includes(chip.toLowerCase()))
-            )
-              return false;
-          } else {
-            if (!info.includes(filter.chipset.toLowerCase())) return false;
-          }
-        }
-
-        if (specName?.includes('hệ điều hành') && filter.os) {
-          if (Array.isArray(filter.os)) {
-            if (!filter.os.some((os) => info.includes(os.toLowerCase())))
-              return false;
-          } else {
-            if (!info.includes(filter.os.toLowerCase())) return false;
-          }
-        }
-
-        if (specName?.includes('dung lượng ram')) {
-          const ram = parseInt(info);
-          if (!isNaN(ram)) {
-            if (filter.minRam !== undefined && ram < filter.minRam)
-              return false;
-            if (filter.maxRam !== undefined && ram > filter.maxRam)
-              return false;
-          }
-        }
-
-        if (specName?.includes('bộ nhớ trong')) {
-          const storage = normalizeStorage(info);
-          if (storage !== null) {
-            if (filter.minStorage !== undefined && storage < filter.minStorage)
-              return false;
-            if (filter.maxStorage !== undefined && storage > filter.maxStorage)
-              return false;
-          }
-        }
-
-        if (
-          specName?.includes('kích thước màn hình') &&
-          (filter.minScreenSize !== undefined ||
-            filter.maxScreenSize !== undefined)
-        ) {
-          const screenSize = parseFloat(info);
-          if (!isNaN(screenSize)) {
-            if (
-              filter.minScreenSize !== undefined &&
-              screenSize < filter.minScreenSize
-            )
-              return false;
-            if (
-              filter.maxScreenSize !== undefined &&
-              screenSize > filter.maxScreenSize
-            )
-              return false;
-          }
-        }
-
-        if (specName?.includes('công nghệ nfc') && filter.nfc !== undefined) {
-          const hasNfc =
-            info.includes('có') ||
-            info.includes('có hỗ trợ') ||
-            info.includes('hỗ trợ');
-          if (hasNfc !== filter.nfc) return false;
-        }
+    if (filter.minPrice !== undefined) {
+      queryConditions.push('final_price >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minPrice);
+    }
+    if (filter.maxPrice !== undefined) {
+      queryConditions.push('final_price <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxPrice);
+    }
+    if (filter.minRam !== undefined) {
+      queryConditions.push('ram_gb >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minRam);
+    }
+    if (filter.maxRam !== undefined) {
+      queryConditions.push('ram_gb <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxRam);
+    }
+    if (filter.minStorage !== undefined) {
+      queryConditions.push('rom_gb >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minStorage);
+    }
+    if (filter.maxStorage !== undefined) {
+      queryConditions.push('rom_gb <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxStorage);
+    }
+    if (filter.chipset) {
+      if (Array.isArray(filter.chipset)) {
+        const placeholders = filter.chipset
+          .map((_, index) => `chipset ILIKE $${queryParams.length + 1 + index}`)
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.chipset.forEach((chip) => queryParams.push(`%${chip}%`));
+      } else {
+        queryConditions.push('chipset ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.chipset}%`);
       }
+    }
+    if (filter.os) {
+      if (Array.isArray(filter.os)) {
+        const placeholders = filter.os
+          .map((_, index) => `os ILIKE $${queryParams.length + 1 + index}`)
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.os.forEach((os) => queryParams.push(`%${os}%`));
+      } else {
+        queryConditions.push('os ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.os}%`);
+      }
+    }
+    if (filter.minScreenSize !== undefined) {
+      queryConditions.push('screen_size >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minScreenSize);
+    }
+    if (filter.maxScreenSize !== undefined) {
+      queryConditions.push('screen_size <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxScreenSize);
+    }
+    if (filter.nfc !== undefined) {
+      queryConditions.push('nfc = $' + (queryParams.length + 1));
+      queryParams.push(filter.nfc);
+    }
 
-      return true;
-    });
+    const countQuery = `
+      SELECT COUNT(*) FROM phone_variant_view
+      WHERE ${queryConditions.join(' AND ')}
+    ;`;
+    const dataQuery = `
+      SELECT * FROM phone_variant_view
+      WHERE ${queryConditions.join(' AND ')}
+      ORDER BY variant_id ASC
+      LIMIT $${queryParams.length + 1}
+      OFFSET $${queryParams.length + 2}
+    ;`;
 
-    const total = filteredData.length;
+    queryParams.push(paging.limit, skip);
+
+    const [countResult, variantResults] = await Promise.all([
+      this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
+        countQuery,
+        ...queryParams.slice(0, -2),
+      ),
+      this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
+        dataQuery,
+        ...queryParams,
+      ),
+    ]);
+
+    const total = Number(countResult[0]?.count || 0);
+    const variantIds = variantResults.map((row) => row.variant_id);
+    const variants = await this.findVariantsByIds(variantIds);
 
     return {
-      data: filteredData.map((variant) => this._toPhoneVariantModel(variant)),
+      data: variants,
       paging,
       total,
     };

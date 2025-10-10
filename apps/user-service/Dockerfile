@@ -35,6 +35,7 @@ COPY --from=build /app/dist/apps/user-service ./dist/apps/user-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
+RUN npm run prisma:migrate:all
 
 RUN apk add --no-cache curl jq
 

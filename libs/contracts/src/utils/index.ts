@@ -1,2 +1,2 @@
 export * from './safe-stringify';
-export * from './normalize-storage';
+export * from './format-currency';

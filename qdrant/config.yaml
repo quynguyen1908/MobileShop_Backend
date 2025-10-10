@@ -1,0 +1,4 @@
+service:
+  api-key: ${QDRANT__SERVICE__API_KEY}
+  enable_cors: true
+  max_request_size_mb: 50

@@ -1,4 +1,4 @@
-# 📱🛒 Online Mobile Shop Application with AI Agent using RAG (NestJS + React Native + PostgreSQL) - Backend Repository
+# 📱🛒 Online Mobile Shop Application with AI Agent using RAG (NestJS + Next.js/React Native + PostgreSQL) - Backend Repository
 
 ## Mục lục
 - [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
@@ -52,7 +52,7 @@
 ---
 
 ## Containerize with Docker
-- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, postgres, rabbitmq
+- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, ai-service, postgres, rabbitmq, qdrant
 
 ---
 
@@ -97,9 +97,8 @@ docker compose up -d
 
 ### 5. Chạy migration và generate Prisma Client
 ```bash
-npx prisma migrate dev --schema=prisma/user/schema.prisma
-npx prisma generate --schema=prisma/user/schema.prisma
-// Các schema khác tương tự như phone, order, ...
+npm run prisma:migrate:all
+npm run prisma:generate:all
 ```
 
 ### 6. Truy cập hệ thống

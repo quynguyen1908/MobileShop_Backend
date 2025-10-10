@@ -57,3 +57,20 @@ export interface IEventSubscriber {
     handler: EventHandler,
   ): Promise<void>;
 }
+
+export interface OpenAIConfig {
+  apiKey: string;
+  chatModel: string;
+  embeddingModel: string;
+}
+
+export interface VectorMetadata {
+  id: string;
+  source: string;
+  title?: string;
+  url?: string;
+  tags?: string[];
+  createdAt?: Date;
+
+  [key: string]: string | string[] | Date | number | undefined;
+}

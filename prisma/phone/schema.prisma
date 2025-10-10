@@ -79,7 +79,7 @@ model Color {
 model PhoneVariant {
   id             Int      @id @default(autoincrement())
   phoneId        Int      @map("phone_id")
-  variantName    String   @db.VarChar(100)
+  variantName    String   @db.VarChar(100) @map("variant_name")
   colorId        Int      @map("color_id")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz()
@@ -118,7 +118,7 @@ model VariantPrice {
 model VariantDiscount {
   id              Int          @id @default(autoincrement())
   variantId       Int          @map("variant_id")
-  discountPercent Decimal      @db.Decimal(5,2)
+  discountPercent Decimal      @db.Decimal(5,2) @map("discount_percent")
   startDate       DateTime     @map("start_date") @db.Timestamptz()
   endDate         DateTime?    @map("end_date") @db.Timestamptz()
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz()

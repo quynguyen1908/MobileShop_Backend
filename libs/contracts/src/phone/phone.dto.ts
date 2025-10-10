@@ -178,3 +178,23 @@ export const phoneFilterDtoSchema = z
   );
 
 export type PhoneFilterDto = z.infer<typeof phoneFilterDtoSchema>;
+
+export const phoneVariantViewDtoSchema = z.object({
+  variant_id: z.number().int().nonnegative(),
+  phone_id: z.number().int().nonnegative(),
+  variant_name: z.string(),
+  phone_name: z.string(),
+  brand_name: z.string(),
+  category_name: z.string(),
+  price: z.number().int().nonnegative(),
+  discount_percent: z.number().int().min(0).max(100).nullable(),
+  final_price: z.number().int().nonnegative(),
+  ram_gb: z.number().int().nonnegative(),
+  rom_gb: z.number().int().nonnegative(),
+  chipset: z.string().nullable(),
+  os: z.string().nullable(),
+  screen_size: z.number().nonnegative().nullable(),
+  nfc: z.boolean().nullable(),
+});
+
+export type PhoneVariantViewDto = z.infer<typeof phoneVariantViewDtoSchema>;

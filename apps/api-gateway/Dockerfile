@@ -35,10 +35,11 @@ COPY --from=build /app/dist/apps/api-gateway ./dist/apps/api-gateway
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
+RUN npm run prisma:migrate:all
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*
 USER nestjs
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
 CMD ["node", "dist/apps/api-gateway/main.js"]
