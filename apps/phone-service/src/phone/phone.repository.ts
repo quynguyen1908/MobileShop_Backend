@@ -602,14 +602,14 @@ export class PhoneRepository implements IPhoneQueryRepository {
 
     queryParams.push(paging.limit, skip);
 
-    const rawCount = await this.prisma.$queryRawUnsafe(
+    const rawCount = await this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
       countQuery,
       ...queryParams.slice(0, -2),
     );
     if (!Array.isArray(rawCount)) throw new Error('Invalid count result');
     const countResult = rawCount as { count: bigint }[];
 
-    const rawData = await this.prisma.$queryRawUnsafe(
+    const rawData = await this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
       dataQuery,
       ...queryParams,
     );
