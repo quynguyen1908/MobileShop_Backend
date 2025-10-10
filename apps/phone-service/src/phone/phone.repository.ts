@@ -602,25 +602,25 @@ export class PhoneRepository implements IPhoneQueryRepository {
 
     queryParams.push(paging.limit, skip);
 
-    const countResult = await this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
+    const rawCount = await this.prisma.$queryRawUnsafe(
       countQuery,
       ...queryParams.slice(0, -2),
     );
+    if (!Array.isArray(rawCount)) throw new Error('Invalid count result');
+    const countResult = rawCount as { count: bigint }[];
 
-    const variantResults = await this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
+    const rawData = await this.prisma.$queryRawUnsafe(
       dataQuery,
       ...queryParams,
     );
+    if (!Array.isArray(rawData)) throw new Error('Invalid variant result');
+    const variantResults = rawData as PhoneVariantViewDto[];
 
-    const total = Number(countResult[0]?.count || 0);
-    const variantIds = variantResults.map((row) => row.variant_id);
+    const total = Number(countResult[0]?.count ?? 0);
+    const variantIds = variantResults.map((v) => v.variant_id);
     const variants = await this.findVariantsByIds(variantIds);
 
-    return {
-      data: variants,
-      paging,
-      total,
-    };
+    return { data: variants, paging, total };
   }
 
   private isFilterEmpty(filter: PhoneFilterDto): boolean {
