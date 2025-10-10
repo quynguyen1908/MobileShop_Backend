@@ -35,7 +35,9 @@ COPY --from=build /app/dist/apps/api-gateway ./dist/apps/api-gateway
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
-RUN npm run prisma:migrate:all
+
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*

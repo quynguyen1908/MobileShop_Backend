@@ -35,7 +35,9 @@ COPY --from=build /app/dist/apps/auth-service ./dist/apps/auth-service
 COPY --from=build /app/prisma ./prisma
 RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
-RUN npm run prisma:migrate:all
+
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN apk add --no-cache curl jq
 
