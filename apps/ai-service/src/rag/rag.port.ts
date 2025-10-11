@@ -1,8 +1,10 @@
-import { VectorMetadata } from '@app/contracts';
+import { AgentContent, VectorMetadata } from '@app/contracts';
+import { Observable } from 'rxjs';
 
-// export interface IGenerationService {
-
-// }
+export interface IRagService {
+  execute(query: string): Promise<AgentContent[]>;
+  executeStream(query: string): Promise<Observable<AgentContent>>;
+}
 
 export interface IRetrievalRepository
   extends IRetrievalCommandRepository,
@@ -12,7 +14,7 @@ export interface IRetrievalQueryRepository {
   querySimilar(
     queryVector: number[],
     topK: number,
-  ): Promise<{ content: string; metadata: VectorMetadata }>;
+  ): Promise<{ content: string; metadata: VectorMetadata }[]>;
 }
 
 export interface IRetrievalCommandRepository {
