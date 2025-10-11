@@ -9,6 +9,7 @@ export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
 export const OAUTH_REPOSITORY = Symbol('OAUTH_REPOSITORY');
 export const PHONE_REPOSITORY = Symbol('PHONE_REPOSITORY');
 export const ORDER_REPOSITORY = Symbol('ORDER_REPOSITORY');
+export const RETRIEVAL_REPOSITORY = Symbol('RETRIEVAL_REPOSITORY');
 
 export const TOKEN_PROVIDER = Symbol('TOKEN_PROVIDER');
 export const TOKEN_VALIDATOR = Symbol('TOKEN_VALIDATOR');

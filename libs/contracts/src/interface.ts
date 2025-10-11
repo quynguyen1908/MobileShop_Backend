@@ -74,3 +74,9 @@ export interface VectorMetadata {
 
   [key: string]: string | string[] | Date | number | undefined;
 }
+
+export type AgentContent = {
+  role: 'Human' | 'Assistant';
+  content: string;
+  isPartial?: boolean;
+};

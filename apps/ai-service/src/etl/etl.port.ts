@@ -1,6 +1,10 @@
 import { SourceType } from '@app/contracts/ai';
 import { VectorMetadata } from '@app/contracts/interface';
 
+export interface IETLService {
+  documentIngestion(): Promise<void>;
+}
+
 export interface IExtractService {
   readFromSource(type: SourceType): Promise<string[]>;
 }

@@ -616,7 +616,7 @@ export class PhoneRepository implements IPhoneQueryRepository {
       ...queryParams,
     );
     if (!Array.isArray(rawData)) throw new Error('Invalid variant result');
-    const variantResults = rawData as PhoneVariantViewDto[];
+    const variantResults = rawData;
 
     const total = Number(countResult[0]?.count ?? 0);
     const variantIds = variantResults.map((v) => v.variant_id);

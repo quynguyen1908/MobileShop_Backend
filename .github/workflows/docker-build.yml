@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ api-gateway, auth-service, user-service, phone-service, order-service ]
+        service: [ api-gateway, auth-service, user-service, phone-service, order-service, ai-service ]
 
     steps:
     - uses: actions/checkout@v3
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ api-gateway, auth-service, user-service, phone-service, order-service ]
+        service: [ api-gateway, auth-service, user-service, phone-service, order-service, ai-service ]
 
     steps:
     - uses: actions/checkout@v3

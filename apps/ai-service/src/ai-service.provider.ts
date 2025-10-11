@@ -11,6 +11,9 @@ import { OpenAIConfig } from '@app/contracts';
 import { AgentExecutor, createToolCallingAgent } from 'langchain/agents';
 import { Tool } from '@langchain/core/tools';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { InventoryToolService } from './tools/inventory.service';
+import { OrderToolService } from './tools/order.service';
+import { ShipmentToolService } from './tools/shipment.service';
 
 export const OpenAIEmbeddingsProvider: Provider<OpenAIEmbeddings> = {
   provide: OPENAI_EMBEDDINGS,
@@ -42,11 +45,17 @@ export const OpenAIChatModelProvider: Provider<ChatOpenAI> = {
 
 export const AgentToolsProvider: Provider<Tool[]> = {
   provide: AGENT_TOOLS,
-  useFactory: () => {
-    // TODO: Define and return your tools here
-    return [];
+  useFactory: (
+    inventoryService: InventoryToolService,
+    orderService: OrderToolService,
+    shipmentService: ShipmentToolService,
+  ) => {
+    const inventoryTool = inventoryService.createCheckInventoryTool();
+    const orderTool = orderService.createTrackOrderTool();
+    const shipmentTool = shipmentService.createShippingQuoteTool();
+    return [inventoryTool, orderTool, shipmentTool];
   },
-  inject: [],
+  inject: [InventoryToolService, OrderToolService, ShipmentToolService],
 };
 
 export const AgentExecutorProvider: Provider<AgentExecutor> = {
@@ -67,22 +76,22 @@ const prompt = ChatPromptTemplate.fromMessages([
   [
     'system',
     `Bạn là trợ lý AI của **PHONEHUB** – nền tảng bán điện thoại di động hàng đầu Việt Nam.
-        <br><br>
-        🎯 **NHIỆM VỤ:**
-        - Tư vấn khách hàng chọn điện thoại phù hợp với nhu cầu và ngân sách.
-        - So sánh thông số kỹ thuật giữa các mẫu điện thoại.
-        - Cung cấp thông tin về bảo hành, đổi trả và khuyến mãi hiện có.
-        - Hướng dẫn quy trình đặt hàng, thanh toán và theo dõi đơn.
-        <br>
-        💡 **HƯỚNG DẪN TRAO ĐỔI:**
-        1. Luôn hỏi rõ mục đích sử dụng & ngân sách của khách hàng.
-        2. Đề xuất 1–3 sản phẩm phù hợp.
-        3. Giải thích ngắn gọn, dễ hiểu (dưới 70 từ).
-        4. Sử dụng thẻ HTML (<ul>, <ol>, <br>) để định dạng.
-        5. Giữ thái độ chuyên nghiệp, thân thiện, kiên nhẫn.
-        6. Nếu không chắc chắn, hãy nói rõ thay vì đoán.
-        <br>
-        🧠 **Lưu ý:** Bạn có thể dùng công cụ sẵn có để tra cứu sản phẩm, giá, khuyến mãi, hoặc quy trình đơn hàng nhằm trả lời chính xác nhất.`,
+    
+🎯 **NHIỆM VỤ (TRẢ LỜI THEO MARKDOWN):**
+- Tư vấn khách hàng chọn điện thoại theo nhu cầu & ngân sách.
+- So sánh thông số kỹ thuật giữa các mẫu điện thoại.
+- Cung cấp thông tin bảo hành, đổi trả và khuyến mãi.
+- Hướng dẫn đặt hàng, thanh toán và theo dõi đơn.
+
+💡 **HƯỚNG DẪN TRẢ LỜI:**
+1. Luôn hỏi rõ mục đích sử dụng & ngân sách.
+2. Đề xuất từ 1–3 sản phẩm theo dạng danh sách Markdown (dùng "-" hoặc "1.")
+3. Giải thích ngắn gọn, dễ hiểu (dưới 70 từ).
+4. Không dùng HTML. Chỉ dùng Markdown.
+5. Giữ thái độ chuyên nghiệp, thân thiện, kiên nhẫn.
+6. Nếu không chắc chắn, hãy nói rõ thay vì đoán.
+
+🧠 **Lưu ý:** Bạn có thể dùng công cụ để tra cứu tồn kho, phí giao hàng hoặc trạng thái đơn hàng nếu cần. Trả lời dưới dạng Markdown.`,
   ],
   ['placeholder', '{chat_history}'],
   ['placeholder', '{context}'],

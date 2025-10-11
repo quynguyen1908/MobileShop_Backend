@@ -13,6 +13,7 @@ COPY . .
 
 RUN mkdir -p node_modules/.prisma/client
 
+RUN npm run prisma:generate:all
 RUN npm run build api-gateway
 
 FROM node:18-alpine AS development

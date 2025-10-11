@@ -50,6 +50,7 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-user-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-phone-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-order-service:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-ai-service:latest
           docker-compose up -d
 
     - name: Slack Notification
