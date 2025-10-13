@@ -13,6 +13,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import {
   CategoryDto,
+  Inventory,
   PHONE_PATTERN,
   PHONE_SERVICE_NAME,
   PhoneDto,
@@ -465,6 +466,92 @@ export class CategoryController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting categories failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Inventory')
+@Controller('v1/inventory')
+export class InventoryController {
+  constructor(
+    @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get('sku/:sku')
+  @ApiOperation({ summary: 'Get inventory information by SKU' })
+  @ApiParam({
+    name: 'sku',
+    type: String,
+    description: 'Product SKU code',
+    example: 'IP14PM-1TB-BLK',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Inventory retrieved successfully',
+          data: {
+            id: 1,
+            variantId: 1,
+            sku: 'IP14PM-1TB-BLK',
+            stockQuantity: 50,
+          },
+        },
+      },
+    },
+  })
+  async getInventoryBySku(@Param('sku') sku: string, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        Inventory | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_INVENTORY_BY_SKU,
+        sku,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Inventory retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting inventory failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

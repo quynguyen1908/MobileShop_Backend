@@ -12,4 +12,9 @@ export class OrderController {
   async getOrdersByCustomerId(@Payload() request: Requester) {
     return this.orderService.getOrdersByCustomerId(request);
   }
+
+  @MessagePattern(ORDER_PATTERN.GET_ORDER_BY_ORDER_CODE)
+  async getOrderByOrderCode(@Payload() orderCode: string) {
+    return this.orderService.getOrderByOrderCode(orderCode);
+  }
 }

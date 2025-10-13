@@ -7,6 +7,7 @@ import {
   Brand,
   Category,
   Color,
+  Inventory,
   Phone,
   PhoneFilterDto,
   PhoneVariant,
@@ -128,6 +129,16 @@ interface PrismaVariantSpecification {
 interface PrismaSpecification {
   id: number;
   name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
+
+interface PrismaInventory {
+  id: number;
+  variantId: number;
+  sku: string;
+  stockQuantity: number;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -616,13 +627,28 @@ export class PhoneRepository implements IPhoneQueryRepository {
       ...queryParams,
     );
     if (!Array.isArray(rawData)) throw new Error('Invalid variant result');
-    const variantResults = rawData as PhoneVariantViewDto[];
+    const variantResults = rawData;
 
     const total = Number(countResult[0]?.count ?? 0);
     const variantIds = variantResults.map((v) => v.variant_id);
     const variants = await this.findVariantsByIds(variantIds);
 
     return { data: variants, paging, total };
+  }
+
+  async findInventoryBySku(sku: string): Promise<Inventory | null> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        findFirst: (params: { where: any }) => Promise<PrismaInventory | null>;
+      };
+    };
+    const inventory = await prismaService.inventory.findFirst({
+      where: { sku: sku, isDeleted: false },
+    });
+    if (!inventory) {
+      return null;
+    }
+    return this._toInventoryModel(inventory);
   }
 
   private isFilterEmpty(filter: PhoneFilterDto): boolean {
@@ -764,6 +790,18 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return {
       id: data.id,
       name: data.name,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
+    };
+  }
+
+  private _toInventoryModel(data: PrismaInventory): Inventory {
+    return {
+      id: data.id,
+      variantId: data.variantId,
+      sku: data.sku,
+      stockQuantity: data.stockQuantity,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

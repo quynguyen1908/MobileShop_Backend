@@ -11,9 +11,6 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-RUN mkdir -p node_modules/.prisma/client
-
-RUN npm run prisma:generate:all
 RUN npm run build ai-service
 
 FROM node:18-alpine AS development
@@ -22,9 +19,7 @@ ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 COPY --from=build /app/dist/apps/ai-service ./dist/apps/ai-service
-COPY --from=build /app/prisma ./prisma
-RUN mkdir -p node_modules/.prisma/client
-RUN npm run prisma:generate:all
+
 CMD ["node", "dist/apps/ai-service/main.js"]
 
 FROM node:18-alpine AS production
@@ -33,9 +28,6 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=build /app/dist/apps/ai-service ./dist/apps/ai-service
-COPY --from=build /app/prisma ./prisma
-RUN mkdir -p node_modules/.prisma/client
-RUN npm run prisma:generate:all
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*

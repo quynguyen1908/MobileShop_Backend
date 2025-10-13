@@ -35,4 +35,9 @@ export class PhoneController {
     const { filter, paging } = payload;
     return this.phoneService.listPhones(filter, paging);
   }
+
+  @MessagePattern(PHONE_PATTERN.GET_INVENTORY_BY_SKU)
+  async getInventoryBySku(@Payload() sku: string) {
+    return this.phoneService.getInventoryBySku(sku);
+  }
 }

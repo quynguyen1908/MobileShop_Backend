@@ -11,10 +11,12 @@ import {
   CategoryDto,
   ErrBrandNotFound,
   ErrCategoryNotFound,
+  ErrInventoryNotFound,
   ErrPhoneNotFound,
   ErrPhoneVariantNotFound,
   ErrVariantColorNotFound,
   ErrVariantPriceNotFound,
+  Inventory,
   Phone,
   PhoneDto,
   PhoneFilterDto,
@@ -204,6 +206,19 @@ export class PhoneService implements IPhoneService {
 
     const variantDtos = await this.toVariantsDto(variants);
     return variantDtos;
+  }
+
+  async getInventoryBySku(sku: string): Promise<Inventory> {
+    const inventory = await this.phoneRepository.findInventoryBySku(sku);
+    if (!inventory) {
+      throw new RpcException(
+        AppError.from(ErrInventoryNotFound, 404)
+          .withLog('No inventory found for the given SKU')
+          .toJson(false),
+      );
+    }
+
+    return inventory;
   }
 
   private async toVariantsDto(variants: PhoneVariant[]): Promise<VariantDto[]> {

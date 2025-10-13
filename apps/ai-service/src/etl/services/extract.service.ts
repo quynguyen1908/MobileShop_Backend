@@ -2,22 +2,21 @@ import { Injectable } from '@nestjs/common';
 import type { IExtractService } from '../etl.port';
 import { SourceType } from '@app/contracts/ai';
 import { ConfigService } from '@nestjs/config/dist/config.service';
-import axios from 'axios';
 import { PhoneDto } from '@app/contracts/phone';
 import { AppError, Paginated } from '@app/contracts';
-import { formatCurrency } from '@app/contracts/utils';
+import { extractErrorMessage, formatCurrency } from '@app/contracts/utils';
 import * as fs from 'fs';
 import * as path from 'path';
-
-interface DocumentContent {
-  id: string;
-  content: string;
-  metadata: Record<string, unknown>;
-}
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { ApiResponseDto } from '@app/contracts/ai/ai.dto';
 
 @Injectable()
 export class ExtractService implements IExtractService {
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private readonly httpService: HttpService,
+  ) {}
 
   async readFromSource(type: SourceType): Promise<string[]> {
     switch (type) {
@@ -45,27 +44,38 @@ export class ExtractService implements IExtractService {
       const limit = 100;
 
       while (hasMore) {
-        const response = await axios.get<{
-          data: Paginated<PhoneDto>;
-        }>(`${phoneServiceUrl}/filter`, {
-          params: {
-            page: page,
-            limit: limit,
-          },
-        });
+        const response = await firstValueFrom(
+          this.httpService.get<ApiResponseDto<Paginated<PhoneDto>>>(
+            `${phoneServiceUrl}/filter`,
+            {
+              params: { page, limit },
+            },
+          ),
+        );
+
+        const apiResponse = response.data;
 
         if (
-          !response.data?.data?.data ||
-          response.data.data.data.length === 0
+          !apiResponse ||
+          typeof apiResponse !== 'object' ||
+          !apiResponse.data
         ) {
           hasMore = false;
           break;
         }
 
-        const phoneData = response.data.data.data;
-        allPhones.push(...phoneData);
+        const paginated = apiResponse.data;
 
-        const totalFetched = response.data.data.total || 0;
+        if (!paginated || !Array.isArray(paginated.data)) {
+          hasMore = false;
+          break;
+        }
+
+        const phoneList: PhoneDto[] = paginated.data;
+
+        allPhones.push(...phoneList);
+
+        const totalFetched = paginated?.total ?? 0;
         const currentlyFetched = page * limit;
         if (currentlyFetched >= totalFetched) hasMore = false;
         page++;
@@ -144,10 +154,10 @@ export class ExtractService implements IExtractService {
       return documents;
     } catch (error: unknown) {
       console.error('Failed to fetch phone data:', error);
-      throw AppError.from(new Error('Failed to fetch phone data'), 400)
-        .withLog(`
-                Failed to fetch phone data: ${error instanceof Error ? error.message : 'Unknown error'}
-            `);
+      const errorMessage = extractErrorMessage(error);
+      throw AppError.from(new Error(errorMessage), 400).withLog(
+        `Failed to fetch phone data: ${errorMessage}`,
+      );
     }
   }
 
@@ -166,7 +176,7 @@ export class ExtractService implements IExtractService {
 
       const files = await fs.promises.readdir(dataDir);
 
-      const supportedExtensions = ['.txt', '.md', '.json'];
+      const supportedExtensions = ['.txt', '.md'];
       const validFiles = files.filter((file) => {
         const ext = path.extname(file).toLowerCase();
         return supportedExtensions.includes(ext);
@@ -184,21 +194,7 @@ export class ExtractService implements IExtractService {
         const fileExtension = path.extname(file).toLowerCase();
         const fileName = path.basename(file, fileExtension);
 
-        let content: string;
-
-        if (fileExtension === '.json') {
-          const jsonContent = await fs.promises.readFile(filePath, 'utf-8');
-          const jsonData = JSON.parse(jsonContent) as DocumentContent;
-
-          if (jsonData.id && jsonData.content && jsonData.metadata) {
-            documents.push(JSON.stringify(jsonData));
-            continue;
-          } else {
-            content = JSON.stringify(jsonData, null, 2);
-          }
-        } else {
-          content = await fs.promises.readFile(filePath, 'utf-8');
-        }
+        const content = await fs.promises.readFile(filePath, 'utf-8');
 
         documents.push(
           JSON.stringify({
@@ -220,9 +216,10 @@ export class ExtractService implements IExtractService {
       return documents;
     } catch (error: unknown) {
       console.error('Failed to read from file:', error);
-      throw AppError.from(new Error('Failed to read from file'), 400).withLog(`
-                Failed to read from file: ${error instanceof Error ? error.message : 'Unknown error'}
-            `);
+      const errorMessage = extractErrorMessage(error);
+      throw AppError.from(new Error(errorMessage), 400).withLog(
+        `Failed to read from file: ${errorMessage}`,
+      );
     }
   }
 }

@@ -138,6 +138,8 @@ export type VariantDiscount = z.infer<typeof variantDiscountSchema>;
 
 // Inventory
 
+export const ErrInventoryNotFound = new Error('Inventory not found');
+
 export const inventorySchema = z.object({
   id: z.number().int().positive().optional(),
   variantId: z.number().int().positive(),

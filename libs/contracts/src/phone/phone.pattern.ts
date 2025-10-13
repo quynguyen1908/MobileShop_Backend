@@ -4,6 +4,7 @@ export const PHONE_PATTERN = {
   GET_ALL_CATEGORIES: 'phone.getAllCategories',
   GET_VARIANTS_BY_IDS: 'phone.getVariantsByIds',
   LIST_PHONES: 'phone.listPhones',
+  GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
 };
 
 export const PHONE_SERVICE_NAME = 'phone-service';
