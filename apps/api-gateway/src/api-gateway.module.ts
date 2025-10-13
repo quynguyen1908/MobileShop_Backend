@@ -7,6 +7,7 @@ import { HealthController } from './api-gateway.controller';
 import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
 import { PhoneModule } from './phone/phone.module';
 import { OrderModule } from './order/order.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrderModule } from './order/order.module';
     CircuitBreakerModule,
     PhoneModule,
     OrderModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [],

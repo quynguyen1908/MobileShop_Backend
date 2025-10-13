@@ -15,6 +15,7 @@ import {
   VariantImage,
   VariantPrice,
   VariantSpecification,
+  Inventory,
 } from '@app/contracts/phone';
 
 export interface IPhoneService {
@@ -31,6 +32,9 @@ export interface IPhoneService {
 
   // Phone Variant
   getVariantsByIds(ids: number[]): Promise<VariantDto[]>;
+
+  // Inventory
+  getInventoryBySku(sku: string): Promise<Inventory>;
 }
 
 export interface IPhoneQueryRepository {
@@ -85,4 +89,7 @@ export interface IPhoneQueryRepository {
 
   // Specification
   findSpecificationByIds(ids: number[]): Promise<Specification[]>;
+
+  // Inventory
+  findInventoryBySku(sku: string): Promise<Inventory | null>;
 }

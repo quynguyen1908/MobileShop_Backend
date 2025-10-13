@@ -168,6 +168,23 @@ export class OrderRepository implements IOrderQueryRepository {
     return shipments.map((shipment) => this._toShipmentModel(shipment));
   }
 
+  async findOrderByOrderCode(orderCode: string): Promise<Order | null> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        findUnique: (param: {
+          where: { orderCode: string };
+        }) => Promise<PrismaOrder | null>;
+      };
+    };
+    const order = await prismaService.order.findUnique({
+      where: { orderCode },
+    });
+    if (!order) {
+      return null;
+    }
+    return this._toOrderModel(order);
+  }
+
   private _toOrderModel(data: PrismaOrder): Order {
     let typedStatus: OrderStatus | undefined;
     if (data.status !== null && data.status !== undefined) {

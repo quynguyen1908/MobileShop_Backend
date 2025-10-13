@@ -9,6 +9,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IOrderQueryRepository, IOrderService } from './order.port';
 import {
   ErrOrderNotFound,
+  Order,
   OrderDto,
   OrderItem,
   OrderItemDto,
@@ -200,6 +201,18 @@ export class OrderService implements IOrderService {
     });
 
     return orderDtos;
+  }
+
+  async getOrderByOrderCode(orderCode: string): Promise<Order> {
+    const order = await this.orderRepository.findOrderByOrderCode(orderCode);
+    if (!order) {
+      throw new RpcException(
+        AppError.from(ErrOrderNotFound, 404)
+          .withLog('Order not found')
+          .toJson(false),
+      );
+    }
+    return order;
   }
 
   private async toItemsDto(items: OrderItem[]): Promise<OrderItemDto[]> {

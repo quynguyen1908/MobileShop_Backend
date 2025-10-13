@@ -6,6 +6,7 @@
 - [Thiết kế cơ sở dữ liệu](#thiết-kế-cơ-sở-dữ-liệu)
 - [CI / CD with Github Actions](#ci--cd-with-github-actions)
 - [Containerize with Docker](#containerize-with-docker)
+- [AI Agent](#ai-agent)
 - [Cloud Hosting](#cloud-hosting)
 - [Logging & Monitoring](#logging--monitoring)
 - [Các tính năng khác](#các-tính-năng-khác)
@@ -54,6 +55,14 @@
 ## Containerize with Docker
 - **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, ai-service, postgres, rabbitmq, qdrant
 
+---
+
+## AI Agent
+- **LLM**: OpenAI GPT-4.1-Mini.
+- **Embeddings**:  OpenAI text-embedding-3-small.
+- **Vector database**: Qdrant.
+- **Kiến trúc**: Retrieval Augmented Generation (RAG): Cung cấp thông tin chính xác và cập nhật theo thời gian.
+- **Các tính năng chính**: Đề xuất sản phẩm, hỗ trợ kỹ thuật, hỗ trợ so sánh, trả lời câu hỏi về chính sách. 
 ---
 
 ## Cloud Hosting

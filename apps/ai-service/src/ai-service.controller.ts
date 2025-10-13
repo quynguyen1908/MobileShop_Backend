@@ -1,7 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Health')
 @Controller('v1/health')
 export class AiServiceHealthController {
   constructor() {}
