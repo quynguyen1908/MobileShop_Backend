@@ -626,7 +626,10 @@ export class PhoneRepository implements IPhoneQueryRepository {
       dataQuery,
       ...queryParams,
     );
-    if (!Array.isArray(rawData)) throw new Error('Invalid variant result');
+
+    if (!this.isPhoneVariantViewDtoArray(rawData)) {
+      throw new Error('Invalid variant result');
+    }
     const variantResults = rawData;
 
     const total = Number(countResult[0]?.count ?? 0);
@@ -654,6 +657,10 @@ export class PhoneRepository implements IPhoneQueryRepository {
   private isFilterEmpty(filter: PhoneFilterDto): boolean {
     if (!filter) return true;
     return Object.values(filter).every((value) => value === undefined);
+  }
+
+  private isPhoneVariantViewDtoArray(data: unknown): data is PhoneVariantViewDto[] {
+    return Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && 'variant_id' in item);
   }
 
   private _toPhoneModel(data: PrismaPhone): Phone {
