@@ -217,6 +217,24 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return categories.map((category) => this._toCategoryModel(category));
   }
 
+  async findVariantsById(id: number): Promise<PhoneVariant | null> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        findFirst: (params: { where: any }) => Promise<PrismaPhoneVariant | null>;
+      };
+    };
+    const variant = await prismaService.phoneVariant.findFirst({
+      where: {
+        id: id,
+        isDeleted: false,
+      },
+    });
+    if (!variant) {
+      return null;
+    }
+    return this._toPhoneVariantModel(variant);
+  }
+
   async findVariantsByIds(ids: number[]): Promise<PhoneVariant[]> {
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
@@ -226,6 +244,21 @@ export class PhoneRepository implements IPhoneQueryRepository {
     const variants = await prismaService.phoneVariant.findMany({
       where: {
         id: { in: ids },
+        isDeleted: false,
+      },
+    });
+    return variants.map((variant) => this._toPhoneVariantModel(variant));
+  }
+
+  async findVariantsByPhoneId(phoneId: number): Promise<PhoneVariant[]> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        findMany: (params: { where: any }) => Promise<PrismaPhoneVariant[]>;
+      };
+    };
+    const variants = await prismaService.phoneVariant.findMany({
+      where: {
+        phoneId: phoneId,
         isDeleted: false,
       },
     });

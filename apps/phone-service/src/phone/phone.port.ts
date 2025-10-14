@@ -35,6 +35,7 @@ export interface IPhoneService {
     filter: PhoneFilterDto,
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariantDto>>;
+  getRelatedVariants(variantId: number): Promise<PhoneVariantDto[]>;
 
   // Image
   getImagesByIds(ids: number[]): Promise<Image[]>;
@@ -60,7 +61,9 @@ export interface IPhoneQueryRepository {
     filter: PhoneFilterDto,
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariant>>;
+  findVariantsById(id: number): Promise<PhoneVariant | null>;
   findVariantsByIds(ids: number[]): Promise<PhoneVariant[]>;
+  findVariantsByPhoneId(phoneId: number): Promise<PhoneVariant[]>;
 
   // Review
   findReviewsByVariantIds(variantIds: number[]): Promise<Review[]>;

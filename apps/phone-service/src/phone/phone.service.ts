@@ -138,6 +138,23 @@ export class PhoneService implements IPhoneService {
     };
   }
 
+  async getRelatedVariants(variantId: number): Promise<PhoneVariantDto[]> {
+    const variants = await this.phoneRepository.findVariantsById(variantId);
+    if (!variants) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    const relatedVariants = await this.phoneRepository.findVariantsByPhoneId(variants.phoneId);
+    
+    const relatedVariantDtos = await this.toPhoneVariantDto(relatedVariants);
+
+    return relatedVariantDtos;
+  }
+
   private async toPhoneVariantDto(
     variants: PhoneVariant[],
   ): Promise<PhoneVariantDto[]> {

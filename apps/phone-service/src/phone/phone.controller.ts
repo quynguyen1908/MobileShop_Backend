@@ -18,9 +18,19 @@ export class PhoneController {
     return this.phoneService.getAllCategories();
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_ALL_BRANDS)
+  async getAllBrands() {
+    return this.phoneService.getAllBrands();
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_VARIANTS_BY_IDS)
   async getVariantsByIds(@Payload() variantIds: number[]) {
     return this.phoneService.getVariantsByIds(variantIds);
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_RELATED_VARIANTS)
+  async getRelatedVariants(@Payload() variantId: number) {
+    return this.phoneService.getRelatedVariants(variantId);
   }
 
   @MessagePattern(PHONE_PATTERN.GET_IMAGES_BY_IDS)

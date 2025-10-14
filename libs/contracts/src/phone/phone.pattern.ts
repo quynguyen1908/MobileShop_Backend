@@ -6,6 +6,7 @@ export const PHONE_PATTERN = {
   GET_IMAGES_BY_IDS: 'phone.getImagesByIds',
   LIST_PHONE_VARIANTS: 'phone.listPhoneVariants',
   GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
+  GET_RELATED_VARIANTS: 'phone.getRelatedVariants',
 };
 
 export const PHONE_SERVICE_NAME = 'phone-service';
