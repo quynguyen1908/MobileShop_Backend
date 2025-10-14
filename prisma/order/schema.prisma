@@ -49,15 +49,17 @@ model OrderItem {
   id        Int   @id @default(autoincrement())
   orderId   Int   @map("order_id")
   variantId Int   @map("variant_id")
+  colorId   Int   @map("color_id")
   quantity  Int
   price     Int
   discount  Int   @default(0)
 
   order     Order @relation(fields: [orderId], references: [id])
 
-  @@unique([orderId, variantId])
+  @@unique([orderId, variantId, colorId])
   @@index([variantId])
   @@index([orderId])
+  @@index([colorId])
   @@map("order_items")
 }
 

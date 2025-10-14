@@ -11,6 +11,8 @@ import {
   variantSpecificationSchema,
   specificationSchema,
   Category,
+  imageSchema,
+  variantColorSchema,
 } from './phone.model';
 import { z } from 'zod';
 
@@ -37,97 +39,7 @@ const categoryDtoSchema: z.ZodType<CategoryDtoType> = z.lazy(() =>
 
 export type CategoryDto = z.infer<typeof categoryDtoSchema>;
 
-// Variant Image
-
-const variantImageDtoSchema = variantImageSchema.omit({
-  createdAt: true,
-  updatedAt: true,
-  isDeleted: true,
-});
-
-// Variant Specification
-
-const variantSpecificationDtoSchema = variantSpecificationSchema
-  .pick({
-    info: true,
-  })
-  .extend({
-    specification: specificationSchema.pick({
-      name: true,
-    }),
-  });
-
-export type VariantSpecificationDto = z.infer<
-  typeof variantSpecificationDtoSchema
->;
-
-// Phone Variant
-
-const variantDtoSchema = phoneVariantSchema
-  .omit({
-    colorId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
-  })
-  .extend({
-    color: colorSchema.omit({
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
-    price: variantPriceSchema.omit({
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
-    discount: variantDiscountSchema
-      .omit({
-        createdAt: true,
-        updatedAt: true,
-        isDeleted: true,
-      })
-      .optional(),
-    images: variantImageDtoSchema.array(),
-    specifications: variantSpecificationDtoSchema.array(),
-  });
-
-export type VariantDto = z.infer<typeof variantDtoSchema>;
-
-// Review
-
-const reviewDtoSchema = reviewSchema.omit({
-  createdAt: true,
-  updatedAt: true,
-  isDeleted: true,
-});
-
-// Phone
-
-export const phoneDtoSchema = phoneSchema
-  .omit({
-    brandId: true,
-    categoryId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
-  })
-  .extend({
-    brand: brandSchema.omit({
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
-    category: categorySchema.omit({
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
-    variants: variantDtoSchema.array(),
-    reviews: reviewDtoSchema.array().optional(),
-  });
-
-export type PhoneDto = z.infer<typeof phoneDtoSchema>;
+// Phone Filter
 
 export const phoneFilterDtoSchema = z
   .object({
@@ -179,6 +91,8 @@ export const phoneFilterDtoSchema = z
 
 export type PhoneFilterDto = z.infer<typeof phoneFilterDtoSchema>;
 
+// Phone Variant View
+
 export const phoneVariantViewDtoSchema = z.object({
   variant_id: z.number().int().nonnegative(),
   phone_id: z.number().int().nonnegative(),
@@ -198,3 +112,120 @@ export const phoneVariantViewDtoSchema = z.object({
 });
 
 export type PhoneVariantViewDto = z.infer<typeof phoneVariantViewDtoSchema>;
+
+// Variant Image
+
+const variantImageDtoSchema = variantImageSchema
+  .omit({
+    imageId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    image: imageSchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+  });
+
+export type VariantImageDto = z.infer<typeof variantImageDtoSchema>;
+
+// Variant Specification
+
+const variantSpecificationDtoSchema = variantSpecificationSchema
+  .pick({
+    info: true,
+  })
+  .extend({
+    specification: specificationSchema.pick({
+      name: true,
+    }),
+  });
+
+export type VariantSpecificationDto = z.infer<
+  typeof variantSpecificationDtoSchema
+>;
+
+// Variant Color
+
+export const variantColorDtoSchema = variantColorSchema
+  .omit({
+    colorId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    color: colorSchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+  });
+
+export type VariantColorDto = z.infer<typeof variantColorDtoSchema>;
+
+// Review
+
+const reviewDtoSchema = reviewSchema.omit({
+  createdAt: true,
+  updatedAt: true,
+  isDeleted: true,
+});
+
+// Phone
+
+export const phoneDtoSchema = phoneSchema
+  .omit({
+    brandId: true,
+    categoryId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    brand: brandSchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+    category: categorySchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+  });
+
+// Phone Variant
+
+export const phoneVariantDtoSchema = phoneVariantSchema
+  .omit({
+    phoneId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    phone: phoneDtoSchema,
+    colors: variantColorDtoSchema.array(),
+    price: variantPriceSchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+    discount: variantDiscountSchema
+      .omit({
+        createdAt: true,
+        updatedAt: true,
+        isDeleted: true,
+      })
+      .optional(),
+    images: variantImageDtoSchema.array(),
+    specifications: variantSpecificationDtoSchema.array(),
+    reviews: reviewDtoSchema.array().optional(),
+    averageRating: z.number().min(0).max(5).default(0),
+  });
+
+export type PhoneVariantDto = z.infer<typeof phoneVariantDtoSchema>;

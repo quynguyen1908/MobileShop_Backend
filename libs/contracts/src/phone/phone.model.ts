@@ -51,7 +51,6 @@ export const phoneSchema = z.object({
   name: z.string().max(100, ErrPhoneNameAtMost100Chars.message),
   brandId: z.number().int().positive(),
   categoryId: z.number().int().positive(),
-  description: z.string().optional().nullable(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
@@ -64,6 +63,7 @@ export type Phone = z.infer<typeof phoneSchema>;
 export const ErrColorNameAtMost50Chars = new Error(
   'Color name must be at most 50 characters long',
 );
+export const ErrColorNotFound = new Error('Color not found');
 
 export const colorSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -75,6 +75,18 @@ export const colorSchema = z.object({
 
 export type Color = z.infer<typeof colorSchema>;
 
+// Image
+
+export const imageSchema = z.object({
+  id: z.number().int().positive().optional(),
+  imageUrl: z.url(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
+});
+
+export type Image = z.infer<typeof imageSchema>;
+
 // Phone Variant
 
 export const ErrVariantNameAtMost100Chars = new Error(
@@ -85,7 +97,7 @@ export const phoneVariantSchema = z.object({
   id: z.number().int().positive().optional(),
   phoneId: z.number().int().positive(),
   variantName: z.string().max(100, ErrVariantNameAtMost100Chars.message),
-  colorId: z.number().int().positive(),
+  description: z.string().optional().nullable(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
@@ -93,12 +105,25 @@ export const phoneVariantSchema = z.object({
 
 export type PhoneVariant = z.infer<typeof phoneVariantSchema>;
 
+// Variant Color
+
+export const variantColorSchema = z.object({
+  variantId: z.number().int().positive(),
+  colorId: z.number().int().positive(),
+  imageId: z.number().int().positive(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
+});
+
+export type VariantColor = z.infer<typeof variantColorSchema>;
+
 // Variant Image
 
 export const variantImageSchema = z.object({
   id: z.number().int().positive().optional(),
   variantId: z.number().int().positive(),
-  imageUrl: z.url(),
+  imageId: z.number().int().positive(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),
@@ -143,6 +168,7 @@ export const ErrInventoryNotFound = new Error('Inventory not found');
 export const inventorySchema = z.object({
   id: z.number().int().positive().optional(),
   variantId: z.number().int().positive(),
+  colorId: z.number().int().positive(),
   sku: z.string(),
   stockQuantity: z.number().int().nonnegative().default(0),
   createdAt: z.date().optional(),
@@ -188,7 +214,7 @@ export type VariantSpecification = z.infer<typeof variantSpecificationSchema>;
 export const reviewSchema = z.object({
   id: z.number().int().positive().optional(),
   orderId: z.number().int().positive(),
-  phoneId: z.number().int().positive(),
+  variantId: z.number().int().positive(),
   customerId: z.number().int().positive(),
   rating: z.number().min(1).max(5),
   comment: z.string().optional().nullable(),

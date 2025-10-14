@@ -17,11 +17,12 @@ import {
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import {
-  ErrPhoneNotFound,
   ErrPhoneVariantNotFound,
-  Phone,
+  ErrVariantColorNotFound,
+  ErrVariantImagesNotFound,
+  Image,
   PHONE_PATTERN,
-  VariantDto,
+  PhoneVariantDto,
 } from '@app/contracts/phone';
 import {
   Commune,
@@ -219,7 +220,7 @@ export class OrderService implements IOrderService {
     const variantIds = [...new Set(items.map((item) => item.variantId))].filter(
       (id): id is number => typeof id === 'number',
     );
-    const variants = await firstValueFrom<VariantDto[]>(
+    const variants = await firstValueFrom<PhoneVariantDto[]>(
       this.phoneServiceClient.send(
         PHONE_PATTERN.GET_VARIANTS_BY_IDS,
         variantIds,
@@ -233,17 +234,31 @@ export class OrderService implements IOrderService {
       );
     }
 
-    const phoneIds = [
-      ...new Set(variants.map((variant) => variant.phoneId)),
-    ].filter((id): id is number => typeof id === 'number');
-    const phones = await firstValueFrom<Phone[]>(
-      this.phoneServiceClient.send(PHONE_PATTERN.GET_PHONES_BY_IDS, phoneIds),
-    );
+    const imageIds = items
+      .map((item) => {
+        const variant = variants.find((v) => v.id === item.variantId);
+        if (!variant) {
+          throw new RpcException(
+            AppError.from(ErrPhoneVariantNotFound, 404)
+              .withLog('Variants not found for order items')
+              .toJson(false),
+          );
+        }
 
-    if (!phones || phones.length === 0) {
+        const matchingColor = variant.colors.find(
+          (c) => c.color.id === item.colorId,
+        );
+        return matchingColor ? matchingColor.imageId : null;
+      })
+      .filter((id): id is number => typeof id === 'number' && id !== null);
+
+    const variantImages = await firstValueFrom<Image[]>(
+      this.phoneServiceClient.send(PHONE_PATTERN.GET_IMAGES_BY_IDS, imageIds),
+    );
+    if (!variantImages || variantImages.length === 0) {
       throw new RpcException(
-        AppError.from(ErrPhoneNotFound, 404)
-          .withLog('Phones not found for order items')
+        AppError.from(ErrVariantImagesNotFound, 404)
+          .withLog('Images not found for order items')
           .toJson(false),
       );
     }
@@ -258,11 +273,24 @@ export class OrderService implements IOrderService {
         );
       }
 
-      const phone = phones.find((p) => p.id === variant.phoneId);
-      if (!phone) {
+      const matchingColor = variant.colors.find(
+        (c) => c.color.id === item.colorId,
+      );
+      if (!matchingColor) {
         throw new RpcException(
-          AppError.from(ErrPhoneNotFound, 404)
-            .withLog('Phone not found for variant in order item')
+          AppError.from(ErrVariantColorNotFound, 404)
+            .withLog('Color not found for order item variant')
+            .toJson(false),
+        );
+      }
+
+      const image = variantImages.find(
+        (img) => img.id === matchingColor.imageId,
+      );
+      if (!image) {
+        throw new RpcException(
+          AppError.from(ErrVariantImagesNotFound, 404)
+            .withLog('Image not found for order item variant')
             .toJson(false),
         );
       }
@@ -275,11 +303,11 @@ export class OrderService implements IOrderService {
         discount: item.discount,
         variant: {
           id: variant.id,
-          phoneId: variant.phoneId,
+          phoneId: variant.phone.id,
           variantName: variant.variantName,
-          color: variant.color.name,
-          name: phone.name,
-          imageUrl: variant.images.length > 0 ? variant.images[0].imageUrl : '',
+          color: matchingColor.color.name,
+          name: variant.phone.name,
+          imageUrl: image.imageUrl,
         },
       } as OrderItemDto;
     });

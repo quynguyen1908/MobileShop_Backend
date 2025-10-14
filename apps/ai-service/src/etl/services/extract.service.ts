@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { IExtractService } from '../etl.port';
 import { SourceType } from '@app/contracts/ai';
 import { ConfigService } from '@nestjs/config/dist/config.service';
-import { PhoneDto } from '@app/contracts/phone';
+import { PhoneVariantDto } from '@app/contracts/phone';
 import { AppError, Paginated } from '@app/contracts';
 import { extractErrorMessage, formatCurrency } from '@app/contracts/utils';
 import * as fs from 'fs';
@@ -38,15 +38,15 @@ export class ExtractService implements IExtractService {
         'PHONE_SERVICE_URL',
         'http://localhost:3000/api/v1/phones',
       );
-      const allPhones: PhoneDto[] = [];
+      const allPhoneVariants: PhoneVariantDto[] = [];
       let page = 1;
       let hasMore = true;
       const limit = 100;
 
       while (hasMore) {
         const response = await firstValueFrom(
-          this.httpService.get<ApiResponseDto<Paginated<PhoneDto>>>(
-            `${phoneServiceUrl}/filter`,
+          this.httpService.get<ApiResponseDto<Paginated<PhoneVariantDto>>>(
+            `${phoneServiceUrl}/variants/filter`,
             {
               params: { page, limit },
             },
@@ -71,9 +71,9 @@ export class ExtractService implements IExtractService {
           break;
         }
 
-        const phoneList: PhoneDto[] = paginated.data;
+        const phoneVariantList: PhoneVariantDto[] = paginated.data;
 
-        allPhones.push(...phoneList);
+        allPhoneVariants.push(...phoneVariantList);
 
         const totalFetched = paginated?.total ?? 0;
         const currentlyFetched = page * limit;
@@ -82,73 +82,80 @@ export class ExtractService implements IExtractService {
       }
 
       const documents: string[] = [];
+      const processedPhones = new Map<number, boolean>();
 
-      for (const phone of allPhones) {
-        documents.push(
-          JSON.stringify({
-            id: `phone-${phone.id}`,
-            content: `# ${phone.name}
-                        ${phone.description ? phone.description : ''}
-
-                        ## Thông tin chung
-                        - Thương hiệu: ${phone.brand.name}
-                        - Dòng sản phẩm: ${phone.category.name}`,
-            metadata: {
-              id: `phone-${phone.id}`,
-              source: 'database',
-              title: phone.name,
-              tags: ['phone', 'overview', phone.brand.name],
-              createdAt: new Date(),
-              phoneId: phone.id,
-              brand: phone.brand.name,
-              category: phone.category.name,
-              type: 'phone-overview',
-            },
-          }),
-        );
-
-        for (const variant of phone.variants) {
-          const specs = variant.specifications
-            .map((spec) => `- ${spec.specification.name}: ${spec.info}`)
-            .join('\n');
-
-          const price = variant.price.price;
-          const discount = variant.discount?.discountPercent || 0;
-          const finalPrice = price - (price * discount) / 100;
-
+      for (const variant of allPhoneVariants) {
+        if (
+          typeof variant.phone.id === 'number' &&
+          !processedPhones.has(variant.phone.id)
+        ) {
           documents.push(
             JSON.stringify({
-              id: `variant-${variant.id}`,
-              content: `# ${phone.name} - ${variant.variantName}
-                        Màu sắc: ${variant.color.name}
-                        Giá gốc: ${formatCurrency(price)}
-                        Giảm giá: ${discount}%
-                        Giá cuối: ${formatCurrency(finalPrice)}
-                        
-                        ## Thông số kỹ thuật
-                        ${specs}`,
+              id: `phone-${variant.phone.id}`,
+              content: `# ${variant.phone.name}
+                          ${variant.description ? variant.description : ''}
+
+                          ## Thông tin chung
+                          - Thương hiệu: ${variant.phone.brand.name}
+                          - Dòng sản phẩm: ${variant.phone.category.name}`,
               metadata: {
-                id: `variant-${variant.id}`,
+                id: `phone-${variant.phone.id}`,
                 source: 'database',
-                title: `${phone.name} - ${variant.variantName}`,
-                tags: [
-                  'phone',
-                  'variant',
-                  phone.brand.name,
-                  variant.color.name,
-                ],
+                title: variant.phone.name,
+                tags: ['phone', 'overview', variant.phone.brand.name],
                 createdAt: new Date(),
-                phoneId: phone.id,
-                variantId: variant.id,
-                brand: phone.brand.name,
-                category: phone.category.name,
-                color: variant.color.name,
-                price: finalPrice,
-                type: 'phone-variant',
+                phoneId: variant.phone.id,
+                brand: variant.phone.brand.name,
+                category: variant.phone.category.name,
+                type: 'phone-overview',
               },
             }),
           );
+          processedPhones.set(variant.phone.id, true);
         }
+
+        const specs = variant.specifications
+          .map((spec) => `- ${spec.specification.name}: ${spec.info}`)
+          .join('\n');
+
+        const price = variant.price.price;
+        const discount = variant.discount?.discountPercent || 0;
+        const finalPrice = price - (price * discount) / 100;
+
+        const colors = variant.colors.map((c) => c.color.name).join(', ');
+
+        documents.push(
+          JSON.stringify({
+            id: `variant-${variant.id}`,
+            content: `# ${variant.phone.name} - ${variant.variantName}
+                      Màu sắc: ${colors}
+                      Giá gốc: ${formatCurrency(price)}
+                      Giảm giá: ${discount}%
+                      Giá cuối: ${formatCurrency(finalPrice)}
+                      
+                      ## Thông số kỹ thuật
+                      ${specs}`,
+            metadata: {
+              id: `variant-${variant.id}`,
+              source: 'database',
+              title: `${variant.phone.name} - ${variant.variantName}`,
+              tags: [
+                'phone',
+                'variant',
+                variant.phone.brand.name,
+                ...variant.colors.map((c) => c.color.name),
+              ],
+              createdAt: new Date(),
+              phoneId: variant.phone.id,
+              variantId: variant.id,
+              brand: variant.phone.brand.name,
+              category: variant.phone.category.name,
+              color: colors,
+              price: finalPrice,
+              type: 'phone-variant',
+            },
+          }),
+        );
       }
 
       return documents;

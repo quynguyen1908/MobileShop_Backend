@@ -77,6 +77,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().positive(),
   price: z.number().int().nonnegative(),
   discount: z.number().int().nonnegative().optional().default(0),
+  colorId: z.number().int().positive(),
 });
 
 export type OrderItem = z.infer<typeof orderItemSchema>;

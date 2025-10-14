@@ -192,9 +192,6 @@ services:
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
       - ./data:/app/data
-    depends_on:
-      qdrant:
-        condition: service_healthy
     networks:
       - backend-network
     healthcheck:
@@ -207,7 +204,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 512M
+          memory: 384M
 
   postgres:
     image: postgres:16-alpine
@@ -245,10 +242,11 @@ services:
       - qdrant_data:/qdrant/storage
       - ./qdrant/config.yaml:/qdrant/config/config.yaml:ro
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:6333/healthz"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:6333/readyz"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     networks:
       - backend-network
     deploy:

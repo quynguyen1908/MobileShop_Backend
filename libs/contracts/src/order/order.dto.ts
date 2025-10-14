@@ -17,6 +17,7 @@ import { z } from 'zod';
 
 const orderItemsDtoSchema = orderItemSchema
   .omit({
+    colorId: true,
     variantId: true,
   })
   .extend({
