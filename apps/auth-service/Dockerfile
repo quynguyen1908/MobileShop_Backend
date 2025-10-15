@@ -49,5 +49,6 @@ RUN rm -rf /tmp/* /var/cache/apk/*
 USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD node healthcheck.js
+RUN apk add --no-cache tini
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

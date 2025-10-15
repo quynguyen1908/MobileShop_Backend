@@ -45,4 +45,6 @@ RUN rm -rf /tmp/* /var/cache/apk/*
 USER nestjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
-ENTRYPOINT ["/entrypoint.sh"]
+RUN apk add --no-cache tini
+
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

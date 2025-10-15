@@ -5,7 +5,7 @@ import { UserEventHandler } from './user/user-event.handler';
 
 async function bootstrap() {
   const app = await NestFactory.create(UserServiceModule);
-
+  app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
 
   const userEventHandler = app.get(UserEventHandler);

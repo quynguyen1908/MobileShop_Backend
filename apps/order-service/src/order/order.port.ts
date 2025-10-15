@@ -12,6 +12,9 @@ export interface IOrderService {
   // Order
   getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]>;
   getOrderByOrderCode(orderCode: string): Promise<Order>;
+
+  // Shipment
+  calculateShippingFee(commune: string, province: string): Promise<string>;
 }
 
 export interface IOrderQueryRepository {

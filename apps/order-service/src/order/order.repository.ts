@@ -37,6 +37,7 @@ interface PrismaOrderItem {
   id: number;
   orderId: number;
   variantId: number;
+  colorId: number;
   quantity: number;
   price: number;
   discount: number;
@@ -223,6 +224,7 @@ export class OrderRepository implements IOrderQueryRepository {
       id: data.id,
       orderId: data.orderId,
       variantId: data.variantId,
+      colorId: data.colorId,
       quantity: data.quantity,
       price: data.price,
       discount: data.discount,

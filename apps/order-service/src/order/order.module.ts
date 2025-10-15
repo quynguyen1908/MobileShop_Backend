@@ -6,9 +6,13 @@ import { OrderRepository } from './order.repository';
 import { ORDER_REPOSITORY, PHONE_SERVICE, USER_SERVICE } from '@app/contracts';
 import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [RabbitMQModule.register()],
+  imports: [
+    RabbitMQModule.register(),
+    HttpModule.register({ timeout: 5000, maxRedirects: 5 }),
+  ],
   controllers: [OrderController],
   providers: [
     OrderService,

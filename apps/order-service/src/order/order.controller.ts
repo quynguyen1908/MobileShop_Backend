@@ -17,4 +17,9 @@ export class OrderController {
   async getOrderByOrderCode(@Payload() orderCode: string) {
     return this.orderService.getOrderByOrderCode(orderCode);
   }
+
+  @MessagePattern(ORDER_PATTERN.CALCULATE_SHIPPING_FEE)
+  async calculateShippingFee(@Payload() data: { province: string; commune: string }) {
+    return this.orderService.calculateShippingFee(data.province, data.commune);
+  }
 }

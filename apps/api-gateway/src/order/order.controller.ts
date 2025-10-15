@@ -1,11 +1,14 @@
 import { ORDER_SERVICE } from '@app/contracts';
 import type { ReqWithRequester } from '@app/contracts';
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Inject,
   Param,
+  Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -254,6 +257,77 @@ export class OrderController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Shipment')
+@Controller('v1/shipment')
+export class ShipmentController {
+  constructor(
+    @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Post('fee')
+  async calculateShippingFee(@Body() body: { province: string; commune: string }, @Res() res: Response) {
+    const { province, commune } = body;
+
+    if (!province || !commune) {
+      const errorResponse = new ApiResponseDto(
+        HttpStatus.BAD_REQUEST,
+        'Province and commune query parameters are required',
+      );
+      return res.status(HttpStatus.BAD_REQUEST).json(errorResponse);
+    }
+
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        string | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.CALCULATE_SHIPPING_FEE,
+        { province, commune },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Shipping fee calculated successfully',
+          { shippingFee: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Calculating shipping fee failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
