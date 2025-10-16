@@ -274,6 +274,68 @@ export class PhoneController {
     }
   }
 
+  @Get('variants/:variantId')
+  @ApiOperation({ summary: 'Get phone variant by ID' })
+  @ApiParam({
+    name: 'variantId',
+    type: Number,
+    description: 'Phone variant ID',
+    example: 1,
+  })
+  async getVariantById(
+    @Param('variantId') variantId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        PhoneVariantDto | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_VARIANT_BY_ID,
+        variantId,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone variant retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting phone variant failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('variants/:variantId/related')
   @ApiOperation({ summary: 'Get related phone variants by variant ID' })
   @ApiParam({

@@ -31,6 +31,7 @@ export interface IPhoneService {
   getAllCategories(): Promise<CategoryDto[]>;
 
   // Phone Variant
+  getVariantById(id: number): Promise<PhoneVariantDto>;
   getVariantsByIds(ids: number[]): Promise<PhoneVariantDto[]>;
   listPhoneVariants(
     filter: PhoneFilterDto,
