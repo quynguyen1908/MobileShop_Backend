@@ -46,7 +46,8 @@ export const customerUpdateDtoSchema = customerSchema
     lastName: true,
     gender: true,
     dateOfBirth: true,
-    pointBalance: true,
+    pointsBalance: true,
+    updatedAt: true,
     isDeleted: true,
   })
   .partial();

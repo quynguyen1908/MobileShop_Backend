@@ -58,6 +58,16 @@ export interface IEventSubscriber {
   ): Promise<void>;
 }
 
+export interface EventJson {
+  eventName: string;
+  payload: Record<string, unknown>;
+  id?: string;
+  occurredAt?: string | Date;
+  senderId?: string;
+  correlationId?: string;
+  version?: string;
+}
+
 export interface OpenAIConfig {
   apiKey: string;
   chatModel: string;

@@ -1,4 +1,5 @@
 import { Paginated, PagingDto } from '@app/contracts';
+import { UpdateInventoryDto } from '@app/contracts/phone';
 import {
   Brand,
   Category,
@@ -42,7 +43,21 @@ export interface IPhoneService {
 
   // Inventory
   getInventoryBySku(sku: string): Promise<Inventory>;
+  getInventoryByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<Inventory>;
+  checkInventoryAvailability(
+    variantId: number,
+    colorId: number,
+    requiredQuantity: number,
+  ): Promise<boolean>;
+  updateInventory(id: number, data: UpdateInventoryDto): Promise<void>;
 }
+
+export interface IPhoneRepository
+  extends IPhoneQueryRepository,
+    IPhoneCommandRepository {}
 
 export interface IPhoneQueryRepository {
   // Phone
@@ -95,5 +110,16 @@ export interface IPhoneQueryRepository {
   findSpecificationByIds(ids: number[]): Promise<Specification[]>;
 
   // Inventory
+  findInventoryById(id: number): Promise<Inventory | null>;
   findInventoryBySku(sku: string): Promise<Inventory | null>;
+  findInventoriesByVariantIds(variantIds: number[]): Promise<Inventory[]>;
+  findInventoryByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<Inventory | null>;
+}
+
+export interface IPhoneCommandRepository {
+  // Inventory
+  updateInventory(id: number, data: UpdateInventoryDto): Promise<void>;
 }

@@ -7,24 +7,19 @@ import {
   EVT_AUTH_TEST,
   AuthRegisteredEvent,
   AuthTestEvent,
-  AuthEventJson,
 } from '@app/contracts/auth';
+import { EventJson } from '@app/contracts';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { USER_SERVICE_NAME } from '@app/contracts/user';
+import {
+  EVT_ORDER_CREATED,
+  OrderCreatedEvent,
+} from '@app/contracts/order/order.event';
+import { PointType } from '@app/contracts/order';
 
 interface TypedError {
   message: string;
   stack?: string;
-}
-
-interface EventData {
-  eventName: string;
-  payload: Record<string, unknown>;
-  id?: string;
-  occurredAt?: string | Date;
-  senderId?: string;
-  correlationId?: string;
-  version?: string;
 }
 
 @Injectable()
@@ -83,6 +78,57 @@ export class UserEventHandler {
     }
   }
 
+  async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling OrderCreated event for order ID: ${event.payload.id}`,
+    );
+    try {
+      const pointTransactions = event.payload.pointTransactions;
+
+      const customerId = event.payload.customerId;
+      if (!customerId) {
+        this.logger.log(
+          'No customerId associated with this order, skipping point update',
+        );
+        return;
+      }
+
+      if (!pointTransactions || pointTransactions.length === 0) {
+        this.logger.log(
+          'No point transactions associated with this order, skipping point update',
+        );
+        return;
+      }
+
+      const customer = await this.userService.getCustomerById(customerId);
+      if (!customer) {
+        this.logger.log(
+          `Customer with ID ${customerId} not found, skipping point update`,
+        );
+        return;
+      }
+
+      let usedPoints = 0;
+      for (const transaction of pointTransactions) {
+        if (transaction.type === PointType.REDEEM) {
+          usedPoints += transaction.points;
+        }
+      }
+
+      const newPointsBalance = customer.pointsBalance - usedPoints;
+
+      await this.userService.updateCustomer(customerId, {
+        pointsBalance: newPointsBalance,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to update customer points: ${typedError.message}`,
+      );
+    }
+  }
+
   handleAuthTest(event: AuthTestEvent): void {
     this.logger.log(
       `🎉 Successfully received AuthTest event with ID: ${event.id}`,
@@ -107,9 +153,9 @@ export class UserEventHandler {
               throw new Error('Invalid event data format');
             }
 
-            const data: EventData = parsedData;
+            const data: EventJson = parsedData;
 
-            const eventJson: AuthEventJson = {
+            const eventJson: EventJson = {
               eventName: EVT_AUTH_REGISTERED,
               payload: data.payload || {},
               id: data.id,
@@ -142,9 +188,9 @@ export class UserEventHandler {
             throw new Error('Invalid event data format');
           }
 
-          const data: EventData = parsedData;
+          const data: EventJson = parsedData;
 
-          const eventJson: AuthEventJson = {
+          const eventJson: EventJson = {
             eventName: EVT_AUTH_TEST,
             payload: data.payload || {},
             id: data.id,
@@ -165,15 +211,47 @@ export class UserEventHandler {
       },
     );
 
+    await this.eventSubscriber.subscribe(
+      EVT_ORDER_CREATED,
+      USER_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_ORDER_CREATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_ORDER_CREATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = OrderCreatedEvent.from(eventJson);
+            await this.handleOrderCreated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_ORDER_CREATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
     this.logger.log('Successfully subscribed to all events');
   }
 
-  private isEventData(data: unknown): data is EventData {
+  private isEventData(data: unknown): data is EventJson {
     if (!data || typeof data !== 'object') {
       return false;
     }
 
-    const obj = data as Partial<EventData>;
+    const obj = data as Partial<EventJson>;
 
     return (
       obj.eventName !== undefined &&

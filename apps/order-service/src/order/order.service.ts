@@ -1,19 +1,32 @@
 import {
   AppError,
+  EVENT_PUBLISHER,
   ORDER_REPOSITORY,
   PHONE_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
-import type { Requester, LocationData, GHNShippingResponse } from '@app/contracts/interface';
+import type {
+  Requester,
+  LocationData,
+  GHNShippingResponse,
+  IEventPublisher,
+} from '@app/contracts/interface';
 import { Inject, Injectable } from '@nestjs/common';
-import type { IOrderQueryRepository, IOrderService } from './order.port';
+import type { IOrderRepository, IOrderService } from './order.port';
 import {
   ErrLocationNotFound,
   ErrOrderNotFound,
   Order,
+  ORDER_SERVICE_NAME,
+  OrderCreateDto,
+  orderCreateDtoSchema,
   OrderDto,
   OrderItem,
+  orderItemCreateDtoSchema,
   OrderItemDto,
+  OrderStatus,
+  PointTransaction,
+  PointType,
 } from '@app/contracts/order';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -40,6 +53,7 @@ import csv from 'csv-parser';
 import { ConfigService } from '@nestjs/config';
 import { formatCurrency, normalizeText } from '@app/contracts/utils';
 import { HttpService } from '@nestjs/axios';
+import { OrderCreatedEvent } from '@app/contracts/order/order.event';
 
 interface LocationResult {
   wardId: number;
@@ -56,19 +70,20 @@ export class OrderService implements IOrderService {
 
   constructor(
     @Inject(ORDER_REPOSITORY)
-    private readonly orderRepository: IOrderQueryRepository,
+    private readonly orderRepository: IOrderRepository,
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     private configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
     this.csvFilePath = path.join(process.cwd(), 'data/datasets', 'convert.csv');
-      this.ghnApiUrl = this.configService.get<string>(
-        'GHN_API_URL',
-        'https://online-gateway.ghn.vn/shiip/public-api/v2',
-      );
-      this.ghnToken = this.configService.get<string>('GHN_API_KEY', '');
-      this.ghnShopId = Number(this.configService.get<string>('GHN_SHOP_ID', '0'));
+    this.ghnApiUrl = this.configService.get<string>(
+      'GHN_API_URL',
+      'https://online-gateway.ghn.vn/shiip/public-api/v2',
+    );
+    this.ghnToken = this.configService.get<string>('GHN_API_KEY', '');
+    this.ghnShopId = Number(this.configService.get<string>('GHN_SHOP_ID', '0'));
   }
 
   async getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]> {
@@ -244,7 +259,10 @@ export class OrderService implements IOrderService {
     return order;
   }
 
-  async calculateShippingFee(province: string, commune: string): Promise<string> {
+  async calculateShippingFee(
+    province: string,
+    commune: string,
+  ): Promise<string> {
     const locationResult = await this.findLocationIds(province, commune);
 
     if (!locationResult.found) {
@@ -325,69 +343,244 @@ export class OrderService implements IOrderService {
     }
   }
 
-  private async findLocationIds(
-      province: string, commune: string
-    ): Promise<LocationResult> {
-      return new Promise((resolve, reject) => {
-        if (!fs.existsSync(this.csvFilePath)) {
-          console.error(`Location CSV file not found at: ${this.csvFilePath}`);
-          resolve({ wardId: 0, districtId: 0, found: false });
-          return;
-        }
-  
-        const matchingRecords: LocationData[] = [];
-  
-        fs.createReadStream(this.csvFilePath)
-          .pipe(csv())
-          .on('data', (row: LocationData) => {
-            const normalizedInputCommune = normalizeText(commune);
-            const normalizedInputProvince = normalizeText(province);
-  
-            const normalizedWardName = normalizeText(row.WardName || '');
-            const normalizedWardNameNew = normalizeText(row.WardName_New || '');
-            const normalizedProvinceName = normalizeText(row.ProvinceName || '');
-            const normalizedProvinceNameNew = normalizeText(
-              row.ProvinceName_New || '',
-            );
-  
-            const communeMatches =
-              normalizedWardName.includes(normalizedInputCommune) ||
-              normalizedWardNameNew.includes(normalizedInputCommune) ||
-              normalizedInputCommune.includes(normalizedWardName) ||
-              normalizedInputCommune.includes(normalizedWardNameNew);
-  
-            const provinceMatches =
-              normalizedProvinceName.includes(normalizedInputProvince) ||
-              normalizedProvinceNameNew.includes(normalizedInputProvince) ||
-              normalizedInputProvince.includes(normalizedProvinceName) ||
-              normalizedInputProvince.includes(normalizedProvinceNameNew);
-  
-            if (communeMatches && provinceMatches) {
-              matchingRecords.push(row);
-            }
-          })
-          .on('end', () => {
-            if (matchingRecords.length > 0) {
-              const record = matchingRecords[0];
-  
-              resolve({
-                wardId: parseInt(record.WardID),
-                districtId: parseInt(record.DistrictID),
-                found: true,
-              });
-            } else {
-              console.log(
-                `No matching location found for commune "${commune}" in province "${province}"`,
-              );
-              resolve({ wardId: 0, districtId: 0, found: false });
-            }
-          })
-          .on('error', (error: unknown) => {
-            console.error('Error reading CSV file:', error);
-            reject(new Error(`Error reading CSV file: ${String(error)}`));
-          });
+  async createOrder(
+    requester: Requester,
+    orderCreateDto: OrderCreateDto,
+  ): Promise<number> {
+    const orderData = orderCreateDtoSchema.parse(orderCreateDto);
+    const orderItemsData = orderItemCreateDtoSchema.array().parse(orderCreateDto.items);
+
+    const customer = await firstValueFrom<CustomerDto>(
+      this.userServiceClient.send(
+        USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
+        requester,
+      ),
+    );
+    if (!customer) {
+      throw new RpcException(
+        AppError.from(ErrCustomerNotFound, 404)
+          .withLog('Customer not found for user')
+          .toJson(false),
+      );
+    }
+
+    if (typeof customer.id !== 'number') {
+      throw new RpcException(
+        AppError.from(ErrCustomerNotFound, 404)
+          .withLog('Customer ID is missing')
+          .toJson(false),
+      );
+    }
+
+    const pointConfig = await this.orderRepository.getPointConfig();
+    if (!pointConfig) {
+      throw new RpcException(
+        AppError.from(new Error('Point configuration not found'), 500)
+          .withLog('Point configuration not found')
+          .toJson(false),
+      );
+    }
+
+    let totalAmount = 0;
+    for (const item of orderItemsData) {
+      const isAvailable = await firstValueFrom<boolean>(
+        this.phoneServiceClient.send(
+          PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY,
+          {
+            variantId: item.variantId,
+            colorId: item.colorId,
+            requiredQuantity: item.quantity,
+          },
+        ),
+      );
+      if (!isAvailable) {
+        throw new RpcException(
+          AppError.from(new Error('One or more items are out of stock'), 400)
+            .withLog('Insufficient stock for order item')
+            .toJson(false),
+        );
+      }
+      totalAmount += item.discount * item.quantity;
+    }
+
+    const maxDiscountFromPoints = totalAmount * 0.1;
+
+    let discountFromPoints = 0;
+    if (orderCreateDto.pointUsed) {
+      discountFromPoints = orderCreateDto.pointUsed * pointConfig.redeemRate;
+      if (discountFromPoints > maxDiscountFromPoints) {
+        discountFromPoints = maxDiscountFromPoints;
+      }
+    }
+
+    let discountFromVoucher = 0;
+    if (orderCreateDto.voucherIdApplied) {
+      // TODO: Validate voucher and calculate discount
+      discountFromVoucher = 0;
+    }
+
+    const totalDiscount = discountFromPoints + discountFromVoucher;
+
+    const finalAmount = totalAmount - totalDiscount + orderData.shippingFee;
+
+    const order: Order = {
+      customerId: customer.id,
+      orderCode: this.generateOrderCode('PH'),
+      orderDate: new Date(),
+      totalAmount: totalAmount,
+      discountAmount: totalDiscount,
+      shippingFee: orderData.shippingFee,
+      finalAmount: finalAmount,
+      recipientName: orderData.recipientName,
+      recipientPhone: orderData.recipientPhone,
+      provinceId: orderData.provinceId,
+      communeId: orderData.communeId,
+      street: orderData.street,
+      postalCode: orderData.postalCode || '700000',
+      status: OrderStatus.PENDING,
+      isDeleted: false,
+    };
+
+    const createdOrder = await this.orderRepository.insertOrder(order);
+
+    const items: OrderItem[] = orderItemsData.map((item) => ({
+      orderId: createdOrder.id!,
+      variantId: item.variantId,
+      colorId: item.colorId,
+      quantity: item.quantity,
+      price: item.price,
+      discount: item.discount,
+    }));
+
+    await this.orderRepository.insertOrderItems(items);
+
+    await this.orderRepository.insertOrderStatusHistory({
+      orderId: createdOrder.id!,
+      status: OrderStatus.PENDING,
+      isDeleted: false,
+    });
+
+    const pointTransactions: PointTransaction[] = [];
+
+    if (orderCreateDto.pointUsed && orderCreateDto.pointUsed > 0) {
+      pointTransactions.push({
+        customerId: customer.id,
+        orderId: createdOrder.id!,
+        type: PointType.REDEEM,
+        moneyValue: discountFromPoints,
+        points: discountFromPoints / pointConfig.redeemRate,
+        isDeleted: false,
       });
     }
+
+    await this.orderRepository.insertPointTransactions(pointTransactions);
+
+    const event = OrderCreatedEvent.create(
+      {
+        id: createdOrder.id!,
+        customerId: customer.id,
+        orderCode: createdOrder.orderCode,
+        orderDate: createdOrder.orderDate,
+        totalAmount: createdOrder.totalAmount,
+        discountAmount: createdOrder.discountAmount,
+        shippingFee: createdOrder.shippingFee,
+        finalAmount: createdOrder.finalAmount,
+        recipientName: createdOrder.recipientName,
+        recipientPhone: createdOrder.recipientPhone,
+        status: createdOrder.status,
+        provinceId: createdOrder.provinceId,
+        communeId: createdOrder.communeId,
+        street: createdOrder.street,
+        postalCode: createdOrder.postalCode ?? null,
+        items,
+        pointTransactions,
+      },
+      ORDER_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+
+    return createdOrder.id!;
+  }
+
+  private generateOrderCode(prefix: string): string {
+    const now = new Date();
+
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+
+    const datePart = `${day}${month}${year}`;
+
+    const randomPart = Math.floor(1000 + Math.random() * 9000);
+
+    return `${prefix}${datePart}${randomPart}`;
+  }
+
+  private async findLocationIds(
+    province: string,
+    commune: string,
+  ): Promise<LocationResult> {
+    return new Promise((resolve, reject) => {
+      if (!fs.existsSync(this.csvFilePath)) {
+        console.error(`Location CSV file not found at: ${this.csvFilePath}`);
+        resolve({ wardId: 0, districtId: 0, found: false });
+        return;
+      }
+
+      const matchingRecords: LocationData[] = [];
+
+      fs.createReadStream(this.csvFilePath)
+        .pipe(csv())
+        .on('data', (row: LocationData) => {
+          const normalizedInputCommune = normalizeText(commune);
+          const normalizedInputProvince = normalizeText(province);
+
+          const normalizedWardName = normalizeText(row.WardName || '');
+          const normalizedWardNameNew = normalizeText(row.WardName_New || '');
+          const normalizedProvinceName = normalizeText(row.ProvinceName || '');
+          const normalizedProvinceNameNew = normalizeText(
+            row.ProvinceName_New || '',
+          );
+
+          const communeMatches =
+            normalizedWardName.includes(normalizedInputCommune) ||
+            normalizedWardNameNew.includes(normalizedInputCommune) ||
+            normalizedInputCommune.includes(normalizedWardName) ||
+            normalizedInputCommune.includes(normalizedWardNameNew);
+
+          const provinceMatches =
+            normalizedProvinceName.includes(normalizedInputProvince) ||
+            normalizedProvinceNameNew.includes(normalizedInputProvince) ||
+            normalizedInputProvince.includes(normalizedProvinceName) ||
+            normalizedInputProvince.includes(normalizedProvinceNameNew);
+
+          if (communeMatches && provinceMatches) {
+            matchingRecords.push(row);
+          }
+        })
+        .on('end', () => {
+          if (matchingRecords.length > 0) {
+            const record = matchingRecords[0];
+
+            resolve({
+              wardId: parseInt(record.WardID),
+              districtId: parseInt(record.DistrictID),
+              found: true,
+            });
+          } else {
+            console.log(
+              `No matching location found for commune "${commune}" in province "${province}"`,
+            );
+            resolve({ wardId: 0, districtId: 0, found: false });
+          }
+        })
+        .on('error', (error: unknown) => {
+          console.error('Error reading CSV file:', error);
+          reject(new Error(`Error reading CSV file: ${String(error)}`));
+        });
+    });
+  }
 
   private async toItemsDto(items: OrderItem[]): Promise<OrderItemDto[]> {
     const variantIds = [...new Set(items.map((item) => item.variantId))].filter(

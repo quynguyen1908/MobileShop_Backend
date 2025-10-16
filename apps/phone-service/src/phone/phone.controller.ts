@@ -50,4 +50,21 @@ export class PhoneController {
   async getInventoryBySku(@Payload() sku: string) {
     return this.phoneService.getInventoryBySku(sku);
   }
+
+  @MessagePattern(PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY)
+  async checkInventoryAvailability(
+    @Payload()
+    payload: {
+      variantId: number;
+      colorId: number;
+      requiredQuantity: number;
+    },
+  ) {
+    const { variantId, colorId, requiredQuantity } = payload;
+    return this.phoneService.checkInventoryAvailability(
+      variantId,
+      colorId,
+      requiredQuantity,
+    );
+  }
 }

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IPhoneQueryRepository, IPhoneService } from './phone.port';
+import type { IPhoneRepository, IPhoneService } from './phone.port';
 import {
   AppError,
   Paginated,
@@ -25,6 +25,7 @@ import {
   phoneFilterDtoSchema,
   PhoneVariant,
   PhoneVariantDto,
+  UpdateInventoryDto,
   VariantColorDto,
   VariantImageDto,
   VariantSpecificationDto,
@@ -35,7 +36,7 @@ import { RpcException } from '@nestjs/microservices';
 export class PhoneService implements IPhoneService {
   constructor(
     @Inject(PHONE_REPOSITORY)
-    private readonly phoneRepository: IPhoneQueryRepository,
+    private readonly phoneRepository: IPhoneRepository,
   ) {}
 
   async getPhonesByIds(ids: number[]): Promise<Phone[]> {
@@ -148,11 +149,66 @@ export class PhoneService implements IPhoneService {
       );
     }
 
-    const relatedVariants = await this.phoneRepository.findVariantsByPhoneId(variants.phoneId);
-    
+    const relatedVariants = await this.phoneRepository.findVariantsByPhoneId(
+      variants.phoneId,
+    );
+
     const relatedVariantDtos = await this.toPhoneVariantDto(relatedVariants);
 
     return relatedVariantDtos;
+  }
+
+  async getInventoryByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<Inventory> {
+    const inventory =
+      await this.phoneRepository.findInventoryByVariantIdAndColorId(
+        variantId,
+        colorId,
+      );
+    if (!inventory) {
+      throw new RpcException(
+        AppError.from(ErrInventoryNotFound, 404)
+          .withLog('No inventory found for the given variant and color')
+          .toJson(false),
+      );
+    }
+    return inventory;
+  }
+
+  async checkInventoryAvailability(
+    variantId: number,
+    colorId: number,
+    requiredQuantity: number,
+  ): Promise<boolean> {
+    const inventory =
+      await this.phoneRepository.findInventoryByVariantIdAndColorId(
+        variantId,
+        colorId,
+      );
+    if (!inventory) {
+      throw new RpcException(
+        AppError.from(ErrInventoryNotFound, 404)
+          .withLog('No inventory found for the given variant and color')
+          .toJson(false),
+      );
+    }
+
+    return inventory.stockQuantity >= requiredQuantity;
+  }
+
+  async updateInventory(id: number, data: UpdateInventoryDto): Promise<void> {
+    const inventory = await this.phoneRepository.findInventoryById(id);
+    if (!inventory) {
+      throw new RpcException(
+        AppError.from(ErrInventoryNotFound, 404)
+          .withLog('No inventory found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    await this.phoneRepository.updateInventory(id, data);
   }
 
   private async toPhoneVariantDto(
@@ -199,6 +255,9 @@ export class PhoneService implements IPhoneService {
 
     const reviews =
       await this.phoneRepository.findReviewsByVariantIds(variantIds);
+
+    const inventories =
+      await this.phoneRepository.findInventoriesByVariantIds(variantIds);
 
     const variantDtos: PhoneVariantDto[] = variants.map((variant) => {
       const phone = phones.find((p) => p.id === variant.phoneId);
@@ -289,6 +348,10 @@ export class PhoneService implements IPhoneService {
 
       const variantReviews = reviews.filter((r) => r.variantId === variant.id);
 
+      const variantInventories = inventories.filter(
+        (inv) => inv.variantId === variant.id,
+      );
+
       const averageRating =
         variantReviews.length > 0
           ? variantReviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
@@ -330,6 +393,7 @@ export class PhoneService implements IPhoneService {
         specifications: variantSpecificationDtos,
         reviews: variantReviews,
         averageRating: averageRating,
+        inventories: variantInventories,
       } as PhoneVariantDto;
     });
 

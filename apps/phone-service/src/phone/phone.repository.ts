@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
-import { IPhoneQueryRepository } from './phone.port';
+import { IPhoneRepository } from './phone.port';
 import { PhonePrismaService } from '@app/contracts/prisma';
 import {
   Brand,
@@ -23,6 +23,7 @@ import {
 } from '@app/contracts/phone';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Paginated, PagingDto } from '@app/contracts';
+import { UpdateInventoryDto } from '@app/contracts/phone';
 
 interface PrismaBrand {
   id: number;
@@ -160,7 +161,7 @@ interface PrismaReview {
 }
 
 @Injectable()
-export class PhoneRepository implements IPhoneQueryRepository {
+export class PhoneRepository implements IPhoneRepository {
   constructor(private prisma: PhonePrismaService) {}
 
   async findBrandsByIds(ids: number[]): Promise<Brand[]> {
@@ -220,7 +221,9 @@ export class PhoneRepository implements IPhoneQueryRepository {
   async findVariantsById(id: number): Promise<PhoneVariant | null> {
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
-        findFirst: (params: { where: any }) => Promise<PrismaPhoneVariant | null>;
+        findFirst: (params: {
+          where: any;
+        }) => Promise<PrismaPhoneVariant | null>;
       };
     };
     const variant = await prismaService.phoneVariant.findFirst({
@@ -571,6 +574,21 @@ export class PhoneRepository implements IPhoneQueryRepository {
     return { data: variants, paging, total };
   }
 
+  async findInventoryById(id: number): Promise<Inventory | null> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        findFirst: (params: { where: any }) => Promise<PrismaInventory | null>;
+      };
+    };
+    const inventory = await prismaService.inventory.findFirst({
+      where: { id: id, isDeleted: false },
+    });
+    if (!inventory) {
+      return null;
+    }
+    return this._toInventoryModel(inventory);
+  }
+
   async findInventoryBySku(sku: string): Promise<Inventory | null> {
     const prismaService = this.prisma as unknown as {
       inventory: {
@@ -584,6 +602,53 @@ export class PhoneRepository implements IPhoneQueryRepository {
       return null;
     }
     return this._toInventoryModel(inventory);
+  }
+
+  async findInventoriesByVariantIds(
+    variantIds: number[],
+  ): Promise<Inventory[]> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        findMany: (params: { where: any }) => Promise<PrismaInventory[]>;
+      };
+    };
+    const inventories = await prismaService.inventory.findMany({
+      where: { variantId: { in: variantIds }, isDeleted: false },
+    });
+    return inventories.map((inventory) => this._toInventoryModel(inventory));
+  }
+
+  async findInventoryByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<Inventory | null> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        findFirst: (params: { where: any }) => Promise<PrismaInventory | null>;
+      };
+    };
+    const inventory = await prismaService.inventory.findFirst({
+      where: { variantId, colorId, isDeleted: false },
+    });
+    if (!inventory) {
+      return null;
+    }
+    return this._toInventoryModel(inventory);
+  }
+
+  async updateInventory(id: number, data: UpdateInventoryDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        update: (params: {
+          where: { id: number };
+          data: any;
+        }) => Promise<PrismaInventory>;
+      };
+    };
+    await prismaService.inventory.update({
+      where: { id },
+      data,
+    });
   }
 
   private isFilterEmpty(filter: PhoneFilterDto): boolean {

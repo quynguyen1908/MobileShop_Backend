@@ -56,7 +56,7 @@ export class AiController {
   @Get('ingest')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Trigger document ingestion process' })
+  @ApiOperation({ summary: 'Trigger document ingestion process (requires admin role)' })
   @ApiResponse({
     status: 200,
     description: 'Ingestion process started successfully.',

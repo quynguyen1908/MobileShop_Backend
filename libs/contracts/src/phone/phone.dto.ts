@@ -13,6 +13,7 @@ import {
   Category,
   imageSchema,
   variantColorSchema,
+  inventorySchema,
 } from './phone.model';
 import { z } from 'zod';
 
@@ -112,6 +113,31 @@ export const phoneVariantViewDtoSchema = z.object({
 });
 
 export type PhoneVariantViewDto = z.infer<typeof phoneVariantViewDtoSchema>;
+
+// Update Inventory
+
+export const updateInventoryDtoSchema = inventorySchema
+  .pick({
+    variantId: true,
+    colorId: true,
+    sku: true,
+    stockQuantity: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type UpdateInventoryDto = z.infer<typeof updateInventoryDtoSchema>;
+
+// Inventory
+
+export const inventoryDtoSchema = inventorySchema.omit({
+  createdAt: true,
+  updatedAt: true,
+  isDeleted: true,
+});
+
+export type InventoryDto = z.infer<typeof inventoryDtoSchema>;
 
 // Variant Image
 
@@ -223,6 +249,7 @@ export const phoneVariantDtoSchema = phoneVariantSchema
       })
       .optional(),
     images: variantImageDtoSchema.array(),
+    inventories: inventoryDtoSchema.array(),
     specifications: variantSpecificationDtoSchema.array(),
     reviews: reviewDtoSchema.array().optional(),
     averageRating: z.number().min(0).max(5).default(0),

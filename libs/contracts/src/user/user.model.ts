@@ -9,7 +9,6 @@ export enum Gender {
 export enum EmployeePosition {
   MANAGER = 'manager',
   SALE = 'sale',
-  WAREHOUSE = 'warehouse',
 }
 
 export enum NotificationType {

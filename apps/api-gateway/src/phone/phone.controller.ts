@@ -292,68 +292,71 @@ export class PhoneController {
           message: 'Related phone variants retrieved successfully',
           data: [
             {
+              id: 1,
+              variantName: 'Ultra 1TB',
+              description: 'Latest model with advanced features',
+              phone: {
                 id: 1,
-                variantName: 'Ultra 1TB',
-                description: 'Latest model with advanced features',
-                phone: {
-                  id: 1,
-                  name: 'Samsung Galaxy S25',
-                  brand: { id: 1, name: 'Samsung' },
-                  category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
-                },
-                colors: [
-                  {
-                    variantId: 1,
-                    imageId: 1,
-                    color: {
-                      id: 1,
-                      name: 'Đen',
-                    },
-                  },
-                ],
-                price: {
-                  id: 1,
-                  variantId: 1,
-                  price: 44000000,
-                  startDate: '2024-10-01T00:00:00.000Z',
-                  endDate: null,
-                },
-                discount: {
-                  id: 1,
-                  variantId: 1,
-                  discountPercent: 80,
-                  startDate: '2024-10-01T00:00:00.000Z',
-                  endDate: null,
-                },
-                images: [
-                  {
-                    id: 1,
-                    variantId: 1,
-                    image: {
-                      id: 1,
-                      imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
-                    },
-                  },
-                ],
-                specifications: [
-                  {
-                    info: '6.9 inches',
-                    specification: { name: 'Kích thước màn hình' },
-                  },
-                  {
-                    info: 'Dynamic AMOLED 2X',
-                    specification: { name: 'Công nghệ màn hình' },
-                  },
-                ],
-                reviews: [],
-                averageRating: 0,
+                name: 'Samsung Galaxy S25',
+                brand: { id: 1, name: 'Samsung' },
+                category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
               },
+              colors: [
+                {
+                  variantId: 1,
+                  imageId: 1,
+                  color: {
+                    id: 1,
+                    name: 'Đen',
+                  },
+                },
+              ],
+              price: {
+                id: 1,
+                variantId: 1,
+                price: 44000000,
+                startDate: '2024-10-01T00:00:00.000Z',
+                endDate: null,
+              },
+              discount: {
+                id: 1,
+                variantId: 1,
+                discountPercent: 80,
+                startDate: '2024-10-01T00:00:00.000Z',
+                endDate: null,
+              },
+              images: [
+                {
+                  id: 1,
+                  variantId: 1,
+                  image: {
+                    id: 1,
+                    imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                  },
+                },
+              ],
+              specifications: [
+                {
+                  info: '6.9 inches',
+                  specification: { name: 'Kích thước màn hình' },
+                },
+                {
+                  info: 'Dynamic AMOLED 2X',
+                  specification: { name: 'Công nghệ màn hình' },
+                },
+              ],
+              reviews: [],
+              averageRating: 0,
+            },
           ],
         },
       },
     },
   })
-  async getRelatedVariants(@Param('variantId') variantId: number, @Res() res: Response) {
+  async getRelatedVariants(
+    @Param('variantId') variantId: number,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
         PhoneVariantDto[] | FallbackResponse
@@ -372,7 +375,7 @@ export class PhoneController {
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
-      
+
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
           HttpStatus.SERVICE_UNAVAILABLE,
