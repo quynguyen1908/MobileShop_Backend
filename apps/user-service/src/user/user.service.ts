@@ -13,6 +13,7 @@ import {
   CustomerCreateDto,
   CustomerDto,
   customerSchema,
+  CustomerUpdateDto,
   Province,
 } from '@app/contracts/user';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
@@ -43,6 +44,19 @@ export class UserService implements IUserService {
 
     const createdCustomer = await this.userRepository.insertCustomer(customer);
     return createdCustomer.id!;
+  }
+
+  async getCustomerById(id: number): Promise<Customer> {
+    const customer = await this.userRepository.findCustomerById(id);
+    if (!customer) {
+      throw new RpcException(
+        AppError.from(new Error('Customer not found'))
+          .withLog('Customer not found')
+          .toJson(false),
+      );
+    }
+
+    return customer;
   }
 
   async getCustomerByUserId(request: Requester): Promise<CustomerDto> {
@@ -84,6 +98,19 @@ export class UserService implements IUserService {
     };
 
     return customerDto;
+  }
+
+  async updateCustomer(id: number, data: CustomerUpdateDto): Promise<void> {
+    const customer = await this.userRepository.findCustomerById(id);
+    if (!customer) {
+      throw new RpcException(
+        AppError.from(new Error('Customer not found'))
+          .withLog('Customer not found')
+          .toJson(false),
+      );
+    }
+
+    await this.userRepository.updateCustomer(id, data);
   }
 
   // Province

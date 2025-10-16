@@ -17,6 +17,7 @@ import { z } from 'zod';
 
 const orderItemsDtoSchema = orderItemSchema
   .omit({
+    colorId: true,
     variantId: true,
   })
   .extend({
@@ -76,3 +77,40 @@ export const orderDtoSchema = orderSchema
   });
 
 export type OrderDto = z.infer<typeof orderDtoSchema>;
+
+// Create Order Item
+
+export const orderItemCreateDtoSchema = orderItemSchema.pick({
+  variantId: true,
+  colorId: true,
+  quantity: true,
+  price: true,
+  discount: true,
+});
+
+export type OrderItemCreateDto = z.infer<typeof orderItemCreateDtoSchema>;
+
+// Create Order
+
+export const orderCreateDtoSchema = orderSchema
+  .pick({
+    totalAmount: true,
+    discountAmount: true,
+    shippingFee: true,
+    finalAmount: true,
+    recipientName: true,
+    recipientPhone: true,
+    street: true,
+    communeId: true,
+    provinceId: true,
+    postalCode: true,
+  })
+  .extend({
+    items: orderItemCreateDtoSchema
+      .array()
+      .min(1, 'Order must have at least one item'),
+    voucherIdApplied: z.number().int().positive().optional(),
+    pointUsed: z.number().int().min(0).optional(),
+  });
+
+export type OrderCreateDto = z.infer<typeof orderCreateDtoSchema>;

@@ -40,6 +40,7 @@ export const ErrStatusMax50 = new Error(
   'Status must be at most 50 characters long',
 );
 export const ErrOrderNotFound = new Error('Order not found');
+export const ErrLocationNotFound = new Error('Location not found');
 
 export const orderSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -77,6 +78,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().positive(),
   price: z.number().int().nonnegative(),
   discount: z.number().int().nonnegative().optional().default(0),
+  colorId: z.number().int().positive(),
 });
 
 export type OrderItem = z.infer<typeof orderItemSchema>;

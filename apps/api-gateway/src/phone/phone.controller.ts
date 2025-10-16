@@ -16,9 +16,12 @@ import {
   Inventory,
   PHONE_PATTERN,
   PHONE_SERVICE_NAME,
-  PhoneDto,
 } from '@app/contracts/phone';
-import type { PhoneFilterDto } from '@app/contracts/phone';
+import type {
+  Brand,
+  PhoneFilterDto,
+  PhoneVariantDto,
+} from '@app/contracts/phone';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { formatError } from '../utils/error';
@@ -40,35 +43,37 @@ export class PhoneController {
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
-  @Get('/filter')
-  @ApiOperation({ summary: 'List phones with filtering and pagination' })
+  @Get('variants/filter')
+  @ApiOperation({
+    summary: 'List phone variants with filtering and pagination',
+  })
   @ApiQuery({
     name: 'page',
     required: false,
     type: Number,
     example: 1,
-    description: 'Trang hiện tại',
+    description: 'Current page number',
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     example: 10,
-    description: 'Số item mỗi trang',
+    description: 'Number of items per page',
   })
   @ApiQuery({
     name: 'minPrice',
     required: false,
     type: Number,
     example: 35000000,
-    description: 'Giá tối thiểu',
+    description: 'Minimum price',
   })
   @ApiQuery({
     name: 'maxPrice',
     required: false,
     type: Number,
     example: 36000000,
-    description: 'Giá tối đa',
+    description: 'Maximum price',
   })
   @ApiQuery({
     name: 'chipset',
@@ -82,56 +87,56 @@ export class PhoneController {
     required: false,
     type: String,
     example: 'Android',
-    description: 'Hệ điều hành',
+    description: 'Operating system',
   })
   @ApiQuery({
     name: 'minRam',
     required: false,
     type: Number,
     example: 8,
-    description: 'RAM tối thiểu (GB)',
+    description: 'Minimum RAM (GB)',
   })
   @ApiQuery({
     name: 'maxRam',
     required: false,
     type: Number,
     example: 12,
-    description: 'RAM tối đa (GB)',
+    description: 'Maximum RAM (GB)',
   })
   @ApiQuery({
     name: 'minStorage',
     required: false,
     type: Number,
     example: 512,
-    description: 'ROM tối thiểu (GB)',
+    description: 'Minimum storage (GB)',
   })
   @ApiQuery({
     name: 'maxStorage',
     required: false,
     type: Number,
     example: 1024,
-    description: 'ROM tối đa (GB)',
+    description: 'Maximum storage (GB)',
   })
   @ApiQuery({
     name: 'minScreenSize',
     required: false,
     type: Number,
     example: 6,
-    description: 'Kích thước màn tối thiểu (inch)',
+    description: 'Minimum screen size (inch)',
   })
   @ApiQuery({
     name: 'maxScreenSize',
     required: false,
     type: Number,
     example: 7,
-    description: 'Kích thước màn tối đa (inch)',
+    description: 'Maximum screen size (inch)',
   })
   @ApiQuery({
     name: 'nfc',
     required: false,
     type: Boolean,
     example: true,
-    description: 'Có NFC hay không',
+    description: 'Whether NFC is supported',
   })
   @ApiResponse({
     status: 200,
@@ -145,51 +150,60 @@ export class PhoneController {
             data: [
               {
                 id: 1,
-                name: 'Samsung Galaxy S25',
-                description:
-                  'Samsung Galaxy S25 là điện thoại thông minh hàng đầu mới nhất của Samsung, ...',
-                brand: { id: 1, name: 'Samsung' },
-                category: { id: 3, name: 'Galaxy S25 Series', parentId: 2 },
-                variants: [
+                variantName: 'Ultra 1TB',
+                description: 'Latest model with advanced features',
+                phone: {
+                  id: 1,
+                  name: 'Samsung Galaxy S25',
+                  brand: { id: 1, name: 'Samsung' },
+                  category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
+                },
+                colors: [
                   {
-                    id: 1,
-                    phoneId: 1,
-                    variantName: 'Ultra 1TB',
-                    color: { id: 1, name: 'Đen' },
-                    price: {
+                    variantId: 1,
+                    imageId: 1,
+                    color: {
                       id: 1,
-                      variantId: 1,
-                      price: 44000000,
-                      startDate: '2025-09-30T17:00:00.000Z',
-                      endDate: null,
+                      name: 'Đen',
                     },
-                    discount: {
-                      id: 1,
-                      variantId: 1,
-                      discountPercent: 20,
-                      startDate: '2025-09-30T17:00:00.000Z',
-                      endDate: null,
-                    },
-                    images: [
-                      {
-                        id: 1,
-                        variantId: 1,
-                        imageUrl:
-                          'https://example.com/images/samsung-galaxy-s25-ultra-1tb-black-front.jpg',
-                      },
-                    ],
-                    specifications: [
-                      {
-                        info: '6.9 inches',
-                        specification: { name: 'Kích thước màn hình' },
-                      },
-                      {
-                        info: 'Dynamic AMOLED 2X',
-                        specification: { name: 'Công nghệ màn hình' },
-                      },
-                    ],
                   },
                 ],
+                price: {
+                  id: 1,
+                  variantId: 1,
+                  price: 44000000,
+                  startDate: '2024-10-01T00:00:00.000Z',
+                  endDate: null,
+                },
+                discount: {
+                  id: 1,
+                  variantId: 1,
+                  discountPercent: 80,
+                  startDate: '2024-10-01T00:00:00.000Z',
+                  endDate: null,
+                },
+                images: [
+                  {
+                    id: 1,
+                    variantId: 1,
+                    image: {
+                      id: 1,
+                      imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                    },
+                  },
+                ],
+                specifications: [
+                  {
+                    info: '6.9 inches',
+                    specification: { name: 'Kích thước màn hình' },
+                  },
+                  {
+                    info: 'Dynamic AMOLED 2X',
+                    specification: { name: 'Công nghệ màn hình' },
+                  },
+                ],
+                reviews: [],
+                averageRating: 0,
               },
             ],
             paging: {
@@ -203,7 +217,7 @@ export class PhoneController {
       },
     },
   })
-  async listPhones(
+  async listPhoneVariants(
     @Query() pagingDto: PagingDto,
     @Query() filter: PhoneFilterDto,
     @Res() res: Response,
@@ -211,11 +225,11 @@ export class PhoneController {
     try {
       const paging = pagingDtoSchema.parse(pagingDto);
       const result = await this.circuitBreakerService.sendRequest<
-        Paginated<PhoneDto> | FallbackResponse
+        Paginated<PhoneVariantDto> | FallbackResponse
       >(
         this.phoneServiceClient,
         PHONE_SERVICE_NAME,
-        PHONE_PATTERN.LIST_PHONES,
+        PHONE_PATTERN.LIST_PHONE_VARIANTS,
         { filter, paging },
         () => {
           return {
@@ -239,7 +253,7 @@ export class PhoneController {
       } else {
         const response = new ApiResponseDto(
           HttpStatus.OK,
-          'Phones retrieved successfully',
+          'Phone variants retrieved successfully',
           result,
         );
         return res.status(HttpStatus.OK).json(response);
@@ -247,7 +261,8 @@ export class PhoneController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage = typedError.logMessage || 'Getting phones failed';
+      const errorMessage =
+        typedError.logMessage || 'Getting phone variants failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -259,92 +274,97 @@ export class PhoneController {
     }
   }
 
-  @Get('/:id')
-  @ApiOperation({ summary: 'Get phone details by ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'Phone ID', example: 1 })
+  @Get('variants/:variantId/related')
+  @ApiOperation({ summary: 'Get related phone variants by variant ID' })
+  @ApiParam({
+    name: 'variantId',
+    type: Number,
+    description: 'Phone variant ID',
+    example: 1,
+  })
   @ApiResponse({
     status: 200,
-    description: 'Phone details retrieved successfully',
+    description: 'Related phone variants retrieved successfully',
     content: {
       'application/json': {
         example: {
           status: 200,
-          message: 'Phone details retrieved successfully',
-          data: {
-            id: 1,
-            name: 'Samsung Galaxy S25',
-            description:
-              'Samsung Galaxy S25 là điện thoại thông minh hàng đầu mới nhất của Samsung, ...',
-            brand: {
+          message: 'Related phone variants retrieved successfully',
+          data: [
+            {
               id: 1,
-              name: 'Samsung',
-            },
-            category: {
-              id: 3,
-              name: 'Galaxy S25 Series',
-              parentId: 2,
-            },
-            variants: [
-              {
+              variantName: 'Ultra 1TB',
+              description: 'Latest model with advanced features',
+              phone: {
                 id: 1,
-                phoneId: 1,
-                variantName: 'Ultra 1TB',
-                color: {
-                  id: 1,
-                  name: 'Đen',
-                },
-                price: {
-                  id: 1,
-                  variantId: 1,
-                  price: 44000000,
-                  startDate: '2025-09-30T17:00:00.000Z',
-                  endDate: null,
-                },
-                discount: {
-                  id: 1,
-                  variantId: 1,
-                  discountPercent: 20,
-                  startDate: '2025-09-30T17:00:00.000Z',
-                  endDate: null,
-                },
-                images: [
-                  {
-                    id: 1,
-                    variantId: 1,
-                    imageUrl:
-                      'https://example.com/images/samsung-galaxy-s25-ultra-1tb-black-front.jpg',
-                  },
-                ],
-                specifications: [
-                  {
-                    info: '6.9 inches',
-                    specification: {
-                      name: 'Kích thước màn hình',
-                    },
-                  },
-                  {
-                    info: 'Dynamic AMOLED 2X',
-                    specification: {
-                      name: 'Công nghệ màn hình',
-                    },
-                  },
-                ],
+                name: 'Samsung Galaxy S25',
+                brand: { id: 1, name: 'Samsung' },
+                category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
               },
-            ],
-          },
+              colors: [
+                {
+                  variantId: 1,
+                  imageId: 1,
+                  color: {
+                    id: 1,
+                    name: 'Đen',
+                  },
+                },
+              ],
+              price: {
+                id: 1,
+                variantId: 1,
+                price: 44000000,
+                startDate: '2024-10-01T00:00:00.000Z',
+                endDate: null,
+              },
+              discount: {
+                id: 1,
+                variantId: 1,
+                discountPercent: 80,
+                startDate: '2024-10-01T00:00:00.000Z',
+                endDate: null,
+              },
+              images: [
+                {
+                  id: 1,
+                  variantId: 1,
+                  image: {
+                    id: 1,
+                    imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                  },
+                },
+              ],
+              specifications: [
+                {
+                  info: '6.9 inches',
+                  specification: { name: 'Kích thước màn hình' },
+                },
+                {
+                  info: 'Dynamic AMOLED 2X',
+                  specification: { name: 'Công nghệ màn hình' },
+                },
+              ],
+              reviews: [],
+              averageRating: 0,
+            },
+          ],
         },
       },
     },
   })
-  async getPhoneDetails(@Param('id') phoneId: number, @Res() res: Response) {
+  async getRelatedVariants(
+    @Param('variantId') variantId: number,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
-        PhoneDto | FallbackResponse
+        PhoneVariantDto[] | FallbackResponse
       >(
         this.phoneServiceClient,
         PHONE_SERVICE_NAME,
-        PHONE_PATTERN.GET_PHONE,
-        phoneId,
+        PHONE_PATTERN.GET_RELATED_VARIANTS,
+        variantId,
         () => {
           return {
             fallback: true,
@@ -367,7 +387,7 @@ export class PhoneController {
       } else {
         const response = new ApiResponseDto(
           HttpStatus.OK,
-          'Phone details retrieved successfully',
+          'Related phone variants retrieved successfully',
           result,
         );
         return res.status(HttpStatus.OK).json(response);
@@ -376,7 +396,85 @@ export class PhoneController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
-        typedError.logMessage || 'Getting phone details failed';
+        typedError.logMessage || 'Getting related phone variants failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Brands')
+@Controller('v1/brands')
+export class BrandController {
+  constructor(
+    @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get('/')
+  @ApiOperation({ summary: 'Get all brands' })
+  @ApiResponse({
+    status: 200,
+    description: 'Brands retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Brands retrieved successfully',
+          data: [
+            { id: 1, name: 'Samsung' },
+            { id: 2, name: 'Apple' },
+          ],
+        },
+      },
+    },
+  })
+  async getAllBrands(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        Brand[] | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_ALL_BRANDS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Brands retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting brands failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

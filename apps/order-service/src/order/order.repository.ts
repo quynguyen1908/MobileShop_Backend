@@ -1,11 +1,12 @@
 import { OrderPrismaService } from '@app/contracts/prisma';
 import { Injectable } from '@nestjs/common';
-import { IOrderQueryRepository } from './order.port';
+import { IOrderRepository } from './order.port';
 import {
   Order,
   OrderItem,
   OrderStatus,
   OrderStatusHistory,
+  PointConfig,
   PointTransaction,
   PointType,
   Shipment,
@@ -37,6 +38,7 @@ interface PrismaOrderItem {
   id: number;
   orderId: number;
   variantId: number;
+  colorId: number;
   quantity: number;
   price: number;
   discount: number;
@@ -64,16 +66,16 @@ interface PrismaPointTransaction {
   isDeleted: boolean;
 }
 
-// interface PrismaPointConfig {
-//     id: number;
-//     earnRate: number;
-//     redeemRate: number;
-//     effectiveFrom: Date;
-//     effectiveTo: Date | null;
-//     createdAt: Date;
-//     updatedAt: Date;
-//     isDeleted: boolean;
-// };
+interface PrismaPointConfig {
+  id: number;
+  earnRate: number;
+  redeemRate: number;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
 
 interface PrismaShipment {
   id: number;
@@ -89,7 +91,7 @@ interface PrismaShipment {
 }
 
 @Injectable()
-export class OrderRepository implements IOrderQueryRepository {
+export class OrderRepository implements IOrderRepository {
   constructor(private readonly prisma: OrderPrismaService) {}
 
   async findOrdersByCustomerId(customerId: number): Promise<Order[]> {
@@ -154,6 +156,25 @@ export class OrderRepository implements IOrderQueryRepository {
     );
   }
 
+  async getPointConfig(): Promise<PointConfig | null> {
+    const prismaService = this.prisma as unknown as {
+      pointConfig: {
+        findFirst: (param: { where: any, orderBy: any }) => Promise<PrismaPointConfig | null>;
+      };
+    };
+    const config = await prismaService.pointConfig.findFirst({
+      where: {
+        isDeleted: false,
+        effectiveTo: null,
+      },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    if (!config) {
+      return null;
+    }
+    return this._toPointConfigModel(config);
+  }
+
   async findShipmentsByOrderIds(orderIds: number[]): Promise<Shipment[]> {
     const prismaService = this.prisma as unknown as {
       shipment: {
@@ -183,6 +204,56 @@ export class OrderRepository implements IOrderQueryRepository {
       return null;
     }
     return this._toOrderModel(order);
+  }
+
+  async insertOrder(data: Order): Promise<Order> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        create: (param: { data: any }) => Promise<PrismaOrder>;
+      };
+    };
+
+    const order = await prismaService.order.create({ data });
+    return this._toOrderModel(order);
+  }
+
+  async insertOrderItems(data: OrderItem[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      orderItem: {
+        createMany: (param: { data: any[] }) => Promise<PrismaOrderItem[]>;
+      };
+    };
+
+    await prismaService.orderItem.createMany({ data });
+  }
+
+  async insertOrderStatusHistory(
+    data: OrderStatusHistory,
+  ): Promise<OrderStatusHistory> {
+    const prismaService = this.prisma as unknown as {
+      orderStatusHistory: {
+        create: (param: { data: any }) => Promise<PrismaOrderStatusHistory>;
+      };
+    };
+
+    const history = await prismaService.orderStatusHistory.create({ data });
+    return this._toOrderStatusHistoryModel(history);
+  }
+
+  async insertPointTransactions(
+    data: PointTransaction[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      pointTransaction: {
+        createMany: (param: {
+          data: any[];
+        }) => Promise<PrismaPointTransaction[]>;
+      };
+    };
+
+    await prismaService.pointTransaction.createMany({
+      data,
+    });
   }
 
   private _toOrderModel(data: PrismaOrder): Order {
@@ -223,6 +294,7 @@ export class OrderRepository implements IOrderQueryRepository {
       id: data.id,
       orderId: data.orderId,
       variantId: data.variantId,
+      colorId: data.colorId,
       quantity: data.quantity,
       price: data.price,
       discount: data.discount,
@@ -279,18 +351,18 @@ export class OrderRepository implements IOrderQueryRepository {
     };
   }
 
-  // private _toPointConfigModel(data: PrismaPointConfig): PointConfig {
-  //     return {
-  //         id: data.id,
-  //         earnRate: data.earnRate,
-  //         redeemRate: data.redeemRate,
-  //         effectiveFrom: data.effectiveFrom,
-  //         effectiveTo: data.effectiveTo ?? undefined,
-  //         createdAt: data.createdAt,
-  //         updatedAt: data.updatedAt,
-  //         isDeleted: data.isDeleted,
-  //     };
-  // }
+  private _toPointConfigModel(data: PrismaPointConfig): PointConfig {
+    return {
+      id: data.id,
+      earnRate: data.earnRate,
+      redeemRate: data.redeemRate,
+      effectiveFrom: data.effectiveFrom,
+      effectiveTo: data.effectiveTo ?? undefined,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
+    };
+  }
 
   private _toShipmentModel(data: PrismaShipment): Shipment {
     let typedStatus: ShipmentStatus | undefined;

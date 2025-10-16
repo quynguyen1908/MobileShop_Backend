@@ -1,17 +1,19 @@
 import { ORDER_SERVICE } from '@app/contracts';
 import type { ReqWithRequester } from '@app/contracts';
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Inject,
   Param,
+  Post,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { RemoteAuthGuard } from '@app/contracts/auth';
 import type { Response } from 'express';
@@ -21,6 +23,7 @@ import {
   ORDER_SERVICE_NAME,
   OrderDto,
 } from '@app/contracts/order';
+import type { OrderCreateDto } from '@app/contracts/order';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto } from '../dto/response.dto';
@@ -35,7 +38,7 @@ export class OrderController {
   ) {}
 
   @Get('/me')
-  @ApiOperation({ summary: 'Get current customer orders' })
+  @ApiOperation({ summary: 'Get current customer orders (requires authentication)' })
   @ApiResponse({
     status: 200,
     description: 'Orders retrieved successfully',
@@ -254,6 +257,224 @@ export class OrderController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('create')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Create a new order (requires authentication)' })
+  @ApiBody({ 
+    description: 'Order creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        totalAmount: { type: 'number', example: 43200000 },
+        discountAmount: { type: 'number', example: 1000000 },
+        shippingFee: { type: 'number', example: 34000 },
+        finalAmount: { type: 'number', example: 42234000 },
+        recipientName: { type: 'string', example: 'Max Johnson' },
+        recipientPhone: { type: 'string', example: '0987654321' },
+        street: { type: 'string', example: '456 Le Loi' },
+        communeId: { type: 'number', example: 2677 },
+        provinceId: { type: 'number', example: 28 },
+        postalCode: { type: 'string', example: '67890' },
+        voucherIdApplied: { type: 'number', example: 2, nullable: true },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              variantId: { type: 'number', example: 3 },
+              colorId: { type: 'number', example: 3 },
+              quantity: { type: 'number', example: 1 },
+              price: { type: 'number', example: 48000000 },
+              discount: { type: 'number', example: 43200000 },
+            },
+            required: ['variantId', 'colorId', 'quantity', 'price', 'discount'],
+          },
+        },
+        pointUsed: { type: 'number', example: 20000, nullable: true },
+      },
+      required: [
+        'totalAmount',
+        'discountAmount',
+        'shippingFee',
+        'finalAmount',
+        'recipientName',
+        'recipientPhone',
+        'street',
+        'communeId',
+        'provinceId',
+        'items',
+      ],
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Order created successfully',
+          data: { orderId: 1 },
+        },
+      },
+    },
+  })
+  async createOrder(
+    @Req() req: ReqWithRequester,
+    @Body() body: OrderCreateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.CREATE_ORDER,
+        { requester, orderCreateDto: body },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Order created successfully',
+          { orderId: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Shipment')
+@Controller('v1/shipment')
+export class ShipmentController {
+  constructor(
+    @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Post('fee')
+  @ApiOperation({ summary: 'Calculate shipping fee' })
+  @ApiResponse({
+    status: 200,
+    description: 'Shipping fee calculated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Shipping fee calculated successfully',
+          data: { shippingFee: "34.000 ₫" },
+        },
+      },
+    },
+  })
+  @ApiBody({
+    description: 'Province and commune for shipping fee calculation',
+    schema: {
+      type: 'object',
+      properties: {
+        province: { type: 'string', example: 'Thành phố Hồ Chí Minh' },
+        commune: { type: 'string', example: 'Phường Đức Nhuận' },
+      },
+      required: ['province', 'commune'],
+    },
+  })
+  async calculateShippingFee(
+    @Body() body: { province: string; commune: string },
+    @Res() res: Response,
+  ) {
+    const { province, commune } = body;
+
+    if (!province || !commune) {
+      const errorResponse = new ApiResponseDto(
+        HttpStatus.BAD_REQUEST,
+        'Province and commune query parameters are required',
+      );
+      return res.status(HttpStatus.BAD_REQUEST).json(errorResponse);
+    }
+
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        string | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.CALCULATE_SHIPPING_FEE,
+        { province, commune },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Shipping fee calculated successfully',
+          { shippingFee: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Calculating shipping fee failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

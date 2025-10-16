@@ -244,7 +244,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiOperation({ summary: 'Logout the current user' })
+  @ApiOperation({ summary: 'Logout the current user (requires authentication)' })
   @ApiResponse({
     status: 200,
     description: 'User logged out successfully',
@@ -316,7 +316,7 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @ApiOperation({ summary: 'Change user password' })
+  @ApiOperation({ summary: 'Change user password (requires authentication)' })
   @ApiBody({
     description: 'User current and new password',
     schema: {

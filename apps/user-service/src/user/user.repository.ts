@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from './user.port';
 import { UserPrismaService } from '@app/contracts/prisma';
-import { Commune, Customer, Gender, Province } from '@app/contracts/user';
+import {
+  Commune,
+  Customer,
+  CustomerUpdateDto,
+  Gender,
+  Province,
+} from '@app/contracts/user';
 
 interface PrismaCustomer {
   id: number;
@@ -50,6 +56,21 @@ export class UserRepository implements IUserRepository {
     return this._toCustomerModel(customer);
   }
 
+  async findCustomerById(id: number): Promise<Customer | null> {
+    const prismaService = this.prisma as unknown as {
+      customer: {
+        findFirst: (params: {
+          where: { id: number; isDeleted: boolean };
+        }) => Promise<PrismaCustomer | null>;
+      };
+    };
+    const customer = await prismaService.customer.findFirst({
+      where: { id, isDeleted: false },
+    });
+    if (!customer) return null;
+    return this._toCustomerModel(customer);
+  }
+
   async findCustomerByUserId(userId: number): Promise<Customer | null> {
     const prismaService = this.prisma as unknown as {
       customer: {
@@ -63,6 +84,18 @@ export class UserRepository implements IUserRepository {
     });
     if (!customer) return null;
     return this._toCustomerModel(customer);
+  }
+
+  async updateCustomer(id: number, data: CustomerUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      customer: {
+        update: (params: { where: { id: number }; data: any }) => Promise<any>;
+      };
+    };
+    await prismaService.customer.update({
+      where: { id },
+      data,
+    });
   }
 
   // Province

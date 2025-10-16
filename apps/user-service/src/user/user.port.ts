@@ -4,6 +4,7 @@ import {
   Customer,
   CustomerCreateDto,
   CustomerDto,
+  CustomerUpdateDto,
   Province,
 } from '@app/contracts/user';
 
@@ -11,6 +12,8 @@ export interface IUserService {
   // Customer
   createCustomer(data: CustomerCreateDto): Promise<number>;
   getCustomerByUserId(request: Requester): Promise<CustomerDto>;
+  getCustomerById(id: number): Promise<Customer>;
+  updateCustomer(id: number, data: CustomerUpdateDto): Promise<void>;
 
   // Province
   getAllProvinces(): Promise<Province[]>;
@@ -28,11 +31,13 @@ export interface IUserRepository
 export interface IUserCommandRepository {
   // Customer
   insertCustomer(data: Customer): Promise<Customer>;
+  updateCustomer(id: number, data: CustomerUpdateDto): Promise<void>;
 }
 
 export interface IUserQueryRepository {
   // Customer
   findCustomerByUserId(userId: number): Promise<Customer | null>;
+  findCustomerById(id: number): Promise<Customer | null>;
 
   // Province
   findAllProvinces(): Promise<Province[]>;

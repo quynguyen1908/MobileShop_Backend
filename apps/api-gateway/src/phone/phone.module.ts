@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import {
+  BrandController,
   CategoryController,
   InventoryController,
   PhoneController,
@@ -12,7 +13,12 @@ import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module'
 
 @Module({
   imports: [RabbitMQModule.register(), CircuitBreakerModule],
-  controllers: [PhoneController, CategoryController, InventoryController],
+  controllers: [
+    PhoneController,
+    CategoryController,
+    InventoryController,
+    BrandController,
+  ],
   providers: [
     {
       provide: PHONE_SERVICE,

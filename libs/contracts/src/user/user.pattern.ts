@@ -1,6 +1,8 @@
 export const USER_PATTERN = {
   CREATE_CUSTOMER: 'user.createCustomer',
   GET_CUSTOMER_BY_USER_ID: 'user.getCustomerByUserId',
+  GET_CUSTOMER_BY_ID: 'user.getCustomerById',
+  UPDATE_CUSTOMER: 'user.updateCustomer',
   GET_ALL_PROVINCES: 'user.getAllProvinces',
   GET_PROVINCES_BY_IDS: 'user.getProvincesByIds',
   GET_COMMUNES_BY_PROVINCE_CODE: 'user.getCommunesByProvinceCode',

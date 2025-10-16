@@ -1,5 +1,6 @@
 import { AppEvent } from '../model';
 import { safeStringify } from '../utils';
+import { EventJson } from '../interface';
 
 export const EVT_AUTH_REGISTERED = 'AuthRegistered';
 export const EVT_AUTH_TEST = 'AuthTest';
@@ -23,16 +24,6 @@ export interface AuthTestPayload extends BaseAuthEventPayload {
   timestamp?: string;
 }
 
-export interface AuthEventJson {
-  eventName: string;
-  payload: Record<string, unknown>;
-  id?: string;
-  occurredAt?: string | Date;
-  senderId?: string;
-  correlationId?: string;
-  version?: string;
-}
-
 export abstract class AuthEvent<
   T extends BaseAuthEventPayload,
 > extends AppEvent<T> {
@@ -50,7 +41,7 @@ export abstract class AuthEvent<
     super(eventName, payload, options);
   }
 
-  static fromJson(json: AuthEventJson): AuthEvent<BaseAuthEventPayload> {
+  static fromJson(json: EventJson): AuthEvent<BaseAuthEventPayload> {
     const {
       eventName,
       payload,
@@ -247,7 +238,7 @@ export class AuthRegisteredEvent extends AuthEvent<AuthRegisteredPayload> {
     return new AuthRegisteredEvent(payload, { senderId });
   }
 
-  static from(json: AuthEventJson): AuthRegisteredEvent {
+  static from(json: EventJson): AuthRegisteredEvent {
     return AuthEvent.fromJson(json) as AuthRegisteredEvent;
   }
 }
@@ -270,7 +261,7 @@ export class AuthTestEvent extends AuthEvent<AuthTestPayload> {
     return new AuthTestEvent(payload, { senderId });
   }
 
-  static from(json: AuthEventJson): AuthTestEvent {
+  static from(json: EventJson): AuthTestEvent {
     return AuthEvent.fromJson(json) as AuthTestEvent;
   }
 }

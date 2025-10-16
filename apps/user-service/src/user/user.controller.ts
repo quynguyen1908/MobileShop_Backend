@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { UserService } from './user.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { USER_PATTERN } from '@app/contracts/user';
+import { CustomerUpdateDto, USER_PATTERN } from '@app/contracts/user';
 import type { Requester } from '@app/contracts';
 
 @Controller()
@@ -11,6 +11,19 @@ export class UserController {
   @MessagePattern(USER_PATTERN.GET_CUSTOMER_BY_USER_ID)
   async getCustomerByUserId(@Payload() request: Requester) {
     return this.userService.getCustomerByUserId(request);
+  }
+
+  @MessagePattern(USER_PATTERN.GET_CUSTOMER_BY_ID)
+  async getCustomerById(@Payload() id: number) {
+    return this.userService.getCustomerById(id);
+  }
+
+  @MessagePattern(USER_PATTERN.UPDATE_CUSTOMER)
+  async updateCustomer(
+    @Payload() payload: { id: number; data: CustomerUpdateDto },
+  ) {
+    const { id, data } = payload;
+    return this.userService.updateCustomer(id, data);
   }
 
   @MessagePattern(USER_PATTERN.GET_ALL_PROVINCES)

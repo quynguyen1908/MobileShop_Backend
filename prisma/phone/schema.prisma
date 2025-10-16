@@ -26,7 +26,6 @@ model Brand {
   @@map("brands")
 }
 
-
 model Category {
   id        Int        @id @default(autoincrement())
   name      String     @db.VarChar(100)
@@ -48,7 +47,6 @@ model Phone {
   name        String   @db.VarChar(100)
   brandId     Int      @map("brand_id")
   categoryId  Int      @map("category_id")
-  description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted   Boolean  @default(false) @map("is_deleted")
@@ -57,7 +55,6 @@ model Phone {
   category    Category @relation(fields: [categoryId], references: [id])
 
   variants    PhoneVariant[]
-  reviews     Review[]
 
   @@index([brandId])
   @@index([categoryId])
@@ -71,32 +68,62 @@ model Color {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted Boolean  @default(false) @map("is_deleted")
 
-  variants  PhoneVariant[]
+  variants  VariantColor[]
+  inventories Inventory[]
 
   @@map("colors")
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String   @db.VarChar(255) @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  colors    VariantColor[]
+  variants  VariantImage[]
+
+  @@map("images")
 }
 
 model PhoneVariant {
   id             Int      @id @default(autoincrement())
   phoneId        Int      @map("phone_id")
   variantName    String   @db.VarChar(100) @map("variant_name")
-  colorId        Int      @map("color_id")
+  description    String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted      Boolean  @default(false) @map("is_deleted")
 
   phone          Phone    @relation(fields: [phoneId], references: [id])
-  color          Color    @relation(fields: [colorId], references: [id])
 
+  colors         VariantColor[]
   prices         VariantPrice[]
   discounts      VariantDiscount[]
   images         VariantImage[]
   inventories    Inventory[]
   specifications VariantSpecification[]
+  reviews        Review[]
 
   @@index([phoneId])
-  @@index([colorId])
   @@map("phone_variants")
+}
+
+model VariantColor {
+  variantId Int          @map("variant_id")
+  colorId   Int          @map("color_id")
+  imageId   Int          @map("image_id")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime     @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted Boolean      @default(false) @map("is_deleted")
+
+  variant   PhoneVariant @relation(fields: [variantId], references: [id])
+  color     Color        @relation(fields: [colorId], references: [id])
+  image     Image        @relation(fields: [imageId], references: [id])
+
+  @@id([variantId, colorId, imageId])
+  @@map("variant_colors")
 }
 
 model VariantPrice {
@@ -134,14 +161,16 @@ model VariantDiscount {
 model VariantImage {
   id        Int          @id @default(autoincrement())
   variantId Int          @map("variant_id")
-  imageUrl  String       @db.VarChar(255) @map("image_url")
+  imageId   Int          @map("image_id")
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime     @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted Boolean      @default(false) @map("is_deleted")
 
   variant   PhoneVariant @relation(fields: [variantId], references: [id])
+  image     Image        @relation(fields: [imageId], references: [id])
 
   @@index([variantId])
+  @@index([imageId])
   @@map("variant_images")
 }
 
@@ -177,6 +206,7 @@ model VariantSpecification {
 model Inventory {
   id            Int          @id @default(autoincrement())
   variantId     Int          @map("variant_id")
+  colorId       Int          @map("color_id")
   sku           String       @db.VarChar(50)
   stockQuantity Int          @map("stock_quantity")
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz()
@@ -184,8 +214,11 @@ model Inventory {
   isDeleted     Boolean      @default(false) @map("is_deleted")
 
   variant       PhoneVariant @relation(fields: [variantId], references: [id])
+  color         Color        @relation(fields: [colorId], references: [id])
 
+  @@unique([variantId, colorId])
   @@index([variantId])
+  @@index([colorId])
   @@map("inventories")
 }
 
@@ -193,18 +226,18 @@ model Review {
   id         Int      @id @default(autoincrement())
   orderId    Int      @map("order_id")
   customerId Int      @map("customer_id")
-  phoneId    Int      @map("phone_id")
-  rating     Int
+  variantId  Int      @map("variant_id")
+  rating     Int      @db.SmallInt
   comment    String?  @db.VarChar(255)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted  Boolean  @default(false) @map("is_deleted")
 
-  phone      Phone     @relation(fields: [phoneId], references: [id])
+  variant PhoneVariant @relation(fields: [variantId], references: [id])
 
-  @@unique([customerId, orderId, phoneId])
+  @@unique([customerId, orderId, variantId])
   @@index([orderId])
   @@index([customerId])
-  @@index([phoneId])
+  @@index([variantId])
   @@map("reviews")
 }

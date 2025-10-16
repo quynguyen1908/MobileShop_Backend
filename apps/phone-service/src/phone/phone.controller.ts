@@ -8,11 +8,6 @@ import { PagingDto } from '@app/contracts';
 export class PhoneController {
   constructor(private readonly phoneService: PhoneService) {}
 
-  @MessagePattern(PHONE_PATTERN.GET_PHONE)
-  async getPhone(@Payload() phoneId: number) {
-    return this.phoneService.getPhone(phoneId);
-  }
-
   @MessagePattern(PHONE_PATTERN.GET_PHONES_BY_IDS)
   async getPhonesByIds(@Payload() phoneIds: number[]) {
     return this.phoneService.getPhonesByIds(phoneIds);
@@ -23,21 +18,53 @@ export class PhoneController {
     return this.phoneService.getAllCategories();
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_ALL_BRANDS)
+  async getAllBrands() {
+    return this.phoneService.getAllBrands();
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_VARIANTS_BY_IDS)
   async getVariantsByIds(@Payload() variantIds: number[]) {
     return this.phoneService.getVariantsByIds(variantIds);
   }
 
-  @MessagePattern(PHONE_PATTERN.LIST_PHONES)
-  async listPhones(
+  @MessagePattern(PHONE_PATTERN.GET_RELATED_VARIANTS)
+  async getRelatedVariants(@Payload() variantId: number) {
+    return this.phoneService.getRelatedVariants(variantId);
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_IMAGES_BY_IDS)
+  async getImagesByIds(@Payload() imageIds: number[]) {
+    return this.phoneService.getImagesByIds(imageIds);
+  }
+
+  @MessagePattern(PHONE_PATTERN.LIST_PHONE_VARIANTS)
+  async listPhoneVariants(
     @Payload() payload: { filter: PhoneFilterDto; paging: PagingDto },
   ) {
     const { filter, paging } = payload;
-    return this.phoneService.listPhones(filter, paging);
+    return this.phoneService.listPhoneVariants(filter, paging);
   }
 
   @MessagePattern(PHONE_PATTERN.GET_INVENTORY_BY_SKU)
   async getInventoryBySku(@Payload() sku: string) {
     return this.phoneService.getInventoryBySku(sku);
+  }
+
+  @MessagePattern(PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY)
+  async checkInventoryAvailability(
+    @Payload()
+    payload: {
+      variantId: number;
+      colorId: number;
+      requiredQuantity: number;
+    },
+  ) {
+    const { variantId, colorId, requiredQuantity } = payload;
+    return this.phoneService.checkInventoryAvailability(
+      variantId,
+      colorId,
+      requiredQuantity,
+    );
   }
 }
