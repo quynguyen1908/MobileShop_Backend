@@ -40,15 +40,16 @@ RUN npm run prisma:generate:all
 COPY ./apps/auth-service/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+RUN apk add --no-cache tini
 RUN apk add --no-cache curl jq
 
 COPY --chown=nestjs:nodejs apps/auth-service/healthcheck.js ./healthcheck.js
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001 -G nodejs && chown -R nestjs:nodejs /app
 RUN rm -rf /tmp/* /var/cache/apk/*
+
 USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD node healthcheck.js
-RUN apk add --no-cache tini
 
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
