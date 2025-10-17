@@ -244,7 +244,9 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiOperation({ summary: 'Logout the current user (requires authentication)' })
+  @ApiOperation({
+    summary: 'Logout the current user (requires authentication)',
+  })
   @ApiResponse({
     status: 200,
     description: 'User logged out successfully',

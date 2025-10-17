@@ -1,5 +1,5 @@
 import { Paginated, PagingDto } from '@app/contracts';
-import { UpdateInventoryDto } from '@app/contracts/phone';
+import { BrandDto, UpdateInventoryDto } from '@app/contracts/phone';
 import {
   Brand,
   Category,
@@ -25,7 +25,7 @@ export interface IPhoneService {
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
 
   // Brand
-  getAllBrands(): Promise<Brand[]>;
+  getAllBrands(): Promise<BrandDto[]>;
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;

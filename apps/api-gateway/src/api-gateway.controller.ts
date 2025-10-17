@@ -23,7 +23,9 @@ export class HealthController {
   @Get('circuit-breakers')
   @UseGuards(RemoteAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Get circuit breaker metrics (requires admin role)' })
+  @ApiOperation({
+    summary: 'Get circuit breaker metrics (requires admin role)',
+  })
   getCircuitBreakers() {
     return this.circuitBreakerMetricsService.getAllMetrics();
   }
@@ -31,7 +33,9 @@ export class HealthController {
   @Get('circuit-breakers/:serviceId/reset')
   @UseGuards(RemoteAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Reset circuit breaker for a service (requires admin role)' })
+  @ApiOperation({
+    summary: 'Reset circuit breaker for a service (requires admin role)',
+  })
   resetCircuitBreaker(@Param('serviceId') serviceId: string) {
     const success = this.circuitBreakerService.resetBreaker(serviceId);
     return {
@@ -45,7 +49,9 @@ export class HealthController {
   @Get('circuit-breakers/:serviceId/open')
   @UseGuards(RemoteAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Open circuit breaker for a service (requires admin role)' })
+  @ApiOperation({
+    summary: 'Open circuit breaker for a service (requires admin role)',
+  })
   openCircuitBreaker(@Param('serviceId') serviceId: string) {
     const success = this.circuitBreakerService.openBreaker(serviceId);
     return {

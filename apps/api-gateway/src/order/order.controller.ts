@@ -3,31 +3,41 @@ import type { ReqWithRequester } from '@app/contracts';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Inject,
   Param,
   Post,
+  Put,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { RemoteAuthGuard } from '@app/contracts/auth';
 import type { Response } from 'express';
 import {
+  CartDto,
   Order,
   ORDER_PATTERN,
   ORDER_SERVICE_NAME,
   OrderDto,
 } from '@app/contracts/order';
-import type { OrderCreateDto } from '@app/contracts/order';
+import type { CartItemCreateDto, OrderCreateDto } from '@app/contracts/order';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto } from '../dto/response.dto';
 import { formatError } from '../utils/error';
+import { id } from 'zod/v4/locales';
 
 @ApiTags('Orders')
 @Controller('v1/orders')
@@ -38,7 +48,9 @@ export class OrderController {
   ) {}
 
   @Get('/me')
-  @ApiOperation({ summary: 'Get current customer orders (requires authentication)' })
+  @ApiOperation({
+    summary: 'Get current customer orders (requires authentication)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Orders retrieved successfully',
@@ -271,7 +283,7 @@ export class OrderController {
   @Post('create')
   @UseGuards(RemoteAuthGuard)
   @ApiOperation({ summary: 'Create a new order (requires authentication)' })
-  @ApiBody({ 
+  @ApiBody({
     description: 'Order creation payload',
     schema: {
       type: 'object',
@@ -315,7 +327,7 @@ export class OrderController {
         'provinceId',
         'items',
       ],
-    }
+    },
   })
   @ApiResponse({
     status: 200,
@@ -405,7 +417,7 @@ export class ShipmentController {
         example: {
           status: 200,
           message: 'Shipping fee calculated successfully',
-          data: { shippingFee: "34.000 ₫" },
+          data: { shippingFee: '34.000 ₫' },
         },
       },
     },
@@ -475,6 +487,364 @@ export class ShipmentController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Calculating shipping fee failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Cart')
+@Controller('v1/cart')
+export class CartController {
+  constructor(
+    @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get('me')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Get current customer cart (requires authentication)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cart retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Cart retrieved successfully',
+          data: {
+            id: 1,
+            customerId: 1,
+            items: [
+              {
+                id: 2,
+                cartId: 1,
+                quantity: 1,
+                price: 14000000,
+                discount: 12600000,
+                variant: {
+                  id: 6,
+                  phoneId: 3,
+                  variantName: '5G 12GB 512GB',
+                  color: 'Xám',
+                  name: 'Xiaomi 14T',
+                  imageUrl: 'https://example.com/xiaomi-14t.jpg',
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+  })
+  async getMyCart(@Req() req: ReqWithRequester, @Res() res: Response) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        CartDto | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.GET_CART_BY_CUSTOMER_ID,
+        requester,
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Cart retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting cart failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('add')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Add item to cart (requires authentication)' })
+  @ApiBody({
+    description: 'Cart item creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        variantId: { type: 'number', example: 6 },
+        colorId: { type: 'number', example: 3 },
+        quantity: { type: 'number', example: 1 },
+        price: { type: 'number', example: 14000000 },
+        discount: { type: 'number', example: 12600000 },
+      },
+      required: ['variantId', 'colorId', 'quantity', 'price', 'discount'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Item added to cart successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Item added to cart successfully',
+          data: { cartItemId: 2 },
+        },
+      },
+    },
+  })
+  async addToCart(
+    @Req() req: ReqWithRequester,
+    @Body() body: CartItemCreateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.ADD_TO_CART,
+        { requester, cartItemCreateDto: body },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Item added to cart successfully',
+          { cartItemId: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Adding to cart failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('quantity')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Update cart item quantity (requires authentication)',
+  })
+  @ApiBody({
+    description: 'Cart item quantity update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        itemId: { type: 'number', example: 2 },
+        quantity: { type: 'number', example: 3 },
+      },
+      required: ['itemId', 'quantity'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cart item quantity updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Cart item quantity updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updateQuantity(
+    @Req() req: ReqWithRequester,
+    @Body() body: { itemId: number; quantity: number },
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const { itemId, quantity } = body;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.orderServiceClient,
+          ORDER_SERVICE_NAME,
+          ORDER_PATTERN.UPDATE_QUANTITY,
+          { requester, itemId, quantity },
+          () => {
+            return {
+              fallback: true,
+              message: 'Order service is temporary unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Cart item quantity updated successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Updating cart item quantity failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Delete('items')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Delete cart items (requires authentication)' })
+  @ApiBody({
+    description: 'Cart item IDs to delete',
+    schema: {
+      type: 'object',
+      properties: {
+        itemIds: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [2, 3],
+        },
+      },
+      required: ['itemIds'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cart items deleted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Cart items deleted successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async deleteCartItems(
+    @Req() req: ReqWithRequester,
+    @Body() body: { itemIds: number[] },
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const { itemIds } = body;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.orderServiceClient,
+          ORDER_SERVICE_NAME,
+          ORDER_PATTERN.DELETE_CART_ITEMS,
+          { requester, itemIds },
+          () => {
+            return {
+              fallback: true,
+              message: 'Order service is temporary unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Cart items deleted successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Deleting cart items failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

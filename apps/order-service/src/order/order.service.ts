@@ -14,6 +14,11 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 import type { IOrderRepository, IOrderService } from './order.port';
 import {
+  CartDto,
+  CartItem,
+  CartItemCreateDto,
+  CartItemDto,
+  ErrCartNotFound,
   ErrLocationNotFound,
   ErrOrderNotFound,
   Order,
@@ -86,30 +91,12 @@ export class OrderService implements IOrderService {
     this.ghnShopId = Number(this.configService.get<string>('GHN_SHOP_ID', '0'));
   }
 
-  async getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]> {
-    const customer = await firstValueFrom<CustomerDto>(
-      this.userServiceClient.send(
-        USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
-        requester,
-      ),
-    );
-    if (!customer) {
-      throw new RpcException(
-        AppError.from(ErrCustomerNotFound, 404)
-          .withLog('Customer not found for user')
-          .toJson(false),
-      );
-    }
+  // Order
 
-    if (typeof customer.id !== 'number') {
-      throw new RpcException(
-        AppError.from(ErrCustomerNotFound, 404)
-          .withLog('Customer ID is missing')
-          .toJson(false),
-      );
-    }
+  async getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]> {
+    const customer = await this.validateRequester(requester);
     const orders = await this.orderRepository.findOrdersByCustomerId(
-      customer.id,
+      customer.id!,
     );
     if (!orders || orders.length === 0) {
       throw new RpcException(
@@ -132,7 +119,7 @@ export class OrderService implements IOrderService {
     const orderItems =
       await this.orderRepository.findOrderItemsByOrderIds(orderIds);
 
-    const orderItemsDto = await this.toItemsDto(orderItems);
+    const orderItemsDto = await this.toOrderItemsDto(orderItems);
 
     const communeIds = [
       ...new Set(orders.map((order) => order.communeId)),
@@ -259,6 +246,150 @@ export class OrderService implements IOrderService {
     return order;
   }
 
+  async createOrder(
+    requester: Requester,
+    orderCreateDto: OrderCreateDto,
+  ): Promise<number> {
+    const orderData = orderCreateDtoSchema.parse(orderCreateDto);
+    const orderItemsData = orderItemCreateDtoSchema
+      .array()
+      .parse(orderCreateDto.items);
+
+    const customer = await this.validateRequester(requester);
+
+    const pointConfig = await this.orderRepository.getPointConfig();
+    if (!pointConfig) {
+      throw new RpcException(
+        AppError.from(new Error('Point configuration not found'), 500)
+          .withLog('Point configuration not found')
+          .toJson(false),
+      );
+    }
+
+    let totalAmount = 0;
+    for (const item of orderItemsData) {
+      const isAvailable = await firstValueFrom<boolean>(
+        this.phoneServiceClient.send(
+          PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY,
+          {
+            variantId: item.variantId,
+            colorId: item.colorId,
+            requiredQuantity: item.quantity,
+          },
+        ),
+      );
+      if (!isAvailable) {
+        throw new RpcException(
+          AppError.from(new Error('One or more items are out of stock'), 400)
+            .withLog('Insufficient stock for order item')
+            .toJson(false),
+        );
+      }
+      totalAmount += item.discount * item.quantity;
+    }
+
+    const maxDiscountFromPoints = totalAmount * 0.1;
+
+    let discountFromPoints = 0;
+    if (orderCreateDto.pointUsed) {
+      discountFromPoints = orderCreateDto.pointUsed * pointConfig.redeemRate;
+      if (discountFromPoints > maxDiscountFromPoints) {
+        discountFromPoints = maxDiscountFromPoints;
+      }
+    }
+
+    let discountFromVoucher = 0;
+    if (orderCreateDto.voucherIdApplied) {
+      // TODO: Validate voucher and calculate discount
+      discountFromVoucher = 0;
+    }
+
+    const totalDiscount = discountFromPoints + discountFromVoucher;
+
+    const finalAmount = totalAmount - totalDiscount + orderData.shippingFee;
+
+    const order: Order = {
+      customerId: customer.id!,
+      orderCode: this.generateOrderCode('PH'),
+      orderDate: new Date(),
+      totalAmount: totalAmount,
+      discountAmount: totalDiscount,
+      shippingFee: orderData.shippingFee,
+      finalAmount: finalAmount,
+      recipientName: orderData.recipientName,
+      recipientPhone: orderData.recipientPhone,
+      provinceId: orderData.provinceId,
+      communeId: orderData.communeId,
+      street: orderData.street,
+      postalCode: orderData.postalCode || '700000',
+      status: OrderStatus.PENDING,
+      isDeleted: false,
+    };
+
+    const createdOrder = await this.orderRepository.insertOrder(order);
+
+    const items: OrderItem[] = orderItemsData.map((item) => ({
+      orderId: createdOrder.id!,
+      variantId: item.variantId,
+      colorId: item.colorId,
+      quantity: item.quantity,
+      price: item.price,
+      discount: item.discount,
+    }));
+
+    await this.orderRepository.insertOrderItems(items);
+
+    await this.orderRepository.insertOrderStatusHistory({
+      orderId: createdOrder.id!,
+      status: OrderStatus.PENDING,
+      isDeleted: false,
+    });
+
+    const pointTransactions: PointTransaction[] = [];
+
+    if (orderCreateDto.pointUsed && orderCreateDto.pointUsed > 0) {
+      pointTransactions.push({
+        customerId: customer.id!,
+        orderId: createdOrder.id!,
+        type: PointType.REDEEM,
+        moneyValue: discountFromPoints,
+        points: discountFromPoints / pointConfig.redeemRate,
+        isDeleted: false,
+      });
+    }
+
+    await this.orderRepository.insertPointTransactions(pointTransactions);
+
+    const event = OrderCreatedEvent.create(
+      {
+        id: createdOrder.id!,
+        customerId: customer.id!,
+        orderCode: createdOrder.orderCode,
+        orderDate: createdOrder.orderDate,
+        totalAmount: createdOrder.totalAmount,
+        discountAmount: createdOrder.discountAmount,
+        shippingFee: createdOrder.shippingFee,
+        finalAmount: createdOrder.finalAmount,
+        recipientName: createdOrder.recipientName,
+        recipientPhone: createdOrder.recipientPhone,
+        status: createdOrder.status,
+        provinceId: createdOrder.provinceId,
+        communeId: createdOrder.communeId,
+        street: createdOrder.street,
+        postalCode: createdOrder.postalCode ?? null,
+        items,
+        pointTransactions,
+      },
+      ORDER_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+
+    return createdOrder.id!;
+  }
+
+  // Shipment
+
   async calculateShippingFee(
     province: string,
     commune: string,
@@ -343,19 +474,142 @@ export class OrderService implements IOrderService {
     }
   }
 
-  async createOrder(
-    requester: Requester,
-    orderCreateDto: OrderCreateDto,
-  ): Promise<number> {
-    const orderData = orderCreateDtoSchema.parse(orderCreateDto);
-    const orderItemsData = orderItemCreateDtoSchema.array().parse(orderCreateDto.items);
+  // Cart
 
+  async getCartByCustomerId(requester: Requester): Promise<CartDto> {
+    const customer = await this.validateRequester(requester);
+
+    const cart = await this.orderRepository.findCartByCustomerId(customer.id!);
+    if (!cart) {
+      const newCart = await this.orderRepository.insertCart({
+        customerId: customer.id!,
+        isDeleted: false,
+      });
+
+      return {
+        id: newCart.id!,
+        customerId: newCart.customerId,
+        items: [],
+      };
+    }
+
+    const cartItems = await this.orderRepository.findCartItemsByCartId(
+      cart.id!,
+    );
+    if (!cartItems || cartItems.length === 0) {
+      return {
+        id: cart.id,
+        customerId: cart.customerId,
+        items: [],
+      };
+    }
+
+    const cartItemsDto = await this.toCartItemsDto(cartItems);
+    return {
+      id: cart.id,
+      customerId: cart.customerId,
+      items: cartItemsDto,
+    };
+  }
+
+  async addToCart(
+    requester: Requester,
+    cartItemCreateDto: CartItemCreateDto,
+  ): Promise<number> {
+    const customer = await this.validateRequester(requester);
+
+    let cart = await this.orderRepository.findCartByCustomerId(customer.id!);
+    if (!cart) {
+      const newCart = await this.orderRepository.insertCart({
+        customerId: customer.id!,
+        isDeleted: false,
+      });
+      cart = newCart;
+    }
+
+    const isAvailable = await firstValueFrom<boolean>(
+      this.phoneServiceClient.send(
+        PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY,
+        {
+          variantId: cartItemCreateDto.variantId,
+          colorId: cartItemCreateDto.colorId,
+          requiredQuantity: cartItemCreateDto.quantity,
+        },
+      ),
+    );
+    if (!isAvailable) {
+      throw new RpcException(
+        AppError.from(new Error('Product is out of stock'), 400)
+          .withLog('Inventory check failed')
+          .toJson(false),
+      );
+    }
+
+    const existingCartItem = await this.orderRepository.findCartItemByCartIdAndVariantIdAndColorId(
+      cart.id!,
+      cartItemCreateDto.variantId,
+      cartItemCreateDto.colorId,
+    );
+  
+    if (existingCartItem) {
+      const newQuantity = existingCartItem.quantity + cartItemCreateDto.quantity;
+      await this.orderRepository.updateCartItem(existingCartItem.id!, newQuantity);
+      return existingCartItem.id!;
+    }
+
+    const cartItem: CartItem = {
+      cartId: cart.id!,
+      variantId: cartItemCreateDto.variantId,
+      colorId: cartItemCreateDto.colorId,
+      quantity: cartItemCreateDto.quantity,
+      price: cartItemCreateDto.price,
+      discount: cartItemCreateDto.discount,
+    };
+    const createdCartItem = await this.orderRepository.insertCartItem(cartItem);
+    return createdCartItem.id!;
+  }
+
+  async updateQuantity(
+    requester: Requester,
+    itemId: number,
+    quantity: number,
+  ): Promise<void> {
+    const customer = await this.validateRequester(requester);
+
+    const cart = await this.orderRepository.findCartByCustomerId(customer.id!);
+    if (!cart) {
+      throw new RpcException(
+        AppError.from(ErrCartNotFound, 404)
+          .withLog('Cart not found for customer')
+          .toJson(false),
+      );
+    }
+    await this.orderRepository.updateCartItem(itemId, quantity);
+  }
+
+  async deleteCartItems(requester: Requester, itemIds: number[]): Promise<void> {
+    const customer = await this.validateRequester(requester);
+
+    const cart = await this.orderRepository.findCartByCustomerId(customer.id!);
+    if (!cart) {
+      throw new RpcException(
+        AppError.from(ErrCartNotFound, 404)
+          .withLog('Cart not found for customer')
+          .toJson(false),
+      );
+    }
+
+    await this.orderRepository.deleteCartItems(itemIds);
+  }
+
+  private async validateRequester(requester: Requester): Promise<CustomerDto> {
     const customer = await firstValueFrom<CustomerDto>(
       this.userServiceClient.send(
         USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
         requester,
       ),
     );
+
     if (!customer) {
       throw new RpcException(
         AppError.from(ErrCustomerNotFound, 404)
@@ -372,135 +626,7 @@ export class OrderService implements IOrderService {
       );
     }
 
-    const pointConfig = await this.orderRepository.getPointConfig();
-    if (!pointConfig) {
-      throw new RpcException(
-        AppError.from(new Error('Point configuration not found'), 500)
-          .withLog('Point configuration not found')
-          .toJson(false),
-      );
-    }
-
-    let totalAmount = 0;
-    for (const item of orderItemsData) {
-      const isAvailable = await firstValueFrom<boolean>(
-        this.phoneServiceClient.send(
-          PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY,
-          {
-            variantId: item.variantId,
-            colorId: item.colorId,
-            requiredQuantity: item.quantity,
-          },
-        ),
-      );
-      if (!isAvailable) {
-        throw new RpcException(
-          AppError.from(new Error('One or more items are out of stock'), 400)
-            .withLog('Insufficient stock for order item')
-            .toJson(false),
-        );
-      }
-      totalAmount += item.discount * item.quantity;
-    }
-
-    const maxDiscountFromPoints = totalAmount * 0.1;
-
-    let discountFromPoints = 0;
-    if (orderCreateDto.pointUsed) {
-      discountFromPoints = orderCreateDto.pointUsed * pointConfig.redeemRate;
-      if (discountFromPoints > maxDiscountFromPoints) {
-        discountFromPoints = maxDiscountFromPoints;
-      }
-    }
-
-    let discountFromVoucher = 0;
-    if (orderCreateDto.voucherIdApplied) {
-      // TODO: Validate voucher and calculate discount
-      discountFromVoucher = 0;
-    }
-
-    const totalDiscount = discountFromPoints + discountFromVoucher;
-
-    const finalAmount = totalAmount - totalDiscount + orderData.shippingFee;
-
-    const order: Order = {
-      customerId: customer.id,
-      orderCode: this.generateOrderCode('PH'),
-      orderDate: new Date(),
-      totalAmount: totalAmount,
-      discountAmount: totalDiscount,
-      shippingFee: orderData.shippingFee,
-      finalAmount: finalAmount,
-      recipientName: orderData.recipientName,
-      recipientPhone: orderData.recipientPhone,
-      provinceId: orderData.provinceId,
-      communeId: orderData.communeId,
-      street: orderData.street,
-      postalCode: orderData.postalCode || '700000',
-      status: OrderStatus.PENDING,
-      isDeleted: false,
-    };
-
-    const createdOrder = await this.orderRepository.insertOrder(order);
-
-    const items: OrderItem[] = orderItemsData.map((item) => ({
-      orderId: createdOrder.id!,
-      variantId: item.variantId,
-      colorId: item.colorId,
-      quantity: item.quantity,
-      price: item.price,
-      discount: item.discount,
-    }));
-
-    await this.orderRepository.insertOrderItems(items);
-
-    await this.orderRepository.insertOrderStatusHistory({
-      orderId: createdOrder.id!,
-      status: OrderStatus.PENDING,
-      isDeleted: false,
-    });
-
-    const pointTransactions: PointTransaction[] = [];
-
-    if (orderCreateDto.pointUsed && orderCreateDto.pointUsed > 0) {
-      pointTransactions.push({
-        customerId: customer.id,
-        orderId: createdOrder.id!,
-        type: PointType.REDEEM,
-        moneyValue: discountFromPoints,
-        points: discountFromPoints / pointConfig.redeemRate,
-        isDeleted: false,
-      });
-    }
-
-    await this.orderRepository.insertPointTransactions(pointTransactions);
-
-    const event = OrderCreatedEvent.create(
-      {
-        id: createdOrder.id!,
-        customerId: customer.id,
-        orderCode: createdOrder.orderCode,
-        orderDate: createdOrder.orderDate,
-        totalAmount: createdOrder.totalAmount,
-        discountAmount: createdOrder.discountAmount,
-        shippingFee: createdOrder.shippingFee,
-        finalAmount: createdOrder.finalAmount,
-        recipientName: createdOrder.recipientName,
-        recipientPhone: createdOrder.recipientPhone,
-        status: createdOrder.status,
-        provinceId: createdOrder.provinceId,
-        communeId: createdOrder.communeId,
-        street: createdOrder.street,
-        postalCode: createdOrder.postalCode ?? null,
-        items,
-        pointTransactions,
-      },
-      ORDER_SERVICE_NAME,
-    );
-
-    await this.eventPublisher.publish(event);
-
-    return createdOrder.id!;
+    return customer;
   }
 
   private generateOrderCode(prefix: string): string {
@@ -582,7 +708,7 @@ export class OrderService implements IOrderService {
     });
   }
 
-  private async toItemsDto(items: OrderItem[]): Promise<OrderItemDto[]> {
+  private async toOrderItemsDto(items: OrderItem[]): Promise<OrderItemDto[]> {
     const variantIds = [...new Set(items.map((item) => item.variantId))].filter(
       (id): id is number => typeof id === 'number',
     );
@@ -676,6 +802,102 @@ export class OrderService implements IOrderService {
           imageUrl: image.imageUrl,
         },
       } as OrderItemDto;
+    });
+
+    return itemsDto;
+  }
+
+  private async toCartItemsDto(items: CartItem[]): Promise<CartItemDto[]> {
+    const variantIds = [...new Set(items.map((item) => item.variantId))].filter(
+      (id): id is number => typeof id === 'number',
+    );
+    const variants = await firstValueFrom<PhoneVariantDto[]>(
+      this.phoneServiceClient.send(
+        PHONE_PATTERN.GET_VARIANTS_BY_IDS,
+        variantIds,
+      ),
+    );
+    if (!variants || variants.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Variants not found for cart items')
+          .toJson(false),
+      );
+    }
+
+    const imageIds = items
+      .map((item) => {
+        const variant = variants.find((v) => v.id === item.variantId);
+        if (!variant) {
+          throw new RpcException(
+            AppError.from(ErrPhoneVariantNotFound, 404)
+              .withLog('Variants not found for cart items')
+              .toJson(false),
+          );
+        }
+        const matchingColor = variant.colors.find(
+          (c) => c.color.id === item.colorId,
+        );
+        return matchingColor ? matchingColor.imageId : null;
+      })
+      .filter((id): id is number => typeof id === 'number' && id !== null);
+
+    const variantImages = await firstValueFrom<Image[]>(
+      this.phoneServiceClient.send(PHONE_PATTERN.GET_IMAGES_BY_IDS, imageIds),
+    );
+    if (!variantImages || variantImages.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrVariantImagesNotFound, 404)
+          .withLog('Images not found for cart items')
+          .toJson(false),
+      );
+    }
+
+    const itemsDto: CartItemDto[] = items.map((item) => {
+      const variant = variants.find((v) => v.id === item.variantId);
+      if (!variant) {
+        throw new RpcException(
+          AppError.from(ErrPhoneVariantNotFound, 404)
+            .withLog('Variants not found for cart items')
+            .toJson(false),
+        );
+      }
+      const matchingColor = variant.colors.find(
+        (c) => c.color.id === item.colorId,
+      );
+      if (!matchingColor) {
+        throw new RpcException(
+          AppError.from(ErrVariantColorNotFound, 404)
+            .withLog('Color not found for cart item variant')
+            .toJson(false),
+        );
+      }
+      const image = variantImages.find(
+        (img) => img.id === matchingColor.imageId,
+      );
+      if (!image) {
+        throw new RpcException(
+          AppError.from(ErrVariantImagesNotFound, 404)
+            .withLog('Image not found for cart item variant')
+            .toJson(false),
+        );
+      }
+
+      return {
+        id: item.id,
+        cartId: item.cartId,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount,
+        variant: {
+          id: variant.id,
+          phoneId: variant.phone.id,
+          variantName: variant.variantName,
+          color: matchingColor.color.name,
+          name: variant.phone.name,
+          imageUrl: image.imageUrl,
+        },
+      } as CartItemDto;
     });
 
     return itemsDto;

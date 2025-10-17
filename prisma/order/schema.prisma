@@ -126,3 +126,32 @@ model Shipment {
   @@index([orderId])
   @@map("shipment")
 }
+
+model Cart {
+  id         Int        @id @default(autoincrement())
+  customerId Int        @unique @map("customer_id")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime   @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted  Boolean    @default(false) @map("is_deleted")
+
+  items      CartItem[] 
+
+  @@index([customerId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int  @id @default(autoincrement())
+  cartId    Int  @map("cart_id")
+  variantId Int  @map("variant_id")
+  colorId   Int  @map("color_id")
+  quantity  Int
+  price     Int
+  discount  Int  @default(0)
+
+  cart      Cart @relation(fields: [cartId], references: [id])
+
+  @@unique([cartId, variantId, colorId])
+  @@index([cartId, variantId, colorId])
+  @@map("cart_items")
+}

@@ -5,6 +5,8 @@ import {
 } from '../phone/phone.model';
 import { communeSchema, provinceSchema } from '../user/user.model';
 import {
+  cartItemSchema,
+  cartSchema,
   orderItemSchema,
   orderSchema,
   orderStatusHistorySchema,
@@ -78,6 +80,33 @@ export const orderDtoSchema = orderSchema
 
 export type OrderDto = z.infer<typeof orderDtoSchema>;
 
+// Cart Item
+
+export const cartItemDtoSchema = cartItemSchema
+  .pick({
+    id: true,
+    cartId: true,
+  })
+  .extend({
+    variant: orderItemsDtoSchema.shape.variant,
+  });
+
+export type CartItemDto = z.infer<typeof cartItemDtoSchema>;
+
+// Cart
+
+export const cartDtoSchema = cartSchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    items: cartItemDtoSchema.array(),
+  });
+
+export type CartDto = z.infer<typeof cartDtoSchema>;
+
 // Create Order Item
 
 export const orderItemCreateDtoSchema = orderItemSchema.pick({
@@ -114,3 +143,15 @@ export const orderCreateDtoSchema = orderSchema
   });
 
 export type OrderCreateDto = z.infer<typeof orderCreateDtoSchema>;
+
+// Create Cart Item
+
+export const cartItemCreateDtoSchema = cartItemSchema.pick({
+  variantId: true,
+  colorId: true,
+  quantity: true,
+  price: true,
+  discount: true,
+});
+
+export type CartItemCreateDto = z.infer<typeof cartItemCreateDtoSchema>;

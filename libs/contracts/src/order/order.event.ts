@@ -208,12 +208,12 @@ function validateOrderCreatedPayload(
     }
 
     return {
-      orderId: typedItem.orderId as number,
-      variantId: typedItem.variantId as number,
-      quantity: typedItem.quantity as number,
-      price: typedItem.price as number,
+      orderId: typedItem.orderId,
+      variantId: typedItem.variantId,
+      quantity: typedItem.quantity,
+      price: typedItem.price,
       discount: typedItem.discount as number,
-      colorId: typedItem.colorId as number,
+      colorId: typedItem.colorId,
     };
   });
 
@@ -249,12 +249,12 @@ function validateOrderCreatedPayload(
         }
 
         return {
-          orderId: typedTransaction.orderId as number,
-          customerId: typedTransaction.customerId as number,
+          orderId: typedTransaction.orderId,
+          customerId: typedTransaction.customerId,
           type: typedTransaction.type as PointType,
-          points: typedTransaction.points as number,
-          moneyValue: typedTransaction.moneyValue as number,
-          isDeleted: typedTransaction.isDeleted as boolean,
+          points: typedTransaction.points,
+          moneyValue: typedTransaction.moneyValue,
+          isDeleted: typedTransaction.isDeleted,
         };
       },
     );

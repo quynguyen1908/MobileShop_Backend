@@ -62,6 +62,13 @@ export class PhoneController {
     description: 'Number of items per page',
   })
   @ApiQuery({
+    name: 'brand',
+    required: false,
+    type: String,
+    example: 'Samsung',
+    description: 'Brand name',
+  })
+  @ApiQuery({
     name: 'minPrice',
     required: false,
     type: Number,
@@ -155,7 +162,14 @@ export class PhoneController {
                 phone: {
                   id: 1,
                   name: 'Samsung Galaxy S25',
-                  brand: { id: 1, name: 'Samsung' },
+                  brand: { 
+                    id: 1, 
+                    name: 'Samsung',
+                    image: {
+                      id: 1,
+                      imageUrl: 'https://example.com/brands/samsung.png',
+                    }
+                  },
                   category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
                 },
                 colors: [
@@ -282,6 +296,82 @@ export class PhoneController {
     description: 'Phone variant ID',
     example: 1,
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone variant retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone variant retrieved successfully',
+          data: {
+            id: 1,
+            variantName: 'Ultra 1TB',
+            description: 'Latest model with advanced features',
+            phone: {
+              id: 1,
+              name: 'Samsung Galaxy S25',
+              brand: { 
+                id: 1, 
+                name: 'Samsung',
+                image: {
+                  id: 1,
+                  imageUrl: 'https://example.com/brands/samsung.png',
+                }
+              },
+              category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
+            },
+            colors: [
+              {
+                variantId: 1,
+                imageId: 1,
+                color: {
+                  id: 1,
+                  name: 'Đen',
+                },
+              },
+            ],
+            price: {
+              id: 1,
+              variantId: 1,
+              price: 44000000,
+              startDate: '2024-10-01T00:00:00.000Z',
+              endDate: null,
+            },
+            discount: {
+              id: 1,
+              variantId: 1,
+              discountPercent: 80,
+              startDate: '2024-10-01T00:00:00.000Z',
+              endDate: null,
+            },
+            images: [
+              {
+                id: 1,
+                variantId: 1,
+                image: {
+                  id: 1,
+                  imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                },
+              },
+            ],
+            specifications: [
+              {
+                info: '6.9 inches',
+                specification: { name: 'Kích thước màn hình' },
+              },
+              {
+                info: 'Dynamic AMOLED 2X',
+                specification: { name: 'Công nghệ màn hình' },
+              },
+            ],
+            reviews: [],
+            averageRating: 0,
+          },
+        },
+      },
+    },
+  })
   async getVariantById(
     @Param('variantId') variantId: number,
     @Res() res: Response,
@@ -324,7 +414,8 @@ export class PhoneController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage = typedError.logMessage || 'Getting phone variant failed';
+      const errorMessage =
+        typedError.logMessage || 'Getting phone variant failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -360,7 +451,14 @@ export class PhoneController {
               phone: {
                 id: 1,
                 name: 'Samsung Galaxy S25',
-                brand: { id: 1, name: 'Samsung' },
+                brand: {
+                  id: 1,
+                  name: 'Samsung',
+                  image: {
+                    id: 1,
+                    imageUrl: 'https://example.com/brands/samsung.png',
+                  },
+                },
                 category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
               },
               colors: [
@@ -490,8 +588,22 @@ export class BrandController {
           status: 200,
           message: 'Brands retrieved successfully',
           data: [
-            { id: 1, name: 'Samsung' },
-            { id: 2, name: 'Apple' },
+            { 
+              id: 1, 
+              name: 'Samsung',
+              image: {
+                id: 1,
+                imageUrl: 'https://example.com/brands/samsung.png',
+              }
+            },
+            { 
+              id: 2, 
+              name: 'Apple',
+              image: {
+                id: 2,
+                imageUrl: 'https://example.com/brands/apple.png',
+              }
+            },
           ],
         },
       },

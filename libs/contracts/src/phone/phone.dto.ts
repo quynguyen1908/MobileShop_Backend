@@ -17,6 +17,25 @@ import {
 } from './phone.model';
 import { z } from 'zod';
 
+// Brand
+
+export const brandDtoSchema = brandSchema
+  .omit({
+    imageId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    image: imageSchema.omit({
+      createdAt: true,
+      updatedAt: true,
+      isDeleted: true,
+    }),
+  });
+
+export type BrandDto = z.infer<typeof brandDtoSchema>;
+
 // Category
 
 type CategoryDtoType = Omit<
@@ -44,6 +63,7 @@ export type CategoryDto = z.infer<typeof categoryDtoSchema>;
 
 export const phoneFilterDtoSchema = z
   .object({
+    brand: z.union([z.string(), z.array(z.string())]).optional(),
     minPrice: z.coerce.number().int().nonnegative().optional(),
     maxPrice: z.coerce.number().int().nonnegative().optional(),
     chipset: z.union([z.string(), z.array(z.string())]).optional(),
@@ -212,11 +232,7 @@ export const phoneDtoSchema = phoneSchema
     isDeleted: true,
   })
   .extend({
-    brand: brandSchema.omit({
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
+    brand: brandDtoSchema,
     category: categorySchema.omit({
       createdAt: true,
       updatedAt: true,

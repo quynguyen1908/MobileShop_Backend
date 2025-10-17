@@ -3,6 +3,10 @@ export const ORDER_PATTERN = {
   GET_ORDER_BY_ORDER_CODE: 'order.getOrderByOrderCode',
   CALCULATE_SHIPPING_FEE: 'order.calculateShippingFee',
   CREATE_ORDER: 'order.createOrder',
+  GET_CART_BY_CUSTOMER_ID: 'order.getCartByCustomerId',
+  ADD_TO_CART: 'order.addToCart',
+  UPDATE_QUANTITY: 'order.updateQuantity',
+  DELETE_CART_ITEMS: 'order.deleteCartItems',
 };
 
 export const ORDER_SERVICE_NAME = 'order-service';
