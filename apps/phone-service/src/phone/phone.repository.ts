@@ -479,7 +479,9 @@ export class PhoneRepository implements IPhoneRepository {
     if (filter.brand) {
       if (Array.isArray(filter.brand)) {
         const placeholders = filter.brand
-          .map((_, index) => `brand_name ILIKE $${queryParams.length + 1 + index}`)
+          .map(
+            (_, index) => `brand_name ILIKE $${queryParams.length + 1 + index}`,
+          )
           .join(' OR ');
         queryConditions.push(`(${placeholders})`);
         filter.brand.forEach((b) => queryParams.push(`%${b}%`));

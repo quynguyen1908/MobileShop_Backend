@@ -1,4 +1,4 @@
-import { EVENT_SUBSCRIBER, USER_SERVICE } from '@app/contracts';
+import { EVENT_SUBSCRIBER, ORDER_SERVICE, USER_SERVICE } from '@app/contracts';
 import type { IEventSubscriber } from '@app/contracts';
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import type { IUserService } from './user.port';
@@ -15,7 +15,19 @@ import {
   EVT_ORDER_CREATED,
   OrderCreatedEvent,
 } from '@app/contracts/order/order.event';
-import { PointType } from '@app/contracts/order';
+import {
+  Order,
+  ORDER_PATTERN,
+  PointConfig,
+  PointType,
+} from '@app/contracts/order';
+import {
+  EVT_PAYMENT_CREATED,
+  PaymentCreatedEvent,
+  PaymentStatus,
+} from '@app/contracts/payment';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 interface TypedError {
   message: string;
@@ -30,6 +42,7 @@ export class UserEventHandler {
     @Inject(EVENT_SUBSCRIBER)
     private readonly eventSubscriber: IEventSubscriber,
     @Inject(USER_SERVICE) private readonly userService: IUserService,
+    @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
     private eventEmitter: EventEmitter2,
   ) {
     this.logger.log('UserEventHandler initialized');
@@ -129,6 +142,76 @@ export class UserEventHandler {
     }
   }
 
+  async handlePaymentCreated(event: PaymentCreatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling PaymentCreated event for payment ID: ${event.payload.id}`,
+    );
+    try {
+      const order = await firstValueFrom<Order>(
+        this.orderServiceClient.send(
+          ORDER_PATTERN.GET_ORDER_BY_ID,
+          event.payload.orderId,
+        ),
+      );
+
+      if (!order) {
+        this.logger.log(
+          `Order with ID ${event.payload.orderId} not found, skipping user update`,
+        );
+        return;
+      }
+
+      const customerId = order.customerId;
+      if (!customerId) {
+        this.logger.log(
+          'No customerId associated with this order, skipping user update',
+        );
+        return;
+      }
+
+      const customer = await this.userService.getCustomerById(customerId);
+      if (!customer) {
+        this.logger.log(
+          `Customer with ID ${customerId} not found, skipping user update`,
+        );
+        return;
+      }
+
+      const paymentStatus = event.payload.status;
+      if (paymentStatus !== PaymentStatus.COMPLETED.toString()) {
+        this.logger.log(
+          `Payment status is ${paymentStatus}, not updating points`,
+        );
+        return;
+      }
+
+      const pointConfig = await firstValueFrom<PointConfig>(
+        this.orderServiceClient.send(ORDER_PATTERN.GET_POINT_CONFIG, {}),
+      );
+
+      if (!pointConfig) {
+        this.logger.log('Point configuration not found, skipping point update');
+        return;
+      }
+
+      const pointsEarned = Math.floor(
+        event.payload.amount / pointConfig.earnRate,
+      );
+
+      const newPointsBalance = customer.pointsBalance + pointsEarned;
+
+      await this.userService.updateCustomer(customerId, {
+        pointsBalance: newPointsBalance,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to update customer after payment: ${typedError.message}`,
+      );
+    }
+  }
+
   handleAuthTest(event: AuthTestEvent): void {
     this.logger.log(
       `🎉 Successfully received AuthTest event with ID: ${event.id}`,
@@ -139,7 +222,7 @@ export class UserEventHandler {
   }
 
   private async subscribe(): Promise<void> {
-    this.logger.log('Subscribing to events...');
+    this.logger.log('Subscribing to user events...');
 
     await this.eventSubscriber.subscribe(
       EVT_AUTH_REGISTERED,
@@ -243,7 +326,39 @@ export class UserEventHandler {
       },
     );
 
-    this.logger.log('Successfully subscribed to all events');
+    await this.eventSubscriber.subscribe(
+      EVT_PAYMENT_CREATED,
+      USER_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_PAYMENT_CREATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_PAYMENT_CREATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = PaymentCreatedEvent.from(eventJson);
+            await this.handlePaymentCreated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_PAYMENT_CREATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    this.logger.log('Successfully subscribed to all user events');
   }
 
   private isEventData(data: unknown): data is EventJson {

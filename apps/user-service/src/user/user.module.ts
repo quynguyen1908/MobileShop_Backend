@@ -4,7 +4,12 @@ import { UserController } from './user.controller';
 import { UserRepository } from './user.repository';
 import { UserEventHandler } from './user-event.handler';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
-import { AUTH_SERVICE, USER_REPOSITORY, USER_SERVICE } from '@app/contracts';
+import {
+  AUTH_SERVICE,
+  ORDER_SERVICE,
+  USER_REPOSITORY,
+  USER_SERVICE,
+} from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 
 @Module({
@@ -26,6 +31,14 @@ import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-fa
       provide: AUTH_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
         const serverOptions = rmqConfigService.authServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: ORDER_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.orderServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
       inject: [RabbitMQService],

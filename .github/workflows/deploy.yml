@@ -26,6 +26,7 @@ jobs:
             ["user"]="user-service"
             ["phone"]="phone-service"
             ["order"]="order-service"
+            ["payment"]="payment-service"
           )
 
           for schema in "${!schema_service_map[@]}"; do
@@ -50,6 +51,7 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-user-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-phone-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-order-service:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-payment-service:latest
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/phone-store-ai-service:latest
           docker-compose up -d
 

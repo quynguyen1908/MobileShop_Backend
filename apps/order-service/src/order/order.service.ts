@@ -11,7 +11,7 @@ import type {
   GHNShippingResponse,
   IEventPublisher,
 } from '@app/contracts/interface';
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { IOrderRepository, IOrderService } from './order.port';
 import {
   CartDto,
@@ -30,6 +30,7 @@ import {
   orderItemCreateDtoSchema,
   OrderItemDto,
   OrderStatus,
+  PointConfig,
   PointTransaction,
   PointType,
 } from '@app/contracts/order';
@@ -234,6 +235,18 @@ export class OrderService implements IOrderService {
     return orderDtos;
   }
 
+  async getOrderById(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findOrderById(orderId);
+    if (!order) {
+      throw new RpcException(
+        AppError.from(ErrOrderNotFound, 404)
+          .withLog('Order not found')
+          .toJson(false),
+      );
+    }
+    return order;
+  }
+
   async getOrderByOrderCode(orderCode: string): Promise<Order> {
     const order = await this.orderRepository.findOrderByOrderCode(orderCode);
     if (!order) {
@@ -257,7 +270,7 @@ export class OrderService implements IOrderService {
 
     const customer = await this.validateRequester(requester);
 
-    const pointConfig = await this.orderRepository.getPointConfig();
+    const pointConfig = await this.getPointConfig();
     if (!pointConfig) {
       throw new RpcException(
         AppError.from(new Error('Point configuration not found'), 500)
@@ -285,10 +298,15 @@ export class OrderService implements IOrderService {
             .toJson(false),
         );
       }
-      totalAmount += item.discount * item.quantity;
+
+      if (item.discount === 0) {
+        totalAmount += item.price * item.quantity;
+      } else {
+        totalAmount += item.discount * item.quantity;
+      }
     }
 
-    const maxDiscountFromPoints = totalAmount * 0.1;
+    const maxDiscountFromPoints = totalAmount * 0.2;
 
     let discountFromPoints = 0;
     if (orderCreateDto.pointUsed) {
@@ -342,6 +360,7 @@ export class OrderService implements IOrderService {
     await this.orderRepository.insertOrderStatusHistory({
       orderId: createdOrder.id!,
       status: OrderStatus.PENDING,
+      note: 'Đặt hàng thành công',
       isDeleted: false,
     });
 
@@ -386,6 +405,58 @@ export class OrderService implements IOrderService {
     await this.eventPublisher.publish(event);
 
     return createdOrder.id!;
+  }
+
+  async updateOrderStatus(
+    orderId: number,
+    newStatus: OrderStatus,
+    note?: string,
+  ): Promise<void> {
+    if (!Object.values(OrderStatus).includes(newStatus)) {
+      throw new RpcException(
+        new BadRequestException(`Invalid order status: ${newStatus}`),
+      );
+    }
+
+    const order = await this.getOrderById(orderId);
+    if (!order) {
+      throw new RpcException(
+        AppError.from(ErrOrderNotFound, 404)
+          .withLog(`Order not found: ${orderId}`)
+          .toJson(false),
+      );
+    }
+
+    await this.orderRepository.updateOrder(orderId, newStatus.toString());
+
+    await this.orderRepository.insertOrderStatusHistory({
+      orderId: orderId,
+      status: newStatus,
+      note,
+      isDeleted: false,
+    });
+
+    const pointConfig = await this.getPointConfig();
+    if (!pointConfig) {
+      throw new RpcException(
+        AppError.from(new Error('Point config not found'), 404)
+          .withLog('Point config not found')
+          .toJson(false),
+      );
+    }
+
+    if (newStatus === OrderStatus.PAID) {
+      await this.orderRepository.insertPointTransactions([
+        {
+          customerId: order.customerId,
+          orderId: order.id!,
+          type: PointType.EARN,
+          moneyValue: order.finalAmount,
+          points: Math.floor(order.finalAmount / pointConfig.earnRate),
+          isDeleted: false,
+        },
+      ]);
+    }
   }
 
   // Shipment
@@ -474,6 +545,12 @@ export class OrderService implements IOrderService {
     }
   }
 
+  // Point Config
+
+  async getPointConfig(): Promise<PointConfig | null> {
+    return this.orderRepository.getPointConfig();
+  }
+
   // Cart
 
   async getCartByCustomerId(requester: Requester): Promise<CartDto> {
@@ -528,14 +605,11 @@ export class OrderService implements IOrderService {
     }
 
     const isAvailable = await firstValueFrom<boolean>(
-      this.phoneServiceClient.send(
-        PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY,
-        {
-          variantId: cartItemCreateDto.variantId,
-          colorId: cartItemCreateDto.colorId,
-          requiredQuantity: cartItemCreateDto.quantity,
-        },
-      ),
+      this.phoneServiceClient.send(PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY, {
+        variantId: cartItemCreateDto.variantId,
+        colorId: cartItemCreateDto.colorId,
+        requiredQuantity: cartItemCreateDto.quantity,
+      }),
     );
     if (!isAvailable) {
       throw new RpcException(
@@ -545,15 +619,20 @@ export class OrderService implements IOrderService {
       );
     }
 
-    const existingCartItem = await this.orderRepository.findCartItemByCartIdAndVariantIdAndColorId(
-      cart.id!,
-      cartItemCreateDto.variantId,
-      cartItemCreateDto.colorId,
-    );
-  
+    const existingCartItem =
+      await this.orderRepository.findCartItemByCartIdAndVariantIdAndColorId(
+        cart.id!,
+        cartItemCreateDto.variantId,
+        cartItemCreateDto.colorId,
+      );
+
     if (existingCartItem) {
-      const newQuantity = existingCartItem.quantity + cartItemCreateDto.quantity;
-      await this.orderRepository.updateCartItem(existingCartItem.id!, newQuantity);
+      const newQuantity =
+        existingCartItem.quantity + cartItemCreateDto.quantity;
+      await this.orderRepository.updateCartItem(
+        existingCartItem.id!,
+        newQuantity,
+      );
       return existingCartItem.id!;
     }
 
@@ -587,7 +666,10 @@ export class OrderService implements IOrderService {
     await this.orderRepository.updateCartItem(itemId, quantity);
   }
 
-  async deleteCartItems(requester: Requester, itemIds: number[]): Promise<void> {
+  async deleteCartItems(
+    requester: Requester,
+    itemIds: number[],
+  ): Promise<void> {
     const customer = await this.validateRequester(requester);
 
     const cart = await this.orderRepository.findCartByCustomerId(customer.id!);

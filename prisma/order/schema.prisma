@@ -25,7 +25,7 @@ model Order {
   finalAmount     Int       @map("final_amount")
   recipientName   String    @map("recipient_name") @db.VarChar(255)
   recipientPhone  String    @map("recipient_phone") @db.VarChar(50)
-  status          String    @default("PENDING") @db.VarChar(50)
+  status          String    @default("pending") @db.VarChar(50)
   street          String    @db.VarChar(255)
   communeId       Int       @map("commune_id")
   provinceId      Int       @map("province_id")
@@ -152,6 +152,8 @@ model CartItem {
   cart      Cart @relation(fields: [cartId], references: [id])
 
   @@unique([cartId, variantId, colorId])
-  @@index([cartId, variantId, colorId])
+  @@index([cartId])
+  @@index([variantId])
+  @@index([colorId])
   @@map("cart_items")
 }

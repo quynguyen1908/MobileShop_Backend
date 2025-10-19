@@ -22,6 +22,16 @@ export class OrderController {
     return this.orderService.getOrderByOrderCode(orderCode);
   }
 
+  @MessagePattern(ORDER_PATTERN.GET_ORDER_BY_ID)
+  async getOrderById(@Payload() orderId: number) {
+    return this.orderService.getOrderById(orderId);
+  }
+
+  @MessagePattern(ORDER_PATTERN.GET_POINT_CONFIG)
+  async getPointConfig() {
+    return this.orderService.getPointConfig();
+  }
+
   @MessagePattern(ORDER_PATTERN.CALCULATE_SHIPPING_FEE)
   async calculateShippingFee(
     @Payload() data: { province: string; commune: string },
@@ -60,7 +70,12 @@ export class OrderController {
 
   @MessagePattern(ORDER_PATTERN.UPDATE_QUANTITY)
   async updateQuantity(
-    @Payload() payload: { requester: Requester; itemId: number; quantity: number },
+    @Payload()
+    payload: {
+      requester: Requester;
+      itemId: number;
+      quantity: number;
+    },
   ) {
     const { requester, itemId, quantity } = payload;
     await this.orderService.updateQuantity(requester, itemId, quantity);

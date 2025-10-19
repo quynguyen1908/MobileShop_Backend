@@ -46,7 +46,7 @@ export class UserRepository implements IUserRepository {
 
   // Customer
 
-  async insertCustomer(data: Customer): Promise<Customer> {
+  async insertCustomer(data: Omit<Customer, 'id'>): Promise<Customer> {
     const prismaService = this.prisma as unknown as {
       customer: {
         create: (params: { data: any }) => Promise<PrismaCustomer>;

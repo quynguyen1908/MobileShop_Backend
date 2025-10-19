@@ -130,6 +130,23 @@ export class OrderRepository implements IOrderRepository {
     return orders.map((order) => this._toOrderModel(order));
   }
 
+  async findOrderById(orderId: number): Promise<Order | null> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        findUnique: (param: {
+          where: { id: number };
+        }) => Promise<PrismaOrder | null>;
+      };
+    };
+    const order = await prismaService.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) {
+      return null;
+    }
+    return this._toOrderModel(order);
+  }
+
   async findOrderByOrderCode(orderCode: string): Promise<Order | null> {
     const prismaService = this.prisma as unknown as {
       order: {
@@ -147,7 +164,7 @@ export class OrderRepository implements IOrderRepository {
     return this._toOrderModel(order);
   }
 
-  async insertOrder(data: Order): Promise<Order> {
+  async insertOrder(data: Omit<Order, 'id'>): Promise<Order> {
     const prismaService = this.prisma as unknown as {
       order: {
         create: (param: { data: any }) => Promise<PrismaOrder>;
@@ -156,6 +173,18 @@ export class OrderRepository implements IOrderRepository {
 
     const order = await prismaService.order.create({ data });
     return this._toOrderModel(order);
+  }
+
+  async updateOrder(id: number, status: string): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        update: (param: {
+          where: { id: number };
+          data: any;
+        }) => Promise<PrismaOrder>;
+      };
+    };
+    await prismaService.order.update({ where: { id }, data: { status } });
   }
 
   // Order Item
@@ -203,7 +232,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async insertOrderStatusHistory(
-    data: OrderStatusHistory,
+    data: Omit<OrderStatusHistory, 'id'>,
   ): Promise<OrderStatusHistory> {
     const prismaService = this.prisma as unknown as {
       orderStatusHistory: {
@@ -235,7 +264,9 @@ export class OrderRepository implements IOrderRepository {
     );
   }
 
-  async insertPointTransactions(data: PointTransaction[]): Promise<void> {
+  async insertPointTransactions(
+    data: Omit<PointTransaction, 'id'>[],
+  ): Promise<void> {
     const prismaService = this.prisma as unknown as {
       pointTransaction: {
         createMany: (param: {
@@ -306,7 +337,7 @@ export class OrderRepository implements IOrderRepository {
     return this._toCartModel(cart);
   }
 
-  async insertCart(data: Cart): Promise<Cart> {
+  async insertCart(data: Omit<Cart, 'id'>): Promise<Cart> {
     const prismaService = this.prisma as unknown as {
       cart: {
         create: (param: { data: any }) => Promise<PrismaCart>;
@@ -330,7 +361,11 @@ export class OrderRepository implements IOrderRepository {
     return items.map((item) => this._toCartItemModel(item));
   }
 
-  async findCartItemByCartIdAndVariantIdAndColorId(cartId: number, variantId: number, colorId: number): Promise<CartItem | null> {
+  async findCartItemByCartIdAndVariantIdAndColorId(
+    cartId: number,
+    variantId: number,
+    colorId: number,
+  ): Promise<CartItem | null> {
     const prismaService = this.prisma as unknown as {
       cartItem: {
         findFirst: (param: {
@@ -338,14 +373,16 @@ export class OrderRepository implements IOrderRepository {
         }) => Promise<PrismaCartItem | null>;
       };
     };
-    const item = await prismaService.cartItem.findFirst({ where: { cartId, variantId, colorId } });
+    const item = await prismaService.cartItem.findFirst({
+      where: { cartId, variantId, colorId },
+    });
     if (!item) {
       return null;
     }
     return this._toCartItemModel(item);
   }
 
-  async insertCartItem(data: CartItem): Promise<CartItem> {
+  async insertCartItem(data: Omit<CartItem, 'id'>): Promise<CartItem> {
     const prismaService = this.prisma as unknown as {
       cartItem: {
         create: (param: { data: any }) => Promise<PrismaCartItem>;

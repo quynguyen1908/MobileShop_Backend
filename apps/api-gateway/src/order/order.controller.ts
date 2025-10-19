@@ -37,7 +37,6 @@ import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto } from '../dto/response.dto';
 import { formatError } from '../utils/error';
-import { id } from 'zod/v4/locales';
 
 @ApiTags('Orders')
 @Controller('v1/orders')
@@ -537,12 +536,12 @@ export class CartController {
                   color: 'Xám',
                   name: 'Xiaomi 14T',
                   imageUrl: 'https://example.com/xiaomi-14t.jpg',
-                }
-              }
-            ]
-          }
-        }
-      }
+                },
+              },
+            ],
+          },
+        },
+      },
     },
   })
   async getMyCart(@Req() req: ReqWithRequester, @Res() res: Response) {

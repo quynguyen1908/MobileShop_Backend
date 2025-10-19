@@ -8,6 +8,7 @@ import {
   OrderCreateDto,
   OrderDto,
   OrderItem,
+  OrderStatus,
   OrderStatusHistory,
   PointConfig,
   PointTransaction,
@@ -18,10 +19,19 @@ export interface IOrderService {
   // Order
   getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]>;
   getOrderByOrderCode(orderCode: string): Promise<Order>;
+  getOrderById(orderId: number): Promise<Order>;
   createOrder(
     requester: Requester,
     orderCreateDto: OrderCreateDto,
   ): Promise<number>;
+  updateOrderStatus(
+    orderId: number,
+    newStatus: OrderStatus,
+    note?: string,
+  ): Promise<void>;
+
+  // Point Config
+  getPointConfig(): Promise<PointConfig | null>;
 
   // Shipment
   calculateShippingFee(commune: string, province: string): Promise<string>;
@@ -48,6 +58,7 @@ export interface IOrderQueryRepository {
   // Order
   findOrdersByCustomerId(customerId: number): Promise<Order[]>;
   findOrderByOrderCode(orderCode: string): Promise<Order | null>;
+  findOrderById(orderId: number): Promise<Order | null>;
 
   // Order Item
   findOrderItemsByOrderIds(orderIds: number[]): Promise<OrderItem[]>;
@@ -83,6 +94,7 @@ export interface IOrderQueryRepository {
 export interface IOrderCommandRepository {
   // Order
   insertOrder(data: Order): Promise<Order>;
+  updateOrder(id: number, status: string): Promise<void>;
 
   // Order Item
   insertOrderItems(data: OrderItem[]): Promise<void>;

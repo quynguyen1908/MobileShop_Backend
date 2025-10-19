@@ -173,6 +173,41 @@ services:
         limits:
           cpus: '0.5'
           memory: 384M
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: apps/payment-service/Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: payment-service
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    image: quynguyen1908/phone-store-payment-service:latest
+    volumes:
+      - ./apps/payment-service:/app/apps/payment-service:ro
+      - ./libs:/app/libs:ro
+      - ./prisma/payment:/app/prisma/payment:ro
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
   
   ai-service:
     build:
@@ -295,6 +330,8 @@ volumes:
   phone_service_node_modules:
     driver: local
   order_service_node_modules:
+    driver: local
+  payment_service_node_modules:
     driver: local
   ai_service_node_modules:
     driver: local

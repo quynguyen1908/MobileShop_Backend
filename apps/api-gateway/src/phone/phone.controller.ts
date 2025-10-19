@@ -162,13 +162,13 @@ export class PhoneController {
                 phone: {
                   id: 1,
                   name: 'Samsung Galaxy S25',
-                  brand: { 
-                    id: 1, 
+                  brand: {
+                    id: 1,
                     name: 'Samsung',
                     image: {
                       id: 1,
                       imageUrl: 'https://example.com/brands/samsung.png',
-                    }
+                    },
                   },
                   category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
                 },
@@ -192,7 +192,7 @@ export class PhoneController {
                 discount: {
                   id: 1,
                   variantId: 1,
-                  discountPercent: 80,
+                  discountPercent: 20,
                   startDate: '2024-10-01T00:00:00.000Z',
                   endDate: null,
                 },
@@ -311,13 +311,13 @@ export class PhoneController {
             phone: {
               id: 1,
               name: 'Samsung Galaxy S25',
-              brand: { 
-                id: 1, 
+              brand: {
+                id: 1,
                 name: 'Samsung',
                 image: {
                   id: 1,
                   imageUrl: 'https://example.com/brands/samsung.png',
-                }
+                },
               },
               category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
             },
@@ -341,7 +341,7 @@ export class PhoneController {
             discount: {
               id: 1,
               variantId: 1,
-              discountPercent: 80,
+              discountPercent: 20,
               startDate: '2024-10-01T00:00:00.000Z',
               endDate: null,
             },
@@ -481,7 +481,7 @@ export class PhoneController {
               discount: {
                 id: 1,
                 variantId: 1,
-                discountPercent: 80,
+                discountPercent: 20,
                 startDate: '2024-10-01T00:00:00.000Z',
                 endDate: null,
               },
@@ -588,21 +588,21 @@ export class BrandController {
           status: 200,
           message: 'Brands retrieved successfully',
           data: [
-            { 
-              id: 1, 
+            {
+              id: 1,
               name: 'Samsung',
               image: {
                 id: 1,
                 imageUrl: 'https://example.com/brands/samsung.png',
-              }
+              },
             },
-            { 
-              id: 2, 
+            {
+              id: 2,
               name: 'Apple',
               image: {
                 id: 2,
                 imageUrl: 'https://example.com/brands/apple.png',
-              }
+              },
             },
           ],
         },

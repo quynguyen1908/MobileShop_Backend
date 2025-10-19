@@ -53,7 +53,7 @@ interface PrismaOAuth {
 export class AuthRepository implements IAuthRepository {
   constructor(private prisma: UserPrismaService) {}
 
-  async insert(data: User): Promise<User> {
+  async insert(data: Omit<User, 'id'>): Promise<User> {
     const prismaService = this.prisma as unknown as {
       user: {
         create: (params: { data: any }) => Promise<PrismaUser>;
@@ -258,7 +258,7 @@ export class RoleRepository implements IRoleQueryRepository {
 export class OAuthRepository implements IOAuthRepository {
   constructor(private prisma: UserPrismaService) {}
 
-  async insert(data: OAuth): Promise<OAuth> {
+  async insert(data: Omit<OAuth, 'id'>): Promise<OAuth> {
     const prismaService = this.prisma as unknown as {
       userOauth: {
         create: (params: { data: any }) => Promise<PrismaOAuth>;
