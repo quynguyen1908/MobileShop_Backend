@@ -53,7 +53,7 @@
 ---
 
 ## Containerize with Docker
-- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, ai-service, postgres, rabbitmq, qdrant
+- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, payment-service, ai-service, postgres, rabbitmq, qdrant
 
 ---
 

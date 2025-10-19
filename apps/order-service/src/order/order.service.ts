@@ -100,11 +100,7 @@ export class OrderService implements IOrderService {
       customer.id!,
     );
     if (!orders || orders.length === 0) {
-      throw new RpcException(
-        AppError.from(ErrOrderNotFound, 404)
-          .withLog('Orders not found')
-          .toJson(false),
-      );
+      return [];
     }
 
     const orderIds = [...new Set(orders.map((order) => order.id))].filter(
