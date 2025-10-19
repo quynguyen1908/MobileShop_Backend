@@ -28,6 +28,7 @@ import { UpdateInventoryDto } from '@app/contracts/phone';
 interface PrismaBrand {
   id: number;
   name: string;
+  imageId: number;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -475,6 +476,20 @@ export class PhoneRepository implements IPhoneRepository {
     const queryConditions: string[] = ['1=1'];
     const queryParams: any[] = [];
 
+    if (filter.brand) {
+      if (Array.isArray(filter.brand)) {
+        const placeholders = filter.brand
+          .map(
+            (_, index) => `brand_name ILIKE $${queryParams.length + 1 + index}`,
+          )
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.brand.forEach((b) => queryParams.push(`%${b}%`));
+      } else {
+        queryConditions.push('brand_name ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.brand}%`);
+      }
+    }
     if (filter.minPrice !== undefined) {
       queryConditions.push('final_price >= $' + (queryParams.length + 1));
       queryParams.push(filter.minPrice);
@@ -684,6 +699,7 @@ export class PhoneRepository implements IPhoneRepository {
     return {
       id: data.id,
       name: data.name,
+      imageId: data.imageId,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

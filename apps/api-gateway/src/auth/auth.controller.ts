@@ -30,6 +30,8 @@ import * as AuthInterface from './auth.interface';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
+import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Authentication')
 @Controller('v1/auth')
@@ -37,6 +39,7 @@ export class AuthController {
   constructor(
     @Inject(AUTH_SERVICE) private readonly authServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('register')
@@ -244,7 +247,9 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiOperation({ summary: 'Logout the current user (requires authentication)' })
+  @ApiOperation({
+    summary: 'Logout the current user (requires authentication)',
+  })
   @ApiResponse({
     status: 200,
     description: 'User logged out successfully',
@@ -405,84 +410,60 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Login with Google OAuth2' })
   async googleLogin() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
+  @ApiOperation({
+    summary: 'Google OAuth2 callback',
+    description: `Handles the callback from Google after user authentication.
+    Change FRONTEND_URL in .env to your frontend URL where users will be redirected after login.
+    Access and refresh tokens are set as HTTP-only cookies for security.`,
+  })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to the frontend URL after successful login.',
+  })
   async googleLoginCallback(@Req() req: Request, @Res() res: Response) {
     try {
       const googleUser = req.user as GoogleResponseDto;
 
-      const userExists = await this.circuitBreakerService.sendRequest<
-        User | FallbackResponse | null
-      >(
-        this.authServiceClient,
-        AUTH_SERVICE_NAME,
-        AUTH_PATTERN.GET_USER_BY_EMAIL,
-        googleUser.email,
-        () => {
-          return {
-            fallback: true,
-            message: 'Auth service is temporarily unavailable',
-          } as FallbackResponse;
-        },
-        { timeout: 5000 },
+      const user = await firstValueFrom(
+        this.authServiceClient.send<User | null>(
+          AUTH_PATTERN.GET_USER_BY_EMAIL,
+          googleUser.email,
+        ),
       );
 
-      if (isFallbackResponse(userExists)) {
-        const fallbackResponse = new ApiResponseDto(
-          HttpStatus.SERVICE_UNAVAILABLE,
-          userExists.message,
-        );
-        return res
-          .status(HttpStatus.SERVICE_UNAVAILABLE)
-          .json(fallbackResponse);
-      } else {
-        if (userExists) {
-          const result = await this.circuitBreakerService.sendRequest<
-            AuthInterface.LoginResponse | FallbackResponse
-          >(
-            this.authServiceClient,
-            AUTH_SERVICE_NAME,
+      if (user) {
+        const result = await firstValueFrom(
+          this.authServiceClient.send<AuthInterface.LoginResponse>(
             AUTH_PATTERN.GOOGLE_LOGIN,
             googleUser,
-            () => {
-              return {
-                fallback: true,
-                message: 'Auth service is temporarily unavailable',
-              } as FallbackResponse;
-            },
-            { timeout: 5000 },
-          );
+          ),
+        );
 
-          if (isFallbackResponse(result)) {
-            const fallbackResponse = new ApiResponseDto(
-              HttpStatus.SERVICE_UNAVAILABLE,
-              result.message,
-            );
-            return res
-              .status(HttpStatus.SERVICE_UNAVAILABLE)
-              .json(fallbackResponse);
-          } else {
-            const response = new ApiResponseDto(
-              HttpStatus.OK,
-              'User logged in successfully',
-              {
-                userId: result.userId,
-                tokens: result.tokens,
-              },
-            );
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL', '');
 
-            return res.status(HttpStatus.OK).json(response);
-          }
-        } else {
-          const response = new ApiResponseDto(
-            HttpStatus.OK,
-            'User not found, proceed to registration',
-            googleUser,
-          );
-          return res.status(HttpStatus.OK).json(response);
-        }
+        const isProduction =
+          this.configService.get<string>('NODE_ENV') === 'production';
+
+        res.cookie('accessToken', result.tokens.accessToken, {
+          httpOnly: true,
+          secure: isProduction,
+          maxAge: result.tokens.expiresIn * 1000,
+          sameSite: isProduction ? 'strict' : 'lax',
+        });
+
+        res.cookie('refreshToken', result.tokens.refreshToken, {
+          httpOnly: true,
+          secure: isProduction,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: isProduction ? 'strict' : 'lax',
+        });
+
+        return res.redirect(frontendUrl);
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;

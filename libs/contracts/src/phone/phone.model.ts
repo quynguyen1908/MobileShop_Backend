@@ -9,6 +9,7 @@ export const ErrBrandNameAtMost100Chars = new Error(
 export const brandSchema = z.object({
   id: z.number().int().positive().optional(),
   name: z.string().max(100, ErrBrandNameAtMost100Chars.message),
+  imageId: z.number().int().positive().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),

@@ -155,3 +155,31 @@ export const shipmentSchema = z.object({
 });
 
 export type Shipment = z.infer<typeof shipmentSchema>;
+
+// Cart
+
+export const ErrCartNotFound = new Error('Cart not found');
+
+export const cartSchema = z.object({
+  id: z.number().int().positive().optional(),
+  customerId: z.number().int().positive(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  isDeleted: z.boolean().optional().default(false),
+});
+
+export type Cart = z.infer<typeof cartSchema>;
+
+// Cart Item
+
+export const cartItemSchema = z.object({
+  id: z.number().int().positive().optional(),
+  cartId: z.number().int().positive(),
+  variantId: z.number().int().positive(),
+  colorId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  price: z.number().int().nonnegative(),
+  discount: z.number().int().nonnegative().optional().default(0),
+});
+
+export type CartItem = z.infer<typeof cartItemSchema>;

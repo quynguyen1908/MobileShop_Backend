@@ -23,6 +23,11 @@ export class PhoneController {
     return this.phoneService.getAllBrands();
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_VARIANT_BY_ID)
+  async getVariantById(@Payload() variantId: number) {
+    return this.phoneService.getVariantById(variantId);
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_VARIANTS_BY_IDS)
   async getVariantsByIds(@Payload() variantIds: number[]) {
     return this.phoneService.getVariantsByIds(variantIds);

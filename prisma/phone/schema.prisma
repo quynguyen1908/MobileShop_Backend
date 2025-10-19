@@ -14,15 +14,33 @@ datasource db {
   url      = env("PHONE_DB_URL")
 }
 
-model Brand {
+model Image {
   id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
+  imageUrl  String   @db.VarChar(255) @map("image_url")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted Boolean  @default(false) @map("is_deleted")
 
+  brands    Brand[]
+  colors    VariantColor[]
+  variants  VariantImage[]
+
+  @@map("images")
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  imageId   Int      @map("image_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  image     Image    @relation(fields: [imageId], references: [id])
+
   phones    Phone[]
 
+  @@index([imageId])
   @@map("brands")
 }
 
@@ -72,19 +90,6 @@ model Color {
   inventories Inventory[]
 
   @@map("colors")
-}
-
-model Image {
-  id        Int      @id @default(autoincrement())
-  imageUrl  String   @db.VarChar(255) @map("image_url")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
-  isDeleted Boolean  @default(false) @map("is_deleted")
-
-  colors    VariantColor[]
-  variants  VariantImage[]
-
-  @@map("images")
 }
 
 model PhoneVariant {

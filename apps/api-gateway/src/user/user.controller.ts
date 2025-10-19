@@ -36,7 +36,9 @@ export class CustomerController {
   ) {}
 
   @Get('/me')
-  @ApiOperation({ summary: 'Get current customer info (requires authentication)' })
+  @ApiOperation({
+    summary: 'Get current customer info (requires authentication)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Customer retrieved successfully',

@@ -7,7 +7,7 @@ import {
   PHONE_REPOSITORY,
 } from '@app/contracts';
 import {
-  Brand,
+  BrandDto,
   Category,
   CategoryDto,
   ErrBrandNotFound,
@@ -43,7 +43,7 @@ export class PhoneService implements IPhoneService {
     return this.phoneRepository.findPhoneByIds(ids);
   }
 
-  async getAllBrands(): Promise<Brand[]> {
+  async getAllBrands(): Promise<BrandDto[]> {
     const brands = await this.phoneRepository.findAllBrands();
 
     if (!brands || brands.length === 0) {
@@ -53,7 +53,25 @@ export class PhoneService implements IPhoneService {
           .toJson(false),
       );
     }
-    return brands;
+
+    const imageIds = brands
+      .map((b) => b.imageId)
+      .filter((id): id is number => typeof id === 'number');
+    const images = await this.phoneRepository.findImagesByIds(imageIds);
+
+    const brandDtos: BrandDto[] = brands.map((brand) => {
+      const image = images.find((img) => img.id === brand.imageId);
+      return {
+        id: brand.id,
+        name: brand.name,
+        image: {
+          id: brand.imageId,
+          imageUrl: image ? image.imageUrl : '',
+        },
+      };
+    });
+
+    return brandDtos;
   }
 
   async getAllCategories(): Promise<CategoryDto[]> {
@@ -82,6 +100,21 @@ export class PhoneService implements IPhoneService {
     }
 
     return inventory;
+  }
+
+  async getVariantById(id: number): Promise<PhoneVariantDto> {
+    const variants = await this.phoneRepository.findVariantsById(id);
+    if (!variants) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    const [variantDto] = await this.toPhoneVariantDto([variants]);
+
+    return variantDto;
   }
 
   async getVariantsByIds(ids: number[]): Promise<PhoneVariantDto[]> {
@@ -243,9 +276,15 @@ export class PhoneService implements IPhoneService {
 
     const variantImages =
       await this.phoneRepository.findVariantImagesByVariantIds(variantIds);
-    const images = await this.phoneRepository.findImagesByIds(
-      variantImages.map((vi) => vi.imageId),
-    );
+
+    const allImageIds = [
+      ...variantColors.map((vc) => vc.imageId),
+      ...brands
+        .map((b) => b.imageId)
+        .filter((id): id is number => typeof id === 'number'),
+    ];
+
+    const images = await this.phoneRepository.findImagesByIds(allImageIds);
 
     const variantSpecifications =
       await this.phoneRepository.findSpecificationsByVariantIds(variantIds);
@@ -277,6 +316,18 @@ export class PhoneService implements IPhoneService {
             .toJson(false),
         );
       }
+
+      const brandDto: BrandDto = {
+        id: brand.id,
+        name: brand.name,
+        image: {
+          id: brand.imageId,
+          imageUrl: (() => {
+            const img = images.find((i) => i.id === brand.imageId);
+            return img ? img.imageUrl : '';
+          })(),
+        },
+      };
 
       const category = categories.find((c) => c.id === phone.categoryId);
       if (!category) {
@@ -365,7 +416,7 @@ export class PhoneService implements IPhoneService {
         phone: {
           id: phone.id,
           name: phone.name,
-          brand: { id: brand.id, name: brand.name },
+          brand: brandDto,
           category: {
             id: category.id,
             name: category.name,

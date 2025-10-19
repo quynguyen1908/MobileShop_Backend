@@ -123,3 +123,13 @@ export interface GHNShippingResponse {
     cod_failed_fee: number;
   };
 }
+
+export interface VNPayConfig {
+  tmnCode: string;
+  hashSecret: string;
+  apiUrl: string;
+  returnUrl: string;
+  version: string;
+  command: string;
+  currCode: string;
+}

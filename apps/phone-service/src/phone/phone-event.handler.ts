@@ -67,7 +67,7 @@ export class PhoneEventHandler {
   }
 
   private async subscribe(): Promise<void> {
-    this.logger.log('Subscribing to events...');
+    this.logger.log('Subscribing to phone events...');
 
     await this.eventSubscriber.subscribe(
       EVT_ORDER_CREATED,
@@ -101,6 +101,6 @@ export class PhoneEventHandler {
       },
     );
 
-    this.logger.log('Successfully subscribed to all events');
+    this.logger.log('Successfully subscribed to all phone events');
   }
 }
