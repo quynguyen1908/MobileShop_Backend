@@ -25,10 +25,23 @@ import {
   phoneFilterDtoSchema,
   PhoneVariant,
   PhoneVariantDto,
-  UpdateInventoryDto,
+  InventoryUpdateDto,
   VariantColorDto,
   VariantImageDto,
   VariantSpecificationDto,
+  BrandCreateDto,
+  CategoryCreateDto,
+  Color,
+  Specification,
+  PhoneCreateDto,
+  brandCreateDtoSchema,
+  categoryCreateDtoSchema,
+  phoneCreateDtoSchema,
+  PhoneVariantCreateDto,
+  phoneVariantCreateDtoSchema,
+  VariantColor,
+  VariantImage,
+  VariantSpecification,
 } from '@app/contracts/phone';
 import { RpcException } from '@nestjs/microservices';
 
@@ -39,9 +52,32 @@ export class PhoneService implements IPhoneService {
     private readonly phoneRepository: IPhoneRepository,
   ) {}
 
+  // Phone
+
   async getPhonesByIds(ids: number[]): Promise<Phone[]> {
     return this.phoneRepository.findPhoneByIds(ids);
   }
+
+  async createPhone(phoneCreateDto: PhoneCreateDto): Promise<number> {
+    const data = phoneCreateDtoSchema.parse(phoneCreateDto);
+
+    const newPhone = await this.phoneRepository.insertPhone({
+      name: data.name,
+      brandId: data.brandId,
+      categoryId: data.categoryId,
+      isDeleted: false,
+    });
+
+    const variantCreateDto = data.variants;
+
+    for (const variantDto of variantCreateDto) {
+      await this.insertPhoneVariant(newPhone.id!, variantDto);
+    }
+
+    return newPhone.id!;
+  }
+
+  // Brand
 
   async getAllBrands(): Promise<BrandDto[]> {
     const brands = await this.phoneRepository.findAllBrands();
@@ -74,6 +110,24 @@ export class PhoneService implements IPhoneService {
     return brandDtos;
   }
 
+  async createBrand(brandCreateDto: BrandCreateDto): Promise<number> {
+    const data = brandCreateDtoSchema.parse(brandCreateDto);
+
+    const newImage = await this.phoneRepository.insertImage({
+      imageUrl: data.imageUrl,
+      isDeleted: false,
+    });
+
+    const newBrand = await this.phoneRepository.insertBrand({
+      name: data.name,
+      imageId: newImage.id,
+      isDeleted: false,
+    });
+    return newBrand.id!;
+  }
+
+  // Category
+
   async getAllCategories(): Promise<CategoryDto[]> {
     const categories = await this.phoneRepository.findAllCategories();
 
@@ -89,18 +143,32 @@ export class PhoneService implements IPhoneService {
     return categoryTree;
   }
 
-  async getInventoryBySku(sku: string): Promise<Inventory> {
-    const inventory = await this.phoneRepository.findInventoryBySku(sku);
-    if (!inventory) {
-      throw new RpcException(
-        AppError.from(ErrInventoryNotFound, 404)
-          .withLog('No inventory found for the given SKU')
-          .toJson(false),
-      );
-    }
+  async createCategory(categoryCreateDto: CategoryCreateDto): Promise<number> {
+    const data = categoryCreateDtoSchema.parse(categoryCreateDto);
 
-    return inventory;
+    const newCategory = await this.phoneRepository.insertCategory({
+      name: data.name,
+      parentId: data.parentId,
+      isDeleted: false,
+    });
+    return newCategory.id!;
   }
+
+  // Color
+
+  async getAllColors(): Promise<Color[]> {
+    return this.phoneRepository.findAllColors();
+  }
+
+  async createColor(name: string): Promise<number> {
+    const newColor = await this.phoneRepository.insertColor({
+      name,
+      isDeleted: false,
+    });
+    return newColor.id!;
+  }
+
+  // Phone Variant
 
   async getVariantById(id: number): Promise<PhoneVariantDto> {
     const variants = await this.phoneRepository.findVariantsById(id);
@@ -130,18 +198,6 @@ export class PhoneService implements IPhoneService {
     const variantDtos = await this.toPhoneVariantDto(variants);
 
     return variantDtos;
-  }
-
-  async getImagesByIds(ids: number[]): Promise<Image[]> {
-    const images = await this.phoneRepository.findImagesByIds(ids);
-    if (!images || images.length === 0) {
-      throw new RpcException(
-        AppError.from(ErrVariantImagesNotFound, 404)
-          .withLog('No images found for the given IDs')
-          .toJson(false),
-      );
-    }
-    return images;
   }
 
   async listPhoneVariants(
@@ -191,6 +247,57 @@ export class PhoneService implements IPhoneService {
     return relatedVariantDtos;
   }
 
+  async createPhoneVariant(
+    phoneId: number,
+    phoneVariantCreateDto: PhoneVariantCreateDto,
+  ): Promise<number> {
+    const newVariantId = await this.insertPhoneVariant(phoneId, phoneVariantCreateDto);
+    return newVariantId;
+  }
+
+  // Image
+
+  async getImagesByIds(ids: number[]): Promise<Image[]> {
+    const images = await this.phoneRepository.findImagesByIds(ids);
+    if (!images || images.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrVariantImagesNotFound, 404)
+          .withLog('No images found for the given IDs')
+          .toJson(false),
+      );
+    }
+    return images;
+  }
+
+  // Specification
+
+  async getAllSpecifications(): Promise<Specification[]> {
+    return this.phoneRepository.findAllSpecifications();
+  }
+
+  async createSpecification(name: string): Promise<number> {
+    const newSpecification = await this.phoneRepository.insertSpecification({
+      name,
+      isDeleted: false,
+    });
+    return newSpecification.id!;
+  }
+
+  // Inventory
+
+  async getInventoryBySku(sku: string): Promise<Inventory> {
+    const inventory = await this.phoneRepository.findInventoryBySku(sku);
+    if (!inventory) {
+      throw new RpcException(
+        AppError.from(ErrInventoryNotFound, 404)
+          .withLog('No inventory found for the given SKU')
+          .toJson(false),
+      );
+    }
+
+    return inventory;
+  }
+
   async getInventoryByVariantIdAndColorId(
     variantId: number,
     colorId: number,
@@ -231,7 +338,7 @@ export class PhoneService implements IPhoneService {
     return inventory.stockQuantity >= requiredQuantity;
   }
 
-  async updateInventory(id: number, data: UpdateInventoryDto): Promise<void> {
+  async updateInventory(id: number, data: InventoryUpdateDto): Promise<void> {
     const inventory = await this.phoneRepository.findInventoryById(id);
     if (!inventory) {
       throw new RpcException(
@@ -449,6 +556,101 @@ export class PhoneService implements IPhoneService {
     });
 
     return variantDtos;
+  }
+
+  private async insertPhoneVariant(
+    phoneId: number,
+    phoneVariantCreateDto: PhoneVariantCreateDto,
+  ): Promise<number> {
+    const data = phoneVariantCreateDtoSchema.parse(phoneVariantCreateDto);
+
+    const newVariant = await this.phoneRepository.insertPhoneVariant({
+      phoneId,
+      variantName: data.variantName,
+      description: data.description,
+      isDeleted: false,
+    });
+
+    const variantColors: VariantColor[] = [];
+
+    for (const colorDto of data.colors) {
+      const newImage = await this.phoneRepository.insertImage({
+        imageUrl: colorDto.imageUrl,
+        isDeleted: false,
+      });
+
+      variantColors.push({
+        variantId: newVariant.id!,
+        colorId: colorDto.colorId,
+        imageId: newImage.id!,
+        isDeleted: false,
+      });
+    }
+
+    await this.phoneRepository.insertVariantColors(variantColors);
+
+    await this.phoneRepository.insertVariantPrice({
+      variantId: newVariant.id!,
+      price: data.price,
+      startDate: new Date(),
+      endDate: null,
+      isDeleted: false,
+    });
+
+    if (data.discountPercent) {
+      await this.phoneRepository.insertVariantDiscount({
+        variantId: newVariant.id!,
+        discountPercent: data.discountPercent,
+        startDate: new Date(),
+        endDate: null,
+        isDeleted: false,
+      });
+    }
+
+    if (data.images && data.images.length > 0) {
+      const variantImages: VariantImage[] = [];
+
+      for (const imageUrl of data.images) {
+        const newImage = await this.phoneRepository.insertImage({
+          imageUrl,
+          isDeleted: false,
+        });
+        variantImages.push({
+          variantId: newVariant.id!,
+          imageId: newImage.id!,
+          isDeleted: false,
+        });
+      }
+
+      await this.phoneRepository.insertVariantImages(variantImages);
+    }
+
+    const variantSpecification: VariantSpecification[] = [];
+    for (const specDto of data.specifications) {
+      if (specDto.unit) {
+        variantSpecification.push({
+          variantId: newVariant.id!,
+          specId: specDto.specId,
+          info: specDto.info + ' ' + specDto.unit,
+          unit: specDto.unit,
+          valueNumeric: parseFloat(specDto.info),
+          isDeleted: false,
+        });
+      } else {
+        variantSpecification.push({
+          variantId: newVariant.id!,
+          specId: specDto.specId,
+          info: specDto.info,
+          isDeleted: false,
+        });
+      }
+    }
+
+    await this.phoneRepository.insertVariantSpecifications(
+      variantSpecification,
+    );
+
+    return newVariant.id!;
   }
 
   private buildCategoryTree(categories: Category[]): CategoryDto[] {

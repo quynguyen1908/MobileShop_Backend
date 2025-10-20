@@ -17,13 +17,15 @@ import {
   Specification,
   VariantColor,
   VariantDiscount,
+  VariantDiscountUpdateDto,
   VariantImage,
   VariantPrice,
+  VariantPriceUpdateDto,
   VariantSpecification,
 } from '@app/contracts/phone';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Paginated, PagingDto } from '@app/contracts';
-import { UpdateInventoryDto } from '@app/contracts/phone';
+import { InventoryUpdateDto } from '@app/contracts/phone';
 
 interface PrismaBrand {
   id: number;
@@ -165,6 +167,8 @@ interface PrismaReview {
 export class PhoneRepository implements IPhoneRepository {
   constructor(private prisma: PhonePrismaService) {}
 
+  // Brand
+
   async findBrandsByIds(ids: number[]): Promise<Brand[]> {
     const prismaService = this.prisma as unknown as {
       brand: {
@@ -192,6 +196,18 @@ export class PhoneRepository implements IPhoneRepository {
     return brands.map((brand) => this._toBrandModel(brand));
   }
 
+  async insertBrand(brand: Brand): Promise<Brand> {
+    const prismaService = this.prisma as unknown as {
+      brand: {
+        create: (params: { data: any }) => Promise<PrismaBrand>;
+      };
+    };
+    const createdBrand = await prismaService.brand.create({ data: brand });
+    return this._toBrandModel(createdBrand);
+  }
+
+  // Category
+
   async findCategoriesByIds(ids: number[]): Promise<Category[]> {
     const prismaService = this.prisma as unknown as {
       category: {
@@ -218,6 +234,20 @@ export class PhoneRepository implements IPhoneRepository {
     });
     return categories.map((category) => this._toCategoryModel(category));
   }
+
+  async insertCategory(category: Category): Promise<Category> {
+    const prismaService = this.prisma as unknown as {
+      category: {
+        create: (params: { data: any }) => Promise<PrismaCategory>;
+      };
+    };
+    const createdCategory = await prismaService.category.create({
+      data: category,
+    });
+    return this._toCategoryModel(createdCategory);
+  }
+
+  // Phone Variant
 
   async findVariantsById(id: number): Promise<PhoneVariant | null> {
     const prismaService = this.prisma as unknown as {
@@ -269,6 +299,20 @@ export class PhoneRepository implements IPhoneRepository {
     return variants.map((variant) => this._toPhoneVariantModel(variant));
   }
 
+  async insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        create: (params: { data: any }) => Promise<PrismaPhoneVariant>;
+      };
+    };
+    const createdVariant = await prismaService.phoneVariant.create({
+      data: variant,
+    });
+    return this._toPhoneVariantModel(createdVariant);
+  }
+
+  // Review
+
   async findReviewsByVariantIds(variantIds: number[]): Promise<Review[]> {
     const prismaService = this.prisma as unknown as {
       review: {
@@ -283,6 +327,8 @@ export class PhoneRepository implements IPhoneRepository {
     });
     return reviews.map((review) => this._toReviewModel(review));
   }
+
+  // Color
 
   async findColorsByIds(ids: number[]): Promise<Color[]> {
     const prismaService = this.prisma as unknown as {
@@ -299,6 +345,30 @@ export class PhoneRepository implements IPhoneRepository {
     return colors.map((color) => this._toColorModel(color));
   }
 
+  async findAllColors(): Promise<Color[]> {
+    const prismaService = this.prisma as unknown as {
+      color: {
+        findMany: (params: { where: any }) => Promise<PrismaColor[]>;
+      };
+    };
+    const colors = await prismaService.color.findMany({
+      where: { isDeleted: false },
+    });
+    return colors.map((color) => this._toColorModel(color));
+  }
+
+  async insertColor(color: Color): Promise<Color> {
+    const prismaService = this.prisma as unknown as {
+      color: {
+        create: (params: { data: any }) => Promise<PrismaColor>;
+      };
+    };
+    const createdColor = await prismaService.color.create({ data: color });
+    return this._toColorModel(createdColor);
+  }
+
+  // Variant Price
+
   async findPricesByVariantIds(variantIds: number[]): Promise<VariantPrice[]> {
     const prismaService = this.prisma as unknown as {
       variantPrice: {
@@ -313,6 +383,35 @@ export class PhoneRepository implements IPhoneRepository {
     });
     return prices.map((price) => this._toVariantPriceModel(price));
   }
+
+  async insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        create: (params: { data: any }) => Promise<PrismaVariantPrice>;
+      };
+    };
+    const createdPrice = await prismaService.variantPrice.create({
+      data: variantPrice,
+    });
+    return this._toVariantPriceModel(createdPrice);
+  }
+
+  async updateVariantPrice(
+    id: number,
+    data: VariantPriceUpdateDto,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantPrice.update({
+      where: { id },
+      data,
+    });
+  }
+
+  // Variant Discount
 
   async findDiscountsByVariantIds(
     variantIds: number[],
@@ -331,6 +430,37 @@ export class PhoneRepository implements IPhoneRepository {
     return discounts.map((discount) => this._toVariantDiscountModel(discount));
   }
 
+  async insertVariantDiscount(
+    variantDiscount: VariantDiscount,
+  ): Promise<VariantDiscount> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        create: (params: { data: any }) => Promise<PrismaVariantDiscount>;
+      };
+    };
+    const createdDiscount = await prismaService.variantDiscount.create({
+      data: variantDiscount,
+    });
+    return this._toVariantDiscountModel(createdDiscount);
+  }
+
+  async updateVariantDiscount(
+    id: number,
+    data: VariantDiscountUpdateDto,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantDiscount.update({
+      where: { id },
+      data,
+    });
+  }
+
+  // Image
+
   async findImagesByIds(ids: number[]): Promise<Image[]> {
     const prismaService = this.prisma as unknown as {
       image: {
@@ -345,6 +475,18 @@ export class PhoneRepository implements IPhoneRepository {
     });
     return images.map((image) => this._toImageModel(image));
   }
+
+  async insertImage(image: Image): Promise<Image> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        create: (params: { data: any }) => Promise<PrismaImage>;
+      };
+    };
+    const createdImage = await prismaService.image.create({ data: image });
+    return this._toImageModel(createdImage);
+  }
+
+  // Variant Color
 
   async findVariantColorsByVariantIds(
     variantIds: number[],
@@ -365,6 +507,17 @@ export class PhoneRepository implements IPhoneRepository {
     );
   }
 
+  async insertVariantColors(variantColors: VariantColor[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.createMany({ data: variantColors });
+  }
+
+  // Specification
+
   async findSpecificationByIds(ids: number[]): Promise<Specification[]> {
     const prismaService = this.prisma as unknown as {
       specification: {
@@ -384,6 +537,36 @@ export class PhoneRepository implements IPhoneRepository {
     );
   }
 
+  async findAllSpecifications(): Promise<Specification[]> {
+    const prismaService = this.prisma as unknown as {
+      specification: {
+        findMany: (params: { where: any }) => Promise<PrismaSpecification[]>;
+      };
+    };
+    const specifications = await prismaService.specification.findMany({
+      where: { isDeleted: false },
+    });
+    return specifications.map((specification) =>
+      this._toSpecificationModel(specification),
+    );
+  }
+
+  async insertSpecification(
+    specification: Specification,
+  ): Promise<Specification> {
+    const prismaService = this.prisma as unknown as {
+      specification: {
+        create: (params: { data: any }) => Promise<PrismaSpecification>;
+      };
+    };
+    const createdSpecification = await prismaService.specification.create({
+      data: specification,
+    });
+    return this._toSpecificationModel(createdSpecification);
+  }
+
+  // Variant Image
+
   async findVariantImagesByVariantIds(
     variantIds: number[],
   ): Promise<VariantImage[]> {
@@ -402,6 +585,17 @@ export class PhoneRepository implements IPhoneRepository {
       this._toVariantImageModel(variantImage),
     );
   }
+
+  async insertVariantImages(variantImages: VariantImage[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.createMany({ data: variantImages });
+  }
+
+  // Variant Specification
 
   async findSpecificationsByVariantIds(
     variantIds: number[],
@@ -423,6 +617,21 @@ export class PhoneRepository implements IPhoneRepository {
       this._toVariantSpecificationModel(specification),
     );
   }
+
+  async insertVariantSpecifications(
+    variantSpecifications: VariantSpecification[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.createMany({
+      data: variantSpecifications,
+    });
+  }
+
+  // Phone
 
   async findPhoneByIds(ids: number[]): Promise<Phone[]> {
     const prismaService = this.prisma as unknown as {
@@ -589,6 +798,18 @@ export class PhoneRepository implements IPhoneRepository {
     return { data: variants, paging, total };
   }
 
+  async insertPhone(phone: Phone): Promise<Phone> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        create: (params: { data: any }) => Promise<PrismaPhone>;
+      };
+    };
+    const createdPhone = await prismaService.phone.create({ data: phone });
+    return this._toPhoneModel(createdPhone);
+  }
+
+  // Inventory
+
   async findInventoryById(id: number): Promise<Inventory | null> {
     const prismaService = this.prisma as unknown as {
       inventory: {
@@ -651,7 +872,7 @@ export class PhoneRepository implements IPhoneRepository {
     return this._toInventoryModel(inventory);
   }
 
-  async updateInventory(id: number, data: UpdateInventoryDto): Promise<void> {
+  async updateInventory(id: number, data: InventoryUpdateDto): Promise<void> {
     const prismaService = this.prisma as unknown as {
       inventory: {
         update: (params: {

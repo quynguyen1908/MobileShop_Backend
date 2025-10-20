@@ -1,13 +1,16 @@
 import { pagingDtoSchema, PHONE_SERVICE } from '@app/contracts';
 import type { Paginated, PagingDto } from '@app/contracts';
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Inject,
   Param,
+  Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
@@ -19,8 +22,14 @@ import {
 } from '@app/contracts/phone';
 import type {
   Brand,
+  BrandCreateDto,
+  CategoryCreateDto,
+  Color,
+  PhoneCreateDto,
   PhoneFilterDto,
+  PhoneVariantCreateDto,
   PhoneVariantDto,
+  Specification,
 } from '@app/contracts/phone';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
@@ -28,12 +37,15 @@ import { formatError } from '../utils/error';
 import { ApiResponseDto } from '../dto/response.dto';
 import type { Response } from 'express';
 import {
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RemoteAuthGuard } from '@app/contracts/auth';
+import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 
 @ApiTags('Phones')
 @Controller('v1/phones')
@@ -42,6 +54,138 @@ export class PhoneController {
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
+
+  @Post('create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Create a new phone (Admin/Sales only)' })
+  @ApiBody({
+    description: 'Phone creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'iPhone 16e' },
+        brandId: { type: 'number', example: 2 },
+        categoryId: { type: 'number', example: 6 },
+        variants: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              variantName: { type: 'string', example: '128GB' },
+              description: { 
+                type: 'string', 
+                example: 'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...'
+              },
+              colors: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    colorId: { type: 'number', example: 6 },
+                    imageUrl: { 
+                      type: 'string', 
+                      example: 'https://www.apple.com/example-image-1.jpg'
+                    }
+                  },
+                  required: ['colorId', 'imageUrl']
+                }
+              },
+              price: { type: 'number', example: 17000000 },
+              discountPercent: { type: 'number', example: 15 },
+              images: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  example: 'https://www.apple.com/example-image-2.jpg'
+                }
+              },
+              specifications: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    specId: { type: 'number', example: 1 },
+                    info: { type: 'string', example: '6.1' },
+                    unit: { type: 'string', example: 'inch' }
+                  },
+                  required: ['specId', 'info']
+                }
+              }
+            },
+            required: ['variantName', 'description', 'colors', 'price', 'images', 'specifications']
+          }
+        }
+      },
+      required: ['name', 'brandId', 'categoryId', 'variants']
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Phone created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Phone created successfully',
+          data: {
+            phoneId: 10,
+          },
+        },
+      },
+    },
+  })
+  async createPhone(@Body() phoneCreateDto: PhoneCreateDto, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_PHONE,
+        phoneCreateDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Phone created successfully',
+          { phoneId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating phone failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 
   @Get('variants/filter')
   @ApiOperation({
@@ -567,6 +711,287 @@ export class PhoneController {
       return res.status(statusCode).json(errorResponse);
     }
   }
+
+  @Post('variants/create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Create a new phone variant (Admin/Sales only)' })
+  async createPhoneVariant(
+    @Body() body: { phoneId: number; data: PhoneVariantCreateDto },
+    @Res() res: Response,
+  ) {
+    try {
+      const { phoneId, data } = body;
+      const result = await this.circuitBreakerService.sendRequest<
+        PhoneVariantDto | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_PHONE_VARIANT,
+        {  phoneId, phoneVariantCreateDto: data },
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Phone variant created successfully',
+          result,
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Creating phone variant failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('colors')
+  @ApiOperation({ summary: 'Get all phone colors' })
+  async getAllColors(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        Color[] | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_ALL_COLORS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Colors retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting colors failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('colors/create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Create a new color (Admin/Sales only)' })
+  async createColor(@Body() name: String, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_COLOR,
+        name,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Color created successfully',
+          { colorId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating color failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('specifications')
+  @ApiOperation({ summary: 'Get all phone specifications' })
+  async getAllSpecifications(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        Specification[] | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_ALL_SPECIFICATIONS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Specifications retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting specifications failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('specifications/create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Create a new specification (Admin/Sales only)' })
+  async createSpecification(@Body() name: String, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_SPECIFICATION,
+        name,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Specification created successfully',
+          { specificationId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Creating specification failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 }
 
 @ApiTags('Brands')
@@ -659,6 +1084,62 @@ export class BrandController {
       return res.status(statusCode).json(errorResponse);
     }
   }
+
+  @Post('create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Create a new brand (Admin/Sales only)' })
+  async createBrand(@Body() brandCreateDto: BrandCreateDto, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_BRAND,
+        brandCreateDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Brand created successfully',
+          { brandId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating brand failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 }
 
 @ApiTags('Categories')
@@ -738,6 +1219,62 @@ export class CategoryController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting categories failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('create')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Create a new category (Admin/Sales only)' })
+  async createCategory(@Body() categoryCreateDto: CategoryCreateDto, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_CATEGORY,
+        categoryCreateDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Category created successfully',
+          { categoryId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating category failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

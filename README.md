@@ -20,7 +20,7 @@
     - Xây dựng các service quản lý sản phẩm, voucher, đơn hàng, tài khoản khách hàng.
 - **API Gateway**: Điểm truy cập duy nhất cho các client, hỗ trợ xác thực và phân quyền (JWT), cung cấp tài liệu API thông qua Swagger.
 - **Cơ sở dữ liệu (PostgreSQL)**: Lưu trữ thông tin hệ thống.
-- **Event & Messsage**: Sử dụng RabbitMQ để publish event và truyền message giữa các service.
+- **Event & Message**: Sử dụng RabbitMQ để publish event và truyền message giữa các service.
 - **AI Agent**: Sử dụng GPT-4 kết hợp với Retrieval-Augmented Generation (RAG) để tư vấn sản phẩm, so sánh sản phẩm, trả lời câu hỏi.
 
 ---
