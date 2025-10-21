@@ -2,10 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IPhoneRepository, IPhoneService } from './phone.port';
 import {
   AppError,
+  EVENT_PUBLISHER,
   Paginated,
   PagingDto,
   PHONE_REPOSITORY,
 } from '@app/contracts';
+import type { IEventPublisher } from '@app/contracts';
 import {
   BrandDto,
   Category,
@@ -42,6 +44,10 @@ import {
   VariantColor,
   VariantImage,
   VariantSpecification,
+  ErrSpecificationNotFound,
+  PhoneCreatedEvent,
+  PHONE_SERVICE_NAME,
+  VariantCreatedEvent,
 } from '@app/contracts/phone';
 import { RpcException } from '@nestjs/microservices';
 
@@ -50,6 +56,7 @@ export class PhoneService implements IPhoneService {
   constructor(
     @Inject(PHONE_REPOSITORY)
     private readonly phoneRepository: IPhoneRepository,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
   ) {}
 
   // Phone
@@ -73,6 +80,18 @@ export class PhoneService implements IPhoneService {
     for (const variantDto of variantCreateDto) {
       await this.insertPhoneVariant(newPhone.id!, variantDto);
     }
+
+    const event = PhoneCreatedEvent.create(
+      {
+        id: newPhone.id!,
+        name: newPhone.name,
+        brandId: newPhone.brandId,
+        categoryId: newPhone.categoryId,
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
 
     return newPhone.id!;
   }
@@ -161,6 +180,13 @@ export class PhoneService implements IPhoneService {
   }
 
   async createColor(name: string): Promise<number> {
+    if (typeof name !== 'string' || name.trim() === '') {
+      throw new RpcException(
+        AppError.from(ErrColorNotFound, 400)
+          .withLog('Color name cannot be empty')
+          .toJson(false),
+      );
+    }
     const newColor = await this.phoneRepository.insertColor({
       name,
       isDeleted: false,
@@ -251,8 +277,24 @@ export class PhoneService implements IPhoneService {
     phoneId: number,
     phoneVariantCreateDto: PhoneVariantCreateDto,
   ): Promise<number> {
-    const newVariantId = await this.insertPhoneVariant(phoneId, phoneVariantCreateDto);
-    return newVariantId;
+    const newVariant = await this.insertPhoneVariant(
+      phoneId,
+      phoneVariantCreateDto,
+    );
+
+    const event = VariantCreatedEvent.create(
+      {
+        id: newVariant.id!,
+        phoneId: newVariant.phoneId,
+        variantName: newVariant.variantName,
+        description: newVariant.description ?? undefined,
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+
+    return newVariant.id!;
   }
 
   // Image
@@ -276,6 +318,13 @@ export class PhoneService implements IPhoneService {
   }
 
   async createSpecification(name: string): Promise<number> {
+    if (!name || name.trim() === '') {
+      throw new RpcException(
+        AppError.from(ErrSpecificationNotFound, 400)
+          .withLog('Specification name cannot be empty')
+          .toJson(false),
+      );
+    }
     const newSpecification = await this.phoneRepository.insertSpecification({
       name,
       isDeleted: false,
@@ -385,10 +434,13 @@ export class PhoneService implements IPhoneService {
       await this.phoneRepository.findVariantImagesByVariantIds(variantIds);
 
     const allImageIds = [
-      ...variantColors.map((vc) => vc.imageId),
-      ...brands
-        .map((b) => b.imageId)
-        .filter((id): id is number => typeof id === 'number'),
+      ...new Set([
+        ...variantColors.map((vc) => vc.imageId),
+        ...variantImages.map((vi) => vi.imageId),
+        ...brands
+          .map((b) => b.imageId)
+          .filter((id): id is number => typeof id === 'number'),
+      ]),
     ];
 
     const images = await this.phoneRepository.findImagesByIds(allImageIds);
@@ -561,7 +613,7 @@ export class PhoneService implements IPhoneService {
   private async insertPhoneVariant(
     phoneId: number,
     phoneVariantCreateDto: PhoneVariantCreateDto,
-  ): Promise<number> {
+  ): Promise<PhoneVariant> {
     const data = phoneVariantCreateDtoSchema.parse(phoneVariantCreateDto);
 
     const newVariant = await this.phoneRepository.insertPhoneVariant({
@@ -572,6 +624,7 @@ export class PhoneService implements IPhoneService {
     });
 
     const variantColors: VariantColor[] = [];
+    const variantImages: VariantImage[] = [];
 
     for (const colorDto of data.colors) {
       const newImage = await this.phoneRepository.insertImage({
@@ -582,6 +635,12 @@ export class PhoneService implements IPhoneService {
       variantColors.push({
         variantId: newVariant.id!,
         colorId: colorDto.colorId,
+        imageId: newImage.id!,
+        isDeleted: false,
+      });
+
+      variantImages.push({
+        variantId: newVariant.id!,
         imageId: newImage.id!,
         isDeleted: false,
       });
@@ -608,8 +667,6 @@ export class PhoneService implements IPhoneService {
     }
 
     if (data.images && data.images.length > 0) {
-      const variantImages: VariantImage[] = [];
-
       for (const imageUrl of data.images) {
         const newImage = await this.phoneRepository.insertImage({
           imageUrl,
@@ -621,9 +678,9 @@ export class PhoneService implements IPhoneService {
           isDeleted: false,
         });
       }
-
-      await this.phoneRepository.insertVariantImages(variantImages);
     }
+
+    await this.phoneRepository.insertVariantImages(variantImages);
 
     const variantSpecification: VariantSpecification[] = [];
     for (const specDto of data.specifications) {
@@ -650,7 +707,7 @@ export class PhoneService implements IPhoneService {
       variantSpecification,
     );
 
-    return newVariant.id!;
+    return newVariant;
   }
 
   private buildCategoryTree(categories: Category[]): CategoryDto[] {

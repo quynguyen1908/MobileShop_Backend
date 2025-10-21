@@ -74,9 +74,10 @@ export class PhoneController {
             type: 'object',
             properties: {
               variantName: { type: 'string', example: '128GB' },
-              description: { 
-                type: 'string', 
-                example: 'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...'
+              description: {
+                type: 'string',
+                example:
+                  'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
               },
               colors: {
                 type: 'array',
@@ -84,13 +85,13 @@ export class PhoneController {
                   type: 'object',
                   properties: {
                     colorId: { type: 'number', example: 6 },
-                    imageUrl: { 
-                      type: 'string', 
-                      example: 'https://www.apple.com/example-image-1.jpg'
-                    }
+                    imageUrl: {
+                      type: 'string',
+                      example: 'https://www.apple.com/example-image-1.jpg',
+                    },
                   },
-                  required: ['colorId', 'imageUrl']
-                }
+                  required: ['colorId', 'imageUrl'],
+                },
               },
               price: { type: 'number', example: 17000000 },
               discountPercent: { type: 'number', example: 15 },
@@ -98,8 +99,8 @@ export class PhoneController {
                 type: 'array',
                 items: {
                   type: 'string',
-                  example: 'https://www.apple.com/example-image-2.jpg'
-                }
+                  example: 'https://www.apple.com/example-image-2.jpg',
+                },
               },
               specifications: {
                 type: 'array',
@@ -108,18 +109,25 @@ export class PhoneController {
                   properties: {
                     specId: { type: 'number', example: 1 },
                     info: { type: 'string', example: '6.1' },
-                    unit: { type: 'string', example: 'inch' }
+                    unit: { type: 'string', example: 'inch' },
                   },
-                  required: ['specId', 'info']
-                }
-              }
+                  required: ['specId', 'info'],
+                },
+              },
             },
-            required: ['variantName', 'description', 'colors', 'price', 'images', 'specifications']
-          }
-        }
+            required: [
+              'variantName',
+              'description',
+              'colors',
+              'price',
+              'images',
+              'specifications',
+            ],
+          },
+        },
       },
-      required: ['name', 'brandId', 'categoryId', 'variants']
-    }
+      required: ['name', 'brandId', 'categoryId', 'variants'],
+    },
   })
   @ApiResponse({
     status: 201,
@@ -136,7 +144,10 @@ export class PhoneController {
       },
     },
   })
-  async createPhone(@Body() phoneCreateDto: PhoneCreateDto, @Res() res: Response) {
+  async createPhone(
+    @Body() phoneCreateDto: PhoneCreateDto,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
         number | FallbackResponse
@@ -717,6 +728,86 @@ export class PhoneController {
   @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Create a new phone variant (Admin/Sales only)' })
+  @ApiBody({
+    description: 'Phone variant creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        phoneId: { type: 'number', example: 1 },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              variantName: { type: 'string', example: '128GB' },
+              description: {
+                type: 'string',
+                example:
+                  'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
+              },
+              colors: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    colorId: { type: 'number', example: 6 },
+                    imageUrl: {
+                      type: 'string',
+                      example: 'https://www.apple.com/example-image-1.jpg',
+                    },
+                  },
+                  required: ['colorId', 'imageUrl'],
+                },
+              },
+              price: { type: 'number', example: 17000000 },
+              discountPercent: { type: 'number', example: 15 },
+              images: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  example: 'https://www.apple.com/example-image-2.jpg',
+                },
+              },
+              specifications: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    specId: { type: 'number', example: 1 },
+                    info: { type: 'string', example: '6.1' },
+                    unit: { type: 'string', example: 'inch' },
+                  },
+                  required: ['specId', 'info'],
+                },
+              },
+            },
+            required: [
+              'variantName',
+              'description',
+              'colors',
+              'price',
+              'images',
+              'specifications',
+            ],
+          },
+        },
+      },
+      required: ['phoneId', 'data'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Phone variant created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Phone variant created successfully',
+          data: { phoneVariantId: 15 },
+        },
+      },
+    },
+  })
   async createPhoneVariant(
     @Body() body: { phoneId: number; data: PhoneVariantCreateDto },
     @Res() res: Response,
@@ -729,7 +820,7 @@ export class PhoneController {
         this.phoneServiceClient,
         PHONE_SERVICE_NAME,
         PHONE_PATTERN.CREATE_PHONE_VARIANT,
-        {  phoneId, phoneVariantCreateDto: data },
+        { phoneId, phoneVariantCreateDto: data },
         () => {
           return {
             fallback: true,
@@ -753,7 +844,7 @@ export class PhoneController {
         const response = new ApiResponseDto(
           HttpStatus.CREATED,
           'Phone variant created successfully',
-          result,
+          { phoneVariantId: result },
         );
         return res.status(HttpStatus.CREATED).json(response);
       }
@@ -775,6 +866,24 @@ export class PhoneController {
 
   @Get('colors')
   @ApiOperation({ summary: 'Get all phone colors' })
+  @ApiResponse({
+    status: 200,
+    description: 'Colors retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Colors retrieved successfully',
+          data: [
+            {
+              id: 1,
+              name: 'Đen',
+            },
+          ],
+        },
+      },
+    },
+  })
   async getAllColors(@Res() res: Response) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
@@ -831,8 +940,32 @@ export class PhoneController {
   @Roles(RoleType.ADMIN)
   @Roles(RoleType.SALES)
   @ApiOperation({ summary: 'Create a new color (Admin/Sales only)' })
-  async createColor(@Body() name: String, @Res() res: Response) {
+  @ApiBody({
+    description: 'Color creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Xanh dương' },
+      },
+      required: ['name'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Color created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Color created successfully',
+          data: { colorId: 7 },
+        },
+      },
+    },
+  })
+  async createColor(@Body() body: { name: string }, @Res() res: Response) {
     try {
+      const { name } = body;
       const result = await this.circuitBreakerService.sendRequest<
         number | FallbackResponse
       >(
@@ -884,6 +1017,24 @@ export class PhoneController {
 
   @Get('specifications')
   @ApiOperation({ summary: 'Get all phone specifications' })
+  @ApiResponse({
+    status: 200,
+    description: 'Specifications retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Specifications retrieved successfully',
+          data: [
+            {
+              id: 1,
+              name: 'Kích thước màn hình',
+            },
+          ],
+        },
+      },
+    },
+  })
   async getAllSpecifications(@Res() res: Response) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
@@ -941,8 +1092,35 @@ export class PhoneController {
   @Roles(RoleType.ADMIN)
   @Roles(RoleType.SALES)
   @ApiOperation({ summary: 'Create a new specification (Admin/Sales only)' })
-  async createSpecification(@Body() name: String, @Res() res: Response) {
+  @ApiBody({
+    description: 'Specification creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Dung lượng pin' },
+      },
+      required: ['name'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Specification created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Specification created successfully',
+          data: { specificationId: 8 },
+        },
+      },
+    },
+  })
+  async createSpecification(
+    @Body() body: { name: string },
+    @Res() res: Response,
+  ) {
     try {
+      const { name } = body;
       const result = await this.circuitBreakerService.sendRequest<
         number | FallbackResponse
       >(
@@ -1090,7 +1268,37 @@ export class BrandController {
   @Roles(RoleType.ADMIN)
   @Roles(RoleType.SALES)
   @ApiOperation({ summary: 'Create a new brand (Admin/Sales only)' })
-  async createBrand(@Body() brandCreateDto: BrandCreateDto, @Res() res: Response) {
+  @ApiBody({
+    description: 'Brand creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'OnePlus' },
+        imageUrl: {
+          type: 'string',
+          example: 'https://example.com/brands/oneplus.png',
+        },
+      },
+      required: ['name', 'imageUrl'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Brand created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Brand created successfully',
+          data: { brandId: 3 },
+        },
+      },
+    },
+  })
+  async createBrand(
+    @Body() brandCreateDto: BrandCreateDto,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
         number | FallbackResponse
@@ -1235,7 +1443,34 @@ export class CategoryController {
   @Roles(RoleType.ADMIN)
   @Roles(RoleType.SALES)
   @ApiOperation({ summary: 'Create a new category (Admin/Sales only)' })
-  async createCategory(@Body() categoryCreateDto: CategoryCreateDto, @Res() res: Response) {
+  @ApiBody({
+    description: 'Category creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'vivo' },
+        parentId: { type: 'number', nullable: true, example: null },
+      },
+      required: ['name'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Category created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Category created successfully',
+          data: { categoryId: 10 },
+        },
+      },
+    },
+  })
+  async createCategory(
+    @Body() categoryCreateDto: CategoryCreateDto,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
         number | FallbackResponse
