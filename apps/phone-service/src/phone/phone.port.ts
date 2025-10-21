@@ -1,5 +1,14 @@
 import { Paginated, PagingDto } from '@app/contracts';
-import { BrandDto, UpdateInventoryDto } from '@app/contracts/phone';
+import {
+  BrandCreateDto,
+  BrandDto,
+  CategoryCreateDto,
+  InventoryUpdateDto,
+  PhoneCreateDto,
+  PhoneVariantCreateDto,
+  VariantDiscountUpdateDto,
+  VariantPriceUpdateDto,
+} from '@app/contracts/phone';
 import {
   Brand,
   Category,
@@ -23,12 +32,19 @@ import {
 export interface IPhoneService {
   // Phone
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
+  createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
 
   // Brand
   getAllBrands(): Promise<BrandDto[]>;
+  createBrand(brandCreateDto: BrandCreateDto): Promise<number>;
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;
+  createCategory(categoryCreateDto: CategoryCreateDto): Promise<number>;
+
+  // Color
+  getAllColors(): Promise<Color[]>;
+  createColor(name: string): Promise<number>;
 
   // Phone Variant
   getVariantById(id: number): Promise<PhoneVariantDto>;
@@ -38,9 +54,17 @@ export interface IPhoneService {
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariantDto>>;
   getRelatedVariants(variantId: number): Promise<PhoneVariantDto[]>;
+  createPhoneVariant(
+    phoneId: number,
+    phoneVariantCreateDto: PhoneVariantCreateDto,
+  ): Promise<number>;
 
   // Image
   getImagesByIds(ids: number[]): Promise<Image[]>;
+
+  // Specification
+  getAllSpecifications(): Promise<Specification[]>;
+  createSpecification(name: string): Promise<number>;
 
   // Inventory
   getInventoryBySku(sku: string): Promise<Inventory>;
@@ -53,7 +77,7 @@ export interface IPhoneService {
     colorId: number,
     requiredQuantity: number,
   ): Promise<boolean>;
-  updateInventory(id: number, data: UpdateInventoryDto): Promise<void>;
+  updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
 }
 
 export interface IPhoneRepository
@@ -86,6 +110,7 @@ export interface IPhoneQueryRepository {
 
   // Color
   findColorsByIds(ids: number[]): Promise<Color[]>;
+  findAllColors(): Promise<Color[]>;
 
   // Variant Color
   findVariantColorsByVariantIds(variantIds: number[]): Promise<VariantColor[]>;
@@ -109,6 +134,7 @@ export interface IPhoneQueryRepository {
 
   // Specification
   findSpecificationByIds(ids: number[]): Promise<Specification[]>;
+  findAllSpecifications(): Promise<Specification[]>;
 
   // Inventory
   findInventoryById(id: number): Promise<Inventory | null>;
@@ -121,6 +147,51 @@ export interface IPhoneQueryRepository {
 }
 
 export interface IPhoneCommandRepository {
+  // Image
+  insertImage(image: Image): Promise<Image>;
+
+  // Brand
+  insertBrand(brand: Brand): Promise<Brand>;
+
+  // Category
+  insertCategory(category: Category): Promise<Category>;
+
+  // Phone
+  insertPhone(phone: Phone): Promise<Phone>;
+
+  // Color
+  insertColor(color: Color): Promise<Color>;
+
+  // Phone Variant
+  insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant>;
+
+  // Variant Color
+  insertVariantColors(variantColors: VariantColor[]): Promise<void>;
+
+  // Variant Price
+  insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice>;
+  updateVariantPrice(id: number, data: VariantPriceUpdateDto): Promise<void>;
+
+  // Variant Discount
+  insertVariantDiscount(
+    variantDiscount: VariantDiscount,
+  ): Promise<VariantDiscount>;
+  updateVariantDiscount(
+    id: number,
+    data: VariantDiscountUpdateDto,
+  ): Promise<void>;
+
+  // Variant Image
+  insertVariantImages(variantImages: VariantImage[]): Promise<void>;
+
+  // Specification
+  insertSpecification(specification: Specification): Promise<Specification>;
+
+  // Variant Specification
+  insertVariantSpecifications(
+    variantSpecifications: VariantSpecification[],
+  ): Promise<void>;
+
   // Inventory
-  updateInventory(id: number, data: UpdateInventoryDto): Promise<void>;
+  updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
 }

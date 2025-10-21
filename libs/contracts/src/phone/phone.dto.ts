@@ -136,7 +136,7 @@ export type PhoneVariantViewDto = z.infer<typeof phoneVariantViewDtoSchema>;
 
 // Update Inventory
 
-export const updateInventoryDtoSchema = inventorySchema
+export const inventoryUpdateDtoSchema = inventorySchema
   .pick({
     variantId: true,
     colorId: true,
@@ -147,7 +147,7 @@ export const updateInventoryDtoSchema = inventorySchema
   })
   .partial();
 
-export type UpdateInventoryDto = z.infer<typeof updateInventoryDtoSchema>;
+export type InventoryUpdateDto = z.infer<typeof inventoryUpdateDtoSchema>;
 
 // Inventory
 
@@ -272,3 +272,114 @@ export const phoneVariantDtoSchema = phoneVariantSchema
   });
 
 export type PhoneVariantDto = z.infer<typeof phoneVariantDtoSchema>;
+
+// Create Brand
+
+export const brandCreateDtoSchema = brandSchema
+  .pick({
+    name: true,
+  })
+  .extend({
+    imageUrl: z.url(),
+  })
+  .required();
+
+export type BrandCreateDto = z.infer<typeof brandCreateDtoSchema>;
+
+// Create Category
+
+export const categoryCreateDtoSchema = categorySchema
+  .pick({
+    name: true,
+    parentId: true,
+  })
+  .required();
+
+export type CategoryCreateDto = z.infer<typeof categoryCreateDtoSchema>;
+
+// Update Variant Price
+
+export const variantPriceUpdateDtoSchema = variantPriceSchema
+  .pick({
+    price: true,
+    startDate: true,
+    endDate: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type VariantPriceUpdateDto = z.infer<typeof variantPriceUpdateDtoSchema>;
+
+// Update Variant Discount
+
+export const variantDiscountUpdateDtoSchema = variantDiscountSchema
+  .pick({
+    percent: true,
+    startDate: true,
+    endDate: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type VariantDiscountUpdateDto = z.infer<
+  typeof variantDiscountUpdateDtoSchema
+>;
+
+// Create Variant Color
+
+export const variantColorCreateDtoSchema = variantColorSchema
+  .pick({
+    colorId: true,
+  })
+  .extend({
+    imageUrl: z.url(),
+  })
+  .required();
+
+// Create Variant Specification
+
+export const variantSpecificationCreateDtoSchema =
+  variantSpecificationSchema.pick({
+    specId: true,
+    info: true,
+    unit: true,
+  });
+
+export type VariantSpecificationCreateDto = z.infer<
+  typeof variantSpecificationCreateDtoSchema
+>;
+
+// Create Phone Variant
+
+export const phoneVariantCreateDtoSchema = phoneVariantSchema
+  .pick({
+    variantName: true,
+    description: true,
+  })
+  .extend({
+    colors: variantColorCreateDtoSchema.array(),
+    price: variantPriceSchema.shape.price,
+    discountPercent: variantDiscountSchema.shape.discountPercent.optional(),
+    images: z.array(z.url()).optional(),
+    specifications: variantSpecificationCreateDtoSchema.array(),
+  })
+  .required();
+
+export type PhoneVariantCreateDto = z.infer<typeof phoneVariantCreateDtoSchema>;
+
+// Create Phone
+
+export const phoneCreateDtoSchema = phoneSchema
+  .pick({
+    name: true,
+    brandId: true,
+    categoryId: true,
+  })
+  .extend({
+    variants: phoneVariantCreateDtoSchema.array(),
+  })
+  .required();
+
+export type PhoneCreateDto = z.infer<typeof phoneCreateDtoSchema>;
