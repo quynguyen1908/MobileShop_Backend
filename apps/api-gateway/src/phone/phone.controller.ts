@@ -20,6 +20,7 @@ import {
   Inventory,
   PHONE_PATTERN,
   PHONE_SERVICE_NAME,
+  PhoneDto,
 } from '@app/contracts/phone';
 import type {
   Brand,
@@ -58,6 +59,119 @@ export class PhoneController {
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
+
+  @Get('list')
+  @ApiOperation({ summary: 'List phones with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Current page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of items per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phones retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phones retrieved successfully',
+          data: {
+            data: [
+              {
+                id: 1,
+                name: 'Samsung Galaxy S25',
+                brand: {
+                  id: 1,
+                  name: 'Samsung',
+                  image: {
+                    id: 9,
+                    imageUrl: 'https://example.com/brands/samsung.png',
+                  }
+                },
+                category: {
+                  id: 9,
+                  name: 'Galaxy S25 Series',
+                  parentId: 5
+                },
+                createdAt: '2024-10-01T00:00:00.000Z',
+                updatedAt: '2024-10-01T00:00:00.000Z',
+                isDeleted: false
+              }
+            ],
+            paging: {
+              page: 1,
+              limit: 10,
+              order: 'asc',
+            },
+            total: 1,
+          },
+        },
+      },
+    },
+  })
+  async listPhones(
+    @Query() pagingDto: PagingDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const paging = pagingDtoSchema.parse(pagingDto);
+      const result = await this.circuitBreakerService.sendRequest<
+        Paginated<PhoneDto> | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.LIST_PHONES,
+        paging,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phones retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting phones failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 
   @Post('create')
   @UseGuards(RemoteAuthGuard)
@@ -398,12 +512,12 @@ export class PhoneController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Phones retrieved successfully',
+    description: 'Phone variants retrieved successfully',
     content: {
       'application/json': {
         example: {
           status: 200,
-          message: 'Phones retrieved successfully',
+          message: 'Phone variants retrieved successfully',
           data: {
             data: [
               {

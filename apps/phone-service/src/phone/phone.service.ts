@@ -57,6 +57,7 @@ import {
   BrandUpdatedEvent,
   CategoryUpdatedEvent,
   PhoneVariantUpdatedEvent,
+  PhoneDto,
 } from '@app/contracts/phone';
 import { RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -73,6 +74,82 @@ export class PhoneService implements IPhoneService {
 
   async getPhonesByIds(ids: number[]): Promise<Phone[]> {
     return this.phoneRepository.findPhonesByIds(ids);
+  }
+
+  async listPhones(paging: PagingDto): Promise<Paginated<PhoneDto>> {
+    const paginatedPhones = await this.phoneRepository.listPhones(paging);
+
+    if (!paginatedPhones.data || paginatedPhones.data.length === 0) {
+      return {
+        data: [],
+        paging: paginatedPhones.paging,
+        total: paginatedPhones.total,
+      };
+    }
+
+    const brands = await this.phoneRepository.findBrandsByIds(
+      paginatedPhones.data.map((p) => p.brandId),
+    );
+
+    const categories = await this.phoneRepository.findCategoriesByIds(
+      paginatedPhones.data.map((p) => p.categoryId),
+    );
+
+    const imageIds = brands.map((b) => b.imageId).filter((id): id is number => typeof id === 'number');
+
+    const images = await this.phoneRepository.findImagesByIds(imageIds);
+
+    const phoneDtos: PhoneDto[] = paginatedPhones.data.map((phone) => {
+      const brand = brands.find((b) => b.id === phone.brandId);
+      if (!brand) {
+        throw new RpcException(
+          AppError.from(ErrBrandNotFound, 404)
+            .withLog('Brand not found for phone')
+            .toJson(false),
+        );
+      }
+
+      const brandDto: BrandDto = {
+        id: brand.id,
+        name: brand.name,
+        image: {
+          id: brand.imageId,
+          imageUrl: (() => {
+            const img = images.find((i) => i.id === brand.imageId);
+            return img ? img.imageUrl : '';
+          })(),
+        },
+      };
+
+      const category = categories.find((c) => c.id === phone.categoryId);
+      if (!category) {
+        throw new RpcException(
+          AppError.from(ErrCategoryNotFound, 404)
+            .withLog('Category not found for phone')
+            .toJson(false),
+        );
+      }
+
+      return {
+        id: phone.id,
+        name: phone.name,
+        brand: brandDto,
+        category: {
+          id: category.id,
+          name: category.name,
+          parentId: category.parentId,
+        },
+        createdAt: phone.createdAt,
+        updatedAt: phone.updatedAt,
+        isDeleted: phone.isDeleted,
+      } as PhoneDto;
+    });
+
+    return {
+      data: phoneDtos,
+      paging: paginatedPhones.paging,
+      total: paginatedPhones.total,
+    };
   }
 
   async createPhone(phoneCreateDto: PhoneCreateDto): Promise<number> {
@@ -148,6 +225,7 @@ export class PhoneService implements IPhoneService {
 
     const brandDtos: BrandDto[] = brands.map((brand) => {
       const image = images.find((img) => img.id === brand.imageId);
+      // Ensure the object literal is properly formatted
       return {
         id: brand.id,
         name: brand.name,

@@ -7,6 +7,7 @@ import {
   CategoryUpdateDto,
   InventoryUpdateDto,
   PhoneCreateDto,
+  PhoneDto,
   PhoneUpdateDto,
   PhoneVariantCreateDto,
   PhoneVariantUpdateDto,
@@ -39,6 +40,7 @@ import {
 export interface IPhoneService {
   // Phone
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
+  listPhones(paging: PagingDto): Promise<Paginated<PhoneDto>>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
 
@@ -98,6 +100,7 @@ export interface IPhoneRepository
 export interface IPhoneQueryRepository {
   // Phone
   findPhonesByIds(ids: number[]): Promise<Phone[]>;
+  listPhones(paging: PagingDto): Promise<Paginated<Phone>>;
   findPhonesByCategoryId(categoryId: number): Promise<Phone[]>;
 
   // Brand

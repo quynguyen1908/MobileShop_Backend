@@ -1,4 +1,5 @@
 export const PHONE_PATTERN = {
+  LIST_PHONES: 'phone.listPhones',
   GET_PHONES_BY_IDS: 'phone.getPhonesByIds',
   CREATE_PHONE: 'phone.createPhone',
   UPDATE_PHONE: 'phone.updatePhone',

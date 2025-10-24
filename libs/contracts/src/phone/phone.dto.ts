@@ -237,6 +237,8 @@ export const phoneDtoSchema = phoneSchema
     }),
   });
 
+export type PhoneDto = z.infer<typeof phoneDtoSchema>;
+
 // Phone Variant
 
 export const phoneVariantDtoSchema = phoneVariantSchema

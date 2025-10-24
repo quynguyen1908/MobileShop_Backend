@@ -12,7 +12,7 @@ import type {
   PhoneVariantUpdateDto,
 } from '@app/contracts/phone';
 import { PHONE_PATTERN } from '@app/contracts/phone/phone.pattern';
-import { PagingDto } from '@app/contracts';
+import type { PagingDto } from '@app/contracts';
 
 @Controller()
 export class PhoneController {
@@ -21,6 +21,11 @@ export class PhoneController {
   @MessagePattern(PHONE_PATTERN.GET_PHONES_BY_IDS)
   async getPhonesByIds(@Payload() phoneIds: number[]) {
     return this.phoneService.getPhonesByIds(phoneIds);
+  }
+
+  @MessagePattern(PHONE_PATTERN.LIST_PHONES)
+  async listPhones(@Payload() paging: PagingDto) {
+    return this.phoneService.listPhones(paging);
   }
 
   @MessagePattern(PHONE_PATTERN.CREATE_PHONE)

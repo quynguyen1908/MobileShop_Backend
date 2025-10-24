@@ -972,6 +972,35 @@ export class PhoneRepository implements IPhoneRepository {
     return phones.map((phone) => this._toPhoneModel(phone));
   }
 
+  async listPhones(paging: PagingDto): Promise<Paginated<Phone>> {
+    const skip = (paging.page - 1) * paging.limit;
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        count: (params: { where: any }) => Promise<number>;
+        findMany: (params: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const total = await prismaService.phone.count({
+      where: { isDeleted: false },
+    });
+    const phones = await prismaService.phone.findMany({
+      where: { isDeleted: false },
+      skip,
+      take: paging.limit,
+      orderBy: { id: 'asc' },
+    });
+    return {
+      data: phones.map((phone) => this._toPhoneModel(phone)),
+      paging,
+      total,
+    };
+  }
+
   async findPhonesByCategoryId(categoryId: number): Promise<Phone[]> {
     const prismaService = this.prisma as unknown as {
       phone: {
