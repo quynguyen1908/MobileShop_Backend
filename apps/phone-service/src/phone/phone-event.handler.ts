@@ -5,10 +5,18 @@ import {
   OrderCreatedEvent,
 } from '@app/contracts/order/order.event';
 import {
+  BrandUpdatedEvent,
+  CategoryUpdatedEvent,
+  EVT_BRAND_UPDATED,
+  EVT_CATEGORY_UPDATED,
   EVT_PHONE_CREATED,
+  EVT_PHONE_UPDATED,
+  EVT_PHONE_VARIANT_UPDATED,
   EVT_VARIANT_CREATED,
   PHONE_SERVICE_NAME,
   PhoneCreatedEvent,
+  PhoneUpdatedEvent,
+  PhoneVariantUpdatedEvent,
   VariantCreatedEvent,
 } from '@app/contracts/phone';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -113,6 +121,64 @@ export class PhoneEventHandler {
       const typedError = error as TypedError;
       this.logger.error(
         `Failed to process VariantCreated event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handleBrandUpdated(event: BrandUpdatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling BrandUpdated event for brand ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process BrandUpdated event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handleCategoryUpdated(event: CategoryUpdatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling CategoryUpdated event for category ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process CategoryUpdated event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handlePhoneUpdated(event: PhoneUpdatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling PhoneUpdated event for phone ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process PhoneUpdated event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handlePhoneVariantUpdated(
+    event: PhoneVariantUpdatedEvent,
+  ): Promise<void> {
+    this.logger.log(
+      `Handling PhoneVariantUpdated event for variant ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process PhoneVariantUpdated event: ${typedError.message}`,
       );
     }
   }
@@ -227,6 +293,136 @@ export class PhoneEventHandler {
             const typedError = error as TypedError;
             this.logger.error(
               `Error processing ${EVT_VARIANT_CREATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_BRAND_UPDATED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_BRAND_UPDATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_BRAND_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = BrandUpdatedEvent.from(eventJson);
+            await this.handleBrandUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_BRAND_UPDATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_CATEGORY_UPDATED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_CATEGORY_UPDATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_CATEGORY_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = CategoryUpdatedEvent.from(eventJson);
+            await this.handleCategoryUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_CATEGORY_UPDATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_PHONE_UPDATED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_PHONE_UPDATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_PHONE_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = PhoneUpdatedEvent.from(eventJson);
+            await this.handlePhoneUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_PHONE_UPDATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_PHONE_VARIANT_UPDATED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(
+              `Received ${EVT_PHONE_VARIANT_UPDATED} event: ${msg}`,
+            );
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_PHONE_VARIANT_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = PhoneVariantUpdatedEvent.from(eventJson);
+            await this.handlePhoneVariantUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_PHONE_VARIANT_UPDATED} event: ${typedError.message}`,
               typedError.stack,
             );
           }

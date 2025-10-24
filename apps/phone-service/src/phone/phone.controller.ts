@@ -4,9 +4,12 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import type {
   BrandCreateDto,
   CategoryCreateDto,
+  CategoryUpdateDto,
   PhoneCreateDto,
   PhoneFilterDto,
+  PhoneUpdateDto,
   PhoneVariantCreateDto,
+  PhoneVariantUpdateDto,
 } from '@app/contracts/phone';
 import { PHONE_PATTERN } from '@app/contracts/phone/phone.pattern';
 import { PagingDto } from '@app/contracts';
@@ -25,6 +28,13 @@ export class PhoneController {
     return this.phoneService.createPhone(phoneCreateDto);
   }
 
+  @MessagePattern(PHONE_PATTERN.UPDATE_PHONE)
+  async updatePhone(@Payload() payload: { id: number; data: PhoneUpdateDto }) {
+    const { id, data } = payload;
+    await this.phoneService.updatePhone(id, data);
+    return { success: true };
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_ALL_CATEGORIES)
   async getAllCategories() {
     return this.phoneService.getAllCategories();
@@ -35,6 +45,15 @@ export class PhoneController {
     return this.phoneService.createCategory(categoryCreateDto);
   }
 
+  @MessagePattern(PHONE_PATTERN.UPDATE_CATEGORY)
+  async updateCategory(
+    @Payload() payload: { id: number; data: CategoryUpdateDto },
+  ) {
+    const { id, data } = payload;
+    await this.phoneService.updateCategory(id, data);
+    return { success: true };
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_ALL_BRANDS)
   async getAllBrands() {
     return this.phoneService.getAllBrands();
@@ -43,6 +62,15 @@ export class PhoneController {
   @MessagePattern(PHONE_PATTERN.CREATE_BRAND)
   async createBrand(@Payload() brandCreateDto: BrandCreateDto) {
     return this.phoneService.createBrand(brandCreateDto);
+  }
+
+  @MessagePattern(PHONE_PATTERN.UPDATE_BRAND)
+  async updateBrand(
+    @Payload() payload: { id: number; name?: string; imageUrl?: string },
+  ) {
+    const { id, name, imageUrl } = payload;
+    await this.phoneService.updateBrand(id, name, imageUrl);
+    return { success: true };
   }
 
   @MessagePattern(PHONE_PATTERN.GET_ALL_COLORS)
@@ -88,6 +116,19 @@ export class PhoneController {
   ) {
     const { phoneId, phoneVariantCreateDto } = payload;
     return this.phoneService.createPhoneVariant(phoneId, phoneVariantCreateDto);
+  }
+
+  @MessagePattern(PHONE_PATTERN.UPDATE_PHONE_VARIANT)
+  async updatePhoneVariant(
+    @Payload()
+    payload: {
+      id: number;
+      data: PhoneVariantUpdateDto;
+    },
+  ) {
+    const { id, data } = payload;
+    await this.phoneService.updatePhoneVariant(id, data);
+    return { success: true };
   }
 
   @MessagePattern(PHONE_PATTERN.GET_IMAGES_BY_IDS)

@@ -2,12 +2,19 @@ import { Paginated, PagingDto } from '@app/contracts';
 import {
   BrandCreateDto,
   BrandDto,
+  BrandUpdateDto,
   CategoryCreateDto,
+  CategoryUpdateDto,
   InventoryUpdateDto,
   PhoneCreateDto,
+  PhoneUpdateDto,
   PhoneVariantCreateDto,
+  PhoneVariantUpdateDto,
+  PhoneVariantUpdatePrisma,
+  VariantColorUpdatePrisma,
   VariantDiscountUpdateDto,
   VariantPriceUpdateDto,
+  VariantSpecificationUpdatePrisma,
 } from '@app/contracts/phone';
 import {
   Brand,
@@ -33,14 +40,17 @@ export interface IPhoneService {
   // Phone
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
+  updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
 
   // Brand
   getAllBrands(): Promise<BrandDto[]>;
   createBrand(brandCreateDto: BrandCreateDto): Promise<number>;
+  updateBrand(id: number, name?: string, imageUrl?: string): Promise<void>;
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;
   createCategory(categoryCreateDto: CategoryCreateDto): Promise<number>;
+  updateCategory(id: number, data: CategoryUpdateDto): Promise<void>;
 
   // Color
   getAllColors(): Promise<Color[]>;
@@ -58,6 +68,7 @@ export interface IPhoneService {
     phoneId: number,
     phoneVariantCreateDto: PhoneVariantCreateDto,
   ): Promise<number>;
+  updatePhoneVariant(id: number, data: PhoneVariantUpdateDto): Promise<void>;
 
   // Image
   getImagesByIds(ids: number[]): Promise<Image[]>;
@@ -86,7 +97,8 @@ export interface IPhoneRepository
 
 export interface IPhoneQueryRepository {
   // Phone
-  findPhoneByIds(ids: number[]): Promise<Phone[]>;
+  findPhonesByIds(ids: number[]): Promise<Phone[]>;
+  findPhonesByCategoryId(categoryId: number): Promise<Phone[]>;
 
   // Brand
   findBrandsByIds(ids: number[]): Promise<Brand[]>;
@@ -126,6 +138,7 @@ export interface IPhoneQueryRepository {
 
   // Variant Image
   findVariantImagesByVariantIds(variantIds: number[]): Promise<VariantImage[]>;
+  findVariantImagesByIds(ids: number[]): Promise<VariantImage[]>;
 
   // Variant Specification
   findSpecificationsByVariantIds(
@@ -149,24 +162,39 @@ export interface IPhoneQueryRepository {
 export interface IPhoneCommandRepository {
   // Image
   insertImage(image: Image): Promise<Image>;
+  deleteImage(id: number): Promise<void>;
+  deleteImagesByIds(ids: number[]): Promise<void>;
 
   // Brand
   insertBrand(brand: Brand): Promise<Brand>;
+  updateBrand(id: number, data: BrandUpdateDto): Promise<void>;
 
   // Category
   insertCategory(category: Category): Promise<Category>;
+  updateCategory(id: number, data: CategoryUpdateDto): Promise<void>;
 
   // Phone
   insertPhone(phone: Phone): Promise<Phone>;
+  updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
 
   // Color
   insertColor(color: Color): Promise<Color>;
 
   // Phone Variant
   insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant>;
+  updatePhoneVariant(id: number, data: PhoneVariantUpdatePrisma): Promise<void>;
 
   // Variant Color
   insertVariantColors(variantColors: VariantColor[]): Promise<void>;
+  updateVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+    data: VariantColorUpdatePrisma,
+  ): Promise<void>;
+  deleteVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<void>;
 
   // Variant Price
   insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice>;
@@ -183,6 +211,8 @@ export interface IPhoneCommandRepository {
 
   // Variant Image
   insertVariantImages(variantImages: VariantImage[]): Promise<void>;
+  updateVariantImage(id: number, imageId: number): Promise<void>;
+  deleteVariantImage(id: number): Promise<void>;
 
   // Specification
   insertSpecification(specification: Specification): Promise<Specification>;
@@ -190,6 +220,15 @@ export interface IPhoneCommandRepository {
   // Variant Specification
   insertVariantSpecifications(
     variantSpecifications: VariantSpecification[],
+  ): Promise<void>;
+  updateVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
+    data: VariantSpecificationUpdatePrisma,
+  ): Promise<void>;
+  deleteVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
   ): Promise<void>;
 
   // Inventory

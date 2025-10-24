@@ -48,8 +48,18 @@ import {
   PhoneCreatedEvent,
   PHONE_SERVICE_NAME,
   VariantCreatedEvent,
+  CategoryUpdateDto,
+  PhoneVariantUpdateDto,
+  ErrVariantColorNotFound,
+  ErrVariantDiscountNotFound,
+  PhoneUpdateDto,
+  PhoneUpdatedEvent,
+  BrandUpdatedEvent,
+  CategoryUpdatedEvent,
+  PhoneVariantUpdatedEvent,
 } from '@app/contracts/phone';
 import { RpcException } from '@nestjs/microservices';
+import { parseFloatSafe } from '@app/contracts/utils';
 
 @Injectable()
 export class PhoneService implements IPhoneService {
@@ -62,7 +72,7 @@ export class PhoneService implements IPhoneService {
   // Phone
 
   async getPhonesByIds(ids: number[]): Promise<Phone[]> {
-    return this.phoneRepository.findPhoneByIds(ids);
+    return this.phoneRepository.findPhonesByIds(ids);
   }
 
   async createPhone(phoneCreateDto: PhoneCreateDto): Promise<number> {
@@ -94,6 +104,28 @@ export class PhoneService implements IPhoneService {
     await this.eventPublisher.publish(event);
 
     return newPhone.id!;
+  }
+
+  async updatePhone(id: number, data: PhoneUpdateDto): Promise<void> {
+    const phone = await this.phoneRepository.findPhonesByIds([id]);
+    if (!phone || phone.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneNotFound, 404)
+          .withLog('Phone not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    await this.phoneRepository.updatePhone(id, data);
+
+    const event = PhoneUpdatedEvent.create(
+      {
+        id: id,
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
   }
 
   // Brand
@@ -145,6 +177,67 @@ export class PhoneService implements IPhoneService {
     return newBrand.id!;
   }
 
+  async updateBrand(
+    id: number,
+    name?: string,
+    imageUrl?: string,
+  ): Promise<void> {
+    const brand = await this.phoneRepository.findBrandsByIds([id]);
+    if (!brand || brand.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrBrandNotFound, 404)
+          .withLog('Brand not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    if (imageUrl) {
+      const newImage = await this.phoneRepository.insertImage({
+        imageUrl,
+        isDeleted: false,
+      });
+
+      if (typeof brand[0].imageId === 'number') {
+        await this.phoneRepository.deleteImage(brand[0].imageId);
+      }
+
+      if (name) {
+        await this.phoneRepository.updateBrand(id, {
+          name,
+          imageId: newImage.id,
+          updatedAt: new Date(),
+        });
+      } else {
+        await this.phoneRepository.updateBrand(id, {
+          imageId: newImage.id,
+          updatedAt: new Date(),
+        });
+      }
+    } else {
+      if (name) {
+        await this.phoneRepository.updateBrand(id, {
+          name,
+          updatedAt: new Date(),
+        });
+      } else {
+        throw new RpcException(
+          AppError.from(ErrBrandNotFound, 400)
+            .withLog('No update data provided for the brand')
+            .toJson(false),
+        );
+      }
+    }
+
+    const event = BrandUpdatedEvent.create(
+      {
+        id: id,
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+  }
+
   // Category
 
   async getAllCategories(): Promise<CategoryDto[]> {
@@ -171,6 +264,35 @@ export class PhoneService implements IPhoneService {
       isDeleted: false,
     });
     return newCategory.id!;
+  }
+
+  async updateCategory(id: number, data: CategoryUpdateDto): Promise<void> {
+    const category = await this.phoneRepository.findCategoriesByIds([id]);
+    if (!category || category.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrCategoryNotFound, 404)
+          .withLog('Category not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    await this.phoneRepository.updateCategory(id, {
+      name: data.name,
+      parentId: data.parentId,
+      updatedAt: new Date(),
+    });
+
+    const phones = await this.phoneRepository.findPhonesByCategoryId(id);
+    if (phones && phones.length > 0) {
+      const event = CategoryUpdatedEvent.create(
+        {
+          id: id,
+        },
+        PHONE_SERVICE_NAME,
+      );
+
+      await this.eventPublisher.publish(event);
+    }
   }
 
   // Color
@@ -297,6 +419,417 @@ export class PhoneService implements IPhoneService {
     return newVariant.id!;
   }
 
+  async updatePhoneVariant(
+    id: number,
+    data: PhoneVariantUpdateDto,
+  ): Promise<void> {
+    const variant = await this.phoneRepository.findVariantsById(id);
+    if (!variant) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    let isOnlyUpdateImages = true;
+
+    if (
+      data.variantName !== undefined ||
+      data.description !== undefined ||
+      data.price !== undefined ||
+      data.discount !== undefined
+    ) {
+      isOnlyUpdateImages = false;
+    }
+
+    await this.phoneRepository.updatePhoneVariant(id, {
+      variantName: data.variantName,
+      description: data.description,
+      updatedAt: new Date(),
+      isDeleted: data.isDeleted,
+    });
+
+    const deletedImageIds: Set<number> = new Set();
+    const colorImageIds: Set<number> = new Set();
+    const variantImageIds: Set<number> = new Set();
+
+    const existingVariantColors =
+      await this.phoneRepository.findVariantColorsByVariantIds([variant.id!]);
+    const existingVariantImages =
+      await this.phoneRepository.findVariantImagesByVariantIds([variant.id!]);
+
+    existingVariantColors.forEach((color) => colorImageIds.add(color.imageId));
+    existingVariantImages.forEach((img) => variantImageIds.add(img.imageId));
+
+    if (data.colors) {
+      for (const colorDto of data.colors) {
+        const existingVariantColor = existingVariantColors.find(
+          (color) => color.colorId === colorDto.colorId,
+        );
+
+        if (!existingVariantColor) {
+          isOnlyUpdateImages = false;
+
+          if (colorDto.imageUrl) {
+            const newImage = await this.phoneRepository.insertImage({
+              imageUrl: colorDto.imageUrl,
+              isDeleted: false,
+            });
+
+            await this.phoneRepository.insertVariantColors([
+              {
+                variantId: variant.id!,
+                colorId: colorDto.colorId,
+                imageId: newImage.id!,
+                isDeleted: false,
+              },
+            ]);
+
+            await this.phoneRepository.insertVariantImages([
+              {
+                variantId: variant.id!,
+                imageId: newImage.id!,
+                isDeleted: false,
+              },
+            ]);
+
+            colorImageIds.add(newImage.id!);
+            variantImageIds.add(newImage.id!);
+          } else {
+            throw new RpcException(
+              AppError.from(ErrVariantColorNotFound, 404)
+                .withLog('Image not found for the given color')
+                .toJson(false),
+            );
+          }
+        } else {
+          if (colorDto.isDeleted === true) {
+            isOnlyUpdateImages = false;
+
+            const imageIdToDelete = existingVariantColor.imageId;
+            deletedImageIds.add(imageIdToDelete);
+            colorImageIds.delete(imageIdToDelete);
+
+            await this.phoneRepository.deleteVariantColorByVariantIdAndColorId(
+              variant.id!,
+              colorDto.colorId,
+            );
+
+            const imageInVariantImage = existingVariantImages.find(
+              (img) => img.imageId === imageIdToDelete,
+            );
+            if (imageInVariantImage) {
+              await this.phoneRepository.deleteVariantImage(
+                imageInVariantImage.id!,
+              );
+              variantImageIds.delete(imageIdToDelete);
+            }
+          } else if (colorDto.imageUrl) {
+            const oldImageId = existingVariantColor.imageId;
+            deletedImageIds.add(oldImageId);
+            colorImageIds.delete(oldImageId);
+
+            const newImage = await this.phoneRepository.insertImage({
+              imageUrl: colorDto.imageUrl,
+              isDeleted: false,
+            });
+
+            if (colorDto.newColorId) isOnlyUpdateImages = false;
+
+            await this.phoneRepository.updateVariantColorByVariantIdAndColorId(
+              variant.id!,
+              colorDto.colorId,
+              {
+                colorId: colorDto.newColorId,
+                imageId: newImage.id!,
+                updatedAt: new Date(),
+                isDeleted: false,
+              },
+            );
+
+            const imageInVariantImage = existingVariantImages.find(
+              (img) => img.imageId === oldImageId,
+            );
+            if (imageInVariantImage) {
+              await this.phoneRepository.updateVariantImage(
+                imageInVariantImage.id!,
+                newImage.id!,
+              );
+            } else {
+              await this.phoneRepository.insertVariantImages([
+                {
+                  variantId: variant.id!,
+                  imageId: newImage.id!,
+                  isDeleted: false,
+                },
+              ]);
+            }
+
+            colorImageIds.add(newImage.id!);
+            variantImageIds.add(newImage.id!);
+            variantImageIds.delete(oldImageId);
+          }
+        }
+      }
+    }
+
+    if (data.price !== undefined) {
+      const price = await this.phoneRepository.findPricesByVariantIds([
+        variant.id!,
+      ]);
+      if (!price) {
+        throw new RpcException(
+          AppError.from(ErrVariantPriceNotFound, 404)
+            .withLog('No price found for the given variant')
+            .toJson(false),
+        );
+      }
+
+      const latestPrice = price.find((p) => p.endDate == null);
+      if (!latestPrice) {
+        throw new RpcException(
+          AppError.from(ErrVariantPriceNotFound, 404)
+            .withLog('No active price found for the given variant')
+            .toJson(false),
+        );
+      }
+
+      await this.phoneRepository.updateVariantPrice(latestPrice.id!, {
+        endDate: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await this.phoneRepository.insertVariantPrice({
+        variantId: variant.id!,
+        price: data.price ?? 0,
+        startDate: new Date(),
+        endDate: null,
+        isDeleted: false,
+      });
+    }
+
+    if (data.discount !== undefined) {
+      const discount = await this.phoneRepository.findDiscountsByVariantIds([
+        variant.id!,
+      ]);
+      const latestDiscount = discount.find((d) => d.endDate == null);
+      if (!latestDiscount) {
+        throw new RpcException(
+          AppError.from(ErrVariantDiscountNotFound, 404)
+            .withLog('No active discount found for the given variant')
+            .toJson(false),
+        );
+      }
+
+      await this.phoneRepository.updateVariantDiscount(latestDiscount.id!, {
+        endDate: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await this.phoneRepository.insertVariantDiscount({
+        variantId: variant.id!,
+        discountPercent: data.discount ?? 0,
+        startDate: new Date(),
+        endDate: null,
+        isDeleted: false,
+      });
+    }
+
+    if (data.images) {
+      for (const imageDto of data.images) {
+        const existingVariantImage = existingVariantImages.find(
+          (img) => img.id === imageDto.id,
+        );
+        if (!existingVariantImage) {
+          const newImage = await this.phoneRepository.insertImage({
+            imageUrl: imageDto.imageUrl,
+            isDeleted: false,
+          });
+
+          await this.phoneRepository.insertVariantImages([
+            {
+              variantId: variant.id!,
+              imageId: newImage.id!,
+              isDeleted: false,
+            },
+          ]);
+
+          variantImageIds.add(newImage.id!);
+        } else {
+          if (imageDto.isDeleted === true) {
+            const imageIdToDelete = existingVariantImage.imageId;
+
+            const imageInVariantColor = existingVariantColors.find(
+              (color) => color.imageId === imageIdToDelete,
+            );
+
+            if (imageInVariantColor) {
+              throw new RpcException(
+                AppError.from(
+                  new Error(
+                    'Cannot delete image that is in use by a color variant',
+                  ),
+                  400,
+                )
+                  .withLog(
+                    `Image ${imageIdToDelete} is in use by color ${imageInVariantColor.colorId}`,
+                  )
+                  .toJson(false),
+              );
+            } else {
+              await this.phoneRepository.deleteVariantImage(
+                existingVariantImage.id!,
+              );
+              deletedImageIds.add(imageIdToDelete);
+              variantImageIds.delete(imageIdToDelete);
+            }
+          } else if (imageDto.imageUrl) {
+            const oldImageId = existingVariantImage.imageId;
+
+            const imageInVariantColor = existingVariantColors.find(
+              (color) => color.imageId === oldImageId,
+            );
+
+            if (imageInVariantColor) {
+              const newImage = await this.phoneRepository.insertImage({
+                imageUrl: imageDto.imageUrl,
+                isDeleted: false,
+              });
+
+              await this.phoneRepository.updateVariantImage(
+                existingVariantImage.id!,
+                newImage.id!,
+              );
+
+              await this.phoneRepository.updateVariantColorByVariantIdAndColorId(
+                variant.id!,
+                imageInVariantColor.colorId,
+                {
+                  imageId: newImage.id!,
+                  updatedAt: new Date(),
+                  isDeleted: false,
+                },
+              );
+
+              deletedImageIds.add(oldImageId);
+              variantImageIds.delete(oldImageId);
+              variantImageIds.add(newImage.id!);
+              colorImageIds.delete(oldImageId);
+              colorImageIds.add(newImage.id!);
+            } else {
+              const newImage = await this.phoneRepository.insertImage({
+                imageUrl: imageDto.imageUrl,
+                isDeleted: false,
+              });
+
+              await this.phoneRepository.updateVariantImage(
+                existingVariantImage.id!,
+                newImage.id!,
+              );
+
+              deletedImageIds.add(oldImageId);
+              variantImageIds.delete(oldImageId);
+              variantImageIds.add(newImage.id!);
+            }
+          }
+        }
+      }
+    }
+
+    if (data.specifications) {
+      isOnlyUpdateImages = false;
+
+      const existingVariantSpecs =
+        await this.phoneRepository.findSpecificationsByVariantIds([
+          variant.id!,
+        ]);
+      for (const specDto of data.specifications) {
+        const existingVariantSpec = existingVariantSpecs.find(
+          (spec) => spec.specId === specDto.specId,
+        );
+
+        if (!existingVariantSpec) {
+          if (specDto.unit) {
+            await this.phoneRepository.insertVariantSpecifications([
+              {
+                variantId: variant.id!,
+                specId: specDto.specId,
+                info: specDto.info + ' ' + specDto.unit,
+                unit: specDto.unit,
+                valueNumeric: parseFloat(specDto.info),
+                isDeleted: false,
+              },
+            ]);
+          } else {
+            await this.phoneRepository.insertVariantSpecifications([
+              {
+                variantId: variant.id!,
+                specId: specDto.specId,
+                info: specDto.info,
+                isDeleted: false,
+              },
+            ]);
+          }
+        } else {
+          if (specDto.isDeleted === true) {
+            await this.phoneRepository.deleteVariantSpecificationByVariantIdAndSpecId(
+              variant.id!,
+              specDto.specId,
+            );
+          } else {
+            if (specDto.unit && parseFloatSafe(specDto.info) !== null) {
+              await this.phoneRepository.updateVariantSpecificationByVariantIdAndSpecId(
+                variant.id!,
+                specDto.specId,
+                {
+                  specId: specDto.newSpecId,
+                  info: specDto.info + ' ' + specDto.unit,
+                  unit: specDto.unit,
+                  valueNumeric: parseFloatSafe(specDto.info),
+                  updatedAt: new Date(),
+                  isDeleted: false,
+                },
+              );
+            } else {
+              await this.phoneRepository.updateVariantSpecificationByVariantIdAndSpecId(
+                variant.id!,
+                specDto.specId,
+                {
+                  specId: specDto.newSpecId,
+                  info: specDto.info,
+                  updatedAt: new Date(),
+                  isDeleted: false,
+                },
+              );
+            }
+          }
+        }
+      }
+    }
+
+    if (deletedImageIds.size > 0) {
+      const imagesToDelete = [...deletedImageIds].filter(
+        (id) => !colorImageIds.has(id) && !variantImageIds.has(id),
+      );
+
+      if (imagesToDelete.length > 0) {
+        await this.phoneRepository.deleteImagesByIds(imagesToDelete);
+      }
+    }
+
+    if (!isOnlyUpdateImages) {
+      const event = PhoneVariantUpdatedEvent.create(
+        {
+          id: variant.id!,
+        },
+        PHONE_SERVICE_NAME,
+      );
+
+      await this.eventPublisher.publish(event);
+    }
+  }
+
   // Image
 
   async getImagesByIds(ids: number[]): Promise<Image[]> {
@@ -404,7 +937,7 @@ export class PhoneService implements IPhoneService {
     variants: PhoneVariant[],
   ): Promise<PhoneVariantDto[]> {
     const phoneIds = [...new Set(variants.map((v) => v.phoneId))];
-    const phones = await this.phoneRepository.findPhoneByIds(phoneIds);
+    const phones = await this.phoneRepository.findPhonesByIds(phoneIds);
 
     const brands = await this.phoneRepository.findBrandsByIds(
       phones.map((p) => p.brandId),
@@ -684,13 +1217,13 @@ export class PhoneService implements IPhoneService {
 
     const variantSpecification: VariantSpecification[] = [];
     for (const specDto of data.specifications) {
-      if (specDto.unit) {
+      if (specDto.unit && parseFloatSafe(specDto.info) !== null) {
         variantSpecification.push({
           variantId: newVariant.id!,
           specId: specDto.specId,
           info: specDto.info + ' ' + specDto.unit,
           unit: specDto.unit,
-          valueNumeric: parseFloat(specDto.info),
+          valueNumeric: parseFloatSafe(specDto.info),
           isDeleted: false,
         });
       } else {

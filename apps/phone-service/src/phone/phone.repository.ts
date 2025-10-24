@@ -5,23 +5,29 @@ import { IPhoneRepository } from './phone.port';
 import { PhonePrismaService } from '@app/contracts/prisma';
 import {
   Brand,
+  BrandUpdateDto,
   Category,
+  CategoryUpdateDto,
   Color,
   Image,
   Inventory,
   Phone,
   PhoneFilterDto,
+  PhoneUpdateDto,
   PhoneVariant,
+  PhoneVariantUpdatePrisma,
   PhoneVariantViewDto,
   Review,
   Specification,
   VariantColor,
+  VariantColorUpdatePrisma,
   VariantDiscount,
   VariantDiscountUpdateDto,
   VariantImage,
   VariantPrice,
   VariantPriceUpdateDto,
   VariantSpecification,
+  VariantSpecificationUpdatePrisma,
 } from '@app/contracts/phone';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Paginated, PagingDto } from '@app/contracts';
@@ -206,6 +212,18 @@ export class PhoneRepository implements IPhoneRepository {
     return this._toBrandModel(createdBrand);
   }
 
+  async updateBrand(id: number, data: BrandUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      brand: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.brand.update({
+      where: { id },
+      data,
+    });
+  }
+
   // Category
 
   async findCategoriesByIds(ids: number[]): Promise<Category[]> {
@@ -245,6 +263,18 @@ export class PhoneRepository implements IPhoneRepository {
       data: category,
     });
     return this._toCategoryModel(createdCategory);
+  }
+
+  async updateCategory(id: number, data: CategoryUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      category: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.category.update({
+      where: { id },
+      data,
+    });
   }
 
   // Phone Variant
@@ -299,6 +329,156 @@ export class PhoneRepository implements IPhoneRepository {
     return variants.map((variant) => this._toPhoneVariantModel(variant));
   }
 
+  async listPhoneVariants(
+    filter: PhoneFilterDto,
+    paging: PagingDto,
+  ): Promise<Paginated<PhoneVariant>> {
+    const skip = (paging.page - 1) * paging.limit;
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        count: (params: { where: any }) => Promise<number>;
+        findMany: (params: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaPhoneVariant[]>;
+      };
+    };
+
+    if (this.isFilterEmpty(filter)) {
+      const total = await prismaService.phoneVariant.count({
+        where: { isDeleted: false },
+      });
+      const variants = await prismaService.phoneVariant.findMany({
+        where: { isDeleted: false },
+        skip,
+        take: paging.limit,
+        orderBy: { id: 'asc' },
+      });
+      return {
+        data: variants.map((variant) => this._toPhoneVariantModel(variant)),
+        paging,
+        total,
+      };
+    }
+
+    const queryConditions: string[] = ['1=1'];
+    const queryParams: any[] = [];
+
+    if (filter.brand) {
+      if (Array.isArray(filter.brand)) {
+        const placeholders = filter.brand
+          .map(
+            (_, index) => `brand_name ILIKE $${queryParams.length + 1 + index}`,
+          )
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.brand.forEach((b) => queryParams.push(`%${b}%`));
+      } else {
+        queryConditions.push('brand_name ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.brand}%`);
+      }
+    }
+    if (filter.minPrice !== undefined) {
+      queryConditions.push('final_price >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minPrice);
+    }
+    if (filter.maxPrice !== undefined) {
+      queryConditions.push('final_price <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxPrice);
+    }
+    if (filter.minRam !== undefined) {
+      queryConditions.push('ram_gb >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minRam);
+    }
+    if (filter.maxRam !== undefined) {
+      queryConditions.push('ram_gb <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxRam);
+    }
+    if (filter.minStorage !== undefined) {
+      queryConditions.push('rom_gb >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minStorage);
+    }
+    if (filter.maxStorage !== undefined) {
+      queryConditions.push('rom_gb <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxStorage);
+    }
+    if (filter.chipset) {
+      if (Array.isArray(filter.chipset)) {
+        const placeholders = filter.chipset
+          .map((_, index) => `chipset ILIKE $${queryParams.length + 1 + index}`)
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.chipset.forEach((chip) => queryParams.push(`%${chip}%`));
+      } else {
+        queryConditions.push('chipset ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.chipset}%`);
+      }
+    }
+    if (filter.os) {
+      if (Array.isArray(filter.os)) {
+        const placeholders = filter.os
+          .map((_, index) => `os ILIKE $${queryParams.length + 1 + index}`)
+          .join(' OR ');
+        queryConditions.push(`(${placeholders})`);
+        filter.os.forEach((os) => queryParams.push(`%${os}%`));
+      } else {
+        queryConditions.push('os ILIKE $' + (queryParams.length + 1));
+        queryParams.push(`%${filter.os}%`);
+      }
+    }
+    if (filter.minScreenSize !== undefined) {
+      queryConditions.push('screen_size >= $' + (queryParams.length + 1));
+      queryParams.push(filter.minScreenSize);
+    }
+    if (filter.maxScreenSize !== undefined) {
+      queryConditions.push('screen_size <= $' + (queryParams.length + 1));
+      queryParams.push(filter.maxScreenSize);
+    }
+    if (filter.nfc !== undefined) {
+      queryConditions.push('nfc = $' + (queryParams.length + 1));
+      queryParams.push(filter.nfc);
+    }
+
+    const countQuery = `
+      SELECT COUNT(*) FROM phone_variant_view
+      WHERE ${queryConditions.join(' AND ')}
+    ;`;
+    const dataQuery = `
+      SELECT * FROM phone_variant_view
+      WHERE ${queryConditions.join(' AND ')}
+      ORDER BY variant_id ASC
+      LIMIT $${queryParams.length + 1}
+      OFFSET $${queryParams.length + 2}
+    ;`;
+
+    queryParams.push(paging.limit, skip);
+
+    const rawCount = await this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
+      countQuery,
+      ...queryParams.slice(0, -2),
+    );
+    if (!Array.isArray(rawCount)) throw new Error('Invalid count result');
+    const countResult = rawCount as { count: bigint }[];
+
+    const rawData = await this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
+      dataQuery,
+      ...queryParams,
+    );
+
+    if (!this.isPhoneVariantViewDtoArray(rawData)) {
+      throw new Error('Invalid variant result');
+    }
+    const variantResults = rawData;
+
+    const total = Number(countResult[0]?.count ?? 0);
+    const variantIds = variantResults.map((v) => v.variant_id);
+    const variants = await this.findVariantsByIds(variantIds);
+
+    return { data: variants, paging, total };
+  }
+
   async insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant> {
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
@@ -309,6 +489,21 @@ export class PhoneRepository implements IPhoneRepository {
       data: variant,
     });
     return this._toPhoneVariantModel(createdVariant);
+  }
+
+  async updatePhoneVariant(
+    id: number,
+    data: PhoneVariantUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phoneVariant.update({
+      where: { id },
+      data,
+    });
   }
 
   // Review
@@ -486,6 +681,24 @@ export class PhoneRepository implements IPhoneRepository {
     return this._toImageModel(createdImage);
   }
 
+  async deleteImage(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        delete: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.delete({ where: { id } });
+  }
+
+  async deleteImagesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.deleteMany({ where: { id: { in: ids } } });
+  }
+
   // Variant Color
 
   async findVariantColorsByVariantIds(
@@ -514,6 +727,42 @@ export class PhoneRepository implements IPhoneRepository {
       };
     };
     await prismaService.variantColor.createMany({ data: variantColors });
+  }
+
+  async updateVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+    data: VariantColorUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.updateMany({
+      where: {
+        variantId,
+        colorId,
+      },
+      data,
+    });
+  }
+
+  async deleteVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.deleteMany({
+      where: {
+        variantId,
+        colorId,
+      },
+    });
   }
 
   // Specification
@@ -586,6 +835,24 @@ export class PhoneRepository implements IPhoneRepository {
     );
   }
 
+  async findVariantImagesByIds(ids: number[]): Promise<VariantImage[]> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantImage[]>;
+      };
+    };
+    const variantImages = await prismaService.variantImage.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+
+    return variantImages.map((variantImage) =>
+      this._toVariantImageModel(variantImage),
+    );
+  }
+
   async insertVariantImages(variantImages: VariantImage[]): Promise<void> {
     const prismaService = this.prisma as unknown as {
       variantImage: {
@@ -593,6 +860,27 @@ export class PhoneRepository implements IPhoneRepository {
       };
     };
     await prismaService.variantImage.createMany({ data: variantImages });
+  }
+
+  updateVariantImage(id: number, imageId: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    return prismaService.variantImage.update({
+      where: { id },
+      data: { imageId },
+    });
+  }
+
+  async deleteVariantImage(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        delete: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.delete({ where: { id } });
   }
 
   // Variant Specification
@@ -631,9 +919,45 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async updateVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
+    data: VariantSpecificationUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.updateMany({
+      where: {
+        variantId,
+        specId,
+      },
+      data,
+    });
+  }
+
+  async deleteVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.deleteMany({
+      where: {
+        variantId,
+        specId,
+      },
+    });
+  }
+
   // Phone
 
-  async findPhoneByIds(ids: number[]): Promise<Phone[]> {
+  async findPhonesByIds(ids: number[]): Promise<Phone[]> {
     const prismaService = this.prisma as unknown as {
       phone: {
         findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
@@ -648,154 +972,19 @@ export class PhoneRepository implements IPhoneRepository {
     return phones.map((phone) => this._toPhoneModel(phone));
   }
 
-  async listPhoneVariants(
-    filter: PhoneFilterDto,
-    paging: PagingDto,
-  ): Promise<Paginated<PhoneVariant>> {
-    const skip = (paging.page - 1) * paging.limit;
+  async findPhonesByCategoryId(categoryId: number): Promise<Phone[]> {
     const prismaService = this.prisma as unknown as {
-      phoneVariant: {
-        count: (params: { where: any }) => Promise<number>;
-        findMany: (params: {
-          where: any;
-          skip: number;
-          take: number;
-          orderBy: any;
-        }) => Promise<PrismaPhoneVariant[]>;
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
       };
     };
-
-    if (this.isFilterEmpty(filter)) {
-      const total = await prismaService.phoneVariant.count({
-        where: { isDeleted: false },
-      });
-      const variants = await prismaService.phoneVariant.findMany({
-        where: { isDeleted: false },
-        skip,
-        take: paging.limit,
-        orderBy: { id: 'asc' },
-      });
-      return {
-        data: variants.map((variant) => this._toPhoneVariantModel(variant)),
-        paging,
-        total,
-      };
-    }
-
-    const queryConditions: string[] = ['1=1'];
-    const queryParams: any[] = [];
-
-    if (filter.brand) {
-      if (Array.isArray(filter.brand)) {
-        const placeholders = filter.brand
-          .map(
-            (_, index) => `brand_name ILIKE $${queryParams.length + 1 + index}`,
-          )
-          .join(' OR ');
-        queryConditions.push(`(${placeholders})`);
-        filter.brand.forEach((b) => queryParams.push(`%${b}%`));
-      } else {
-        queryConditions.push('brand_name ILIKE $' + (queryParams.length + 1));
-        queryParams.push(`%${filter.brand}%`);
-      }
-    }
-    if (filter.minPrice !== undefined) {
-      queryConditions.push('final_price >= $' + (queryParams.length + 1));
-      queryParams.push(filter.minPrice);
-    }
-    if (filter.maxPrice !== undefined) {
-      queryConditions.push('final_price <= $' + (queryParams.length + 1));
-      queryParams.push(filter.maxPrice);
-    }
-    if (filter.minRam !== undefined) {
-      queryConditions.push('ram_gb >= $' + (queryParams.length + 1));
-      queryParams.push(filter.minRam);
-    }
-    if (filter.maxRam !== undefined) {
-      queryConditions.push('ram_gb <= $' + (queryParams.length + 1));
-      queryParams.push(filter.maxRam);
-    }
-    if (filter.minStorage !== undefined) {
-      queryConditions.push('rom_gb >= $' + (queryParams.length + 1));
-      queryParams.push(filter.minStorage);
-    }
-    if (filter.maxStorage !== undefined) {
-      queryConditions.push('rom_gb <= $' + (queryParams.length + 1));
-      queryParams.push(filter.maxStorage);
-    }
-    if (filter.chipset) {
-      if (Array.isArray(filter.chipset)) {
-        const placeholders = filter.chipset
-          .map((_, index) => `chipset ILIKE $${queryParams.length + 1 + index}`)
-          .join(' OR ');
-        queryConditions.push(`(${placeholders})`);
-        filter.chipset.forEach((chip) => queryParams.push(`%${chip}%`));
-      } else {
-        queryConditions.push('chipset ILIKE $' + (queryParams.length + 1));
-        queryParams.push(`%${filter.chipset}%`);
-      }
-    }
-    if (filter.os) {
-      if (Array.isArray(filter.os)) {
-        const placeholders = filter.os
-          .map((_, index) => `os ILIKE $${queryParams.length + 1 + index}`)
-          .join(' OR ');
-        queryConditions.push(`(${placeholders})`);
-        filter.os.forEach((os) => queryParams.push(`%${os}%`));
-      } else {
-        queryConditions.push('os ILIKE $' + (queryParams.length + 1));
-        queryParams.push(`%${filter.os}%`);
-      }
-    }
-    if (filter.minScreenSize !== undefined) {
-      queryConditions.push('screen_size >= $' + (queryParams.length + 1));
-      queryParams.push(filter.minScreenSize);
-    }
-    if (filter.maxScreenSize !== undefined) {
-      queryConditions.push('screen_size <= $' + (queryParams.length + 1));
-      queryParams.push(filter.maxScreenSize);
-    }
-    if (filter.nfc !== undefined) {
-      queryConditions.push('nfc = $' + (queryParams.length + 1));
-      queryParams.push(filter.nfc);
-    }
-
-    const countQuery = `
-      SELECT COUNT(*) FROM phone_variant_view
-      WHERE ${queryConditions.join(' AND ')}
-    ;`;
-    const dataQuery = `
-      SELECT * FROM phone_variant_view
-      WHERE ${queryConditions.join(' AND ')}
-      ORDER BY variant_id ASC
-      LIMIT $${queryParams.length + 1}
-      OFFSET $${queryParams.length + 2}
-    ;`;
-
-    queryParams.push(paging.limit, skip);
-
-    const rawCount = await this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
-      countQuery,
-      ...queryParams.slice(0, -2),
-    );
-    if (!Array.isArray(rawCount)) throw new Error('Invalid count result');
-    const countResult = rawCount as { count: bigint }[];
-
-    const rawData = await this.prisma.$queryRawUnsafe<PhoneVariantViewDto[]>(
-      dataQuery,
-      ...queryParams,
-    );
-
-    if (!this.isPhoneVariantViewDtoArray(rawData)) {
-      throw new Error('Invalid variant result');
-    }
-    const variantResults = rawData;
-
-    const total = Number(countResult[0]?.count ?? 0);
-    const variantIds = variantResults.map((v) => v.variant_id);
-    const variants = await this.findVariantsByIds(variantIds);
-
-    return { data: variants, paging, total };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        categoryId: categoryId,
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
   }
 
   async insertPhone(phone: Phone): Promise<Phone> {
@@ -806,6 +995,18 @@ export class PhoneRepository implements IPhoneRepository {
     };
     const createdPhone = await prismaService.phone.create({ data: phone });
     return this._toPhoneModel(createdPhone);
+  }
+
+  async updatePhone(id: number, data: PhoneUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        update: (params: { where: { id: number }; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phone.update({
+      where: { id },
+      data,
+    });
   }
 
   // Inventory
