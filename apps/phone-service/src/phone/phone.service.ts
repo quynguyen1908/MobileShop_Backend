@@ -1114,6 +1114,9 @@ export class PhoneService implements IPhoneService {
             name: category.name,
             parentId: category.parentId,
           },
+          createdAt: phone.createdAt,
+          updatedAt: phone.updatedAt,
+          isDeleted: phone.isDeleted,
         },
         colors: variantColorDtos,
         price: {
@@ -1137,6 +1140,9 @@ export class PhoneService implements IPhoneService {
         reviews: variantReviews,
         averageRating: averageRating,
         inventories: variantInventories,
+        createdAt: variant.createdAt,
+        updatedAt: variant.updatedAt,
+        isDeleted: variant.isDeleted,
       } as PhoneVariantDto;
     });
 

@@ -65,9 +65,6 @@ export const orderDtoSchema = orderSchema
   .omit({
     communeId: true,
     provinceId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     commune: communeSchema,

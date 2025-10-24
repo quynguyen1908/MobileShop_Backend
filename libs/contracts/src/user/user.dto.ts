@@ -11,9 +11,6 @@ import { userSchema } from '../auth/auth.model';
 export const customerDtoSchema = customerSchema
   .omit({
     userId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     user: userSchema.omit({

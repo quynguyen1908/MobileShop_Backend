@@ -227,9 +227,6 @@ export const phoneDtoSchema = phoneSchema
   .omit({
     brandId: true,
     categoryId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     brand: brandDtoSchema,
@@ -245,9 +242,6 @@ export const phoneDtoSchema = phoneSchema
 export const phoneVariantDtoSchema = phoneVariantSchema
   .omit({
     phoneId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     phone: phoneDtoSchema,

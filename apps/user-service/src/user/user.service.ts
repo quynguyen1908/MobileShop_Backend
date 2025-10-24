@@ -95,6 +95,9 @@ export class UserService implements IUserService {
         email: user.email,
         phone: user.phone,
       },
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+      isDeleted: customer.isDeleted,
     };
 
     return customerDto;

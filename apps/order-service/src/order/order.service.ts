@@ -225,6 +225,9 @@ export class OrderService implements IOrderService {
         statusHistory: histories,
         transactions: transactions,
         shipments: orderShipments,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        isDeleted: order.isDeleted,
       } as OrderDto;
     });
 
