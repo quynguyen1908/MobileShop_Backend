@@ -7,11 +7,11 @@ import {
   CategoryUpdateDto,
   InventoryUpdateDto,
   PhoneCreateDto,
-  PhoneDto,
   PhoneUpdateDto,
   PhoneVariantCreateDto,
   PhoneVariantUpdateDto,
   PhoneVariantUpdatePrisma,
+  PhoneWithVariantsDto,
   VariantColorUpdatePrisma,
   VariantDiscountUpdateDto,
   VariantPriceUpdateDto,
@@ -40,7 +40,7 @@ import {
 export interface IPhoneService {
   // Phone
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
-  listPhones(paging: PagingDto): Promise<Paginated<PhoneDto>>;
+  listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
 
@@ -119,6 +119,7 @@ export interface IPhoneQueryRepository {
   findVariantsById(id: number): Promise<PhoneVariant | null>;
   findVariantsByIds(ids: number[]): Promise<PhoneVariant[]>;
   findVariantsByPhoneId(phoneId: number): Promise<PhoneVariant[]>;
+  findVariantsByPhoneIds(phoneIds: number[]): Promise<PhoneVariant[]>;
 
   // Review
   findReviewsByVariantIds(variantIds: number[]): Promise<Review[]>;

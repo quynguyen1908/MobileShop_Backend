@@ -20,7 +20,6 @@ import {
   Inventory,
   PHONE_PATTERN,
   PHONE_SERVICE_NAME,
-  PhoneDto,
 } from '@app/contracts/phone';
 import type {
   Brand,
@@ -34,6 +33,7 @@ import type {
   PhoneVariantCreateDto,
   PhoneVariantDto,
   PhoneVariantUpdateDto,
+  PhoneWithVariantsDto,
   Specification,
 } from '@app/contracts/phone';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
@@ -125,7 +125,7 @@ export class PhoneController {
     try {
       const paging = pagingDtoSchema.parse(pagingDto);
       const result = await this.circuitBreakerService.sendRequest<
-        Paginated<PhoneDto> | FallbackResponse
+        Paginated<PhoneWithVariantsDto> | FallbackResponse
       >(
         this.phoneServiceClient,
         PHONE_SERVICE_NAME,

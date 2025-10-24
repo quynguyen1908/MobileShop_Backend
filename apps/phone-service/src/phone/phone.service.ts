@@ -57,7 +57,7 @@ import {
   BrandUpdatedEvent,
   CategoryUpdatedEvent,
   PhoneVariantUpdatedEvent,
-  PhoneDto,
+  PhoneWithVariantsDto,
 } from '@app/contracts/phone';
 import { RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -76,7 +76,7 @@ export class PhoneService implements IPhoneService {
     return this.phoneRepository.findPhonesByIds(ids);
   }
 
-  async listPhones(paging: PagingDto): Promise<Paginated<PhoneDto>> {
+  async listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>> {
     const paginatedPhones = await this.phoneRepository.listPhones(paging);
 
     if (!paginatedPhones.data || paginatedPhones.data.length === 0) {
@@ -99,7 +99,15 @@ export class PhoneService implements IPhoneService {
 
     const images = await this.phoneRepository.findImagesByIds(imageIds);
 
-    const phoneDtos: PhoneDto[] = paginatedPhones.data.map((phone) => {
+    const variants = await this.phoneRepository.findVariantsByPhoneIds(
+      paginatedPhones.data.map((p) => p.id).filter((id): id is number => typeof id === 'number'),
+    );
+
+    const variantDtos = variants.length > 0 
+      ? await this.toPhoneVariantDto(variants)
+      : [];
+
+    const phoneDtos: PhoneWithVariantsDto[] = paginatedPhones.data.map((phone) => {
       const brand = brands.find((b) => b.id === phone.brandId);
       if (!brand) {
         throw new RpcException(
@@ -130,6 +138,10 @@ export class PhoneService implements IPhoneService {
         );
       }
 
+      const phoneVariantDtos = variantDtos
+        .filter(variant => variant.phone?.id === phone.id)
+        .map(({ phone, ...variantWithoutPhone }) => variantWithoutPhone);
+
       return {
         id: phone.id,
         name: phone.name,
@@ -139,10 +151,11 @@ export class PhoneService implements IPhoneService {
           name: category.name,
           parentId: category.parentId,
         },
+        variants: phoneVariantDtos,
         createdAt: phone.createdAt,
         updatedAt: phone.updatedAt,
         isDeleted: phone.isDeleted,
-      } as PhoneDto;
+      } as PhoneWithVariantsDto;
     });
 
     return {

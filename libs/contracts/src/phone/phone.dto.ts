@@ -237,8 +237,6 @@ export const phoneDtoSchema = phoneSchema
     }),
   });
 
-export type PhoneDto = z.infer<typeof phoneDtoSchema>;
-
 // Phone Variant
 
 export const phoneVariantDtoSchema = phoneVariantSchema
@@ -268,6 +266,16 @@ export const phoneVariantDtoSchema = phoneVariantSchema
   });
 
 export type PhoneVariantDto = z.infer<typeof phoneVariantDtoSchema>;
+
+// Phone with Variants
+
+export const phoneWithVariantsDtoSchema = phoneDtoSchema.extend({
+  variants: phoneVariantDtoSchema.omit({
+    phone: true,
+  }).array(),
+});
+
+export type PhoneWithVariantsDto = z.infer<typeof phoneWithVariantsDtoSchema>;
 
 // Create Brand
 

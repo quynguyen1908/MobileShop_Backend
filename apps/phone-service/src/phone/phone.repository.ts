@@ -329,6 +329,21 @@ export class PhoneRepository implements IPhoneRepository {
     return variants.map((variant) => this._toPhoneVariantModel(variant));
   }
 
+  async findVariantsByPhoneIds(phoneIds: number[]): Promise<PhoneVariant[]> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        findMany: (params: { where: any }) => Promise<PrismaPhoneVariant[]>;
+      };
+    };
+    const variants = await prismaService.phoneVariant.findMany({
+      where: {
+        phoneId: { in: phoneIds },
+        isDeleted: false,
+      },
+    });
+    return variants.map((variant) => this._toPhoneVariantModel(variant));
+  }
+
   async listPhoneVariants(
     filter: PhoneFilterDto,
     paging: PagingDto,
