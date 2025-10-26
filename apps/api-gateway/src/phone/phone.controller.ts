@@ -945,61 +945,58 @@ export class PhoneController {
       properties: {
         phoneId: { type: 'number', example: 1 },
         data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              variantName: { type: 'string', example: '128GB' },
-              description: {
-                type: 'string',
-                example:
-                  'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
-              },
-              colors: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    colorId: { type: 'number', example: 6 },
-                    imageUrl: {
-                      type: 'string',
-                      example: 'https://www.apple.com/example-image-1.jpg',
-                    },
+          type: 'object',
+          properties: {
+            variantName: { type: 'string', example: '128GB' },
+            description: {
+              type: 'string',
+              example:
+                'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
+            },
+            colors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  colorId: { type: 'number', example: 6 },
+                  imageUrl: {
+                    type: 'string',
+                    example: 'https://www.apple.com/example-image-1.jpg',
                   },
-                  required: ['colorId', 'imageUrl'],
                 },
-              },
-              price: { type: 'number', example: 17000000 },
-              discountPercent: { type: 'number', example: 15 },
-              images: {
-                type: 'array',
-                items: {
-                  type: 'string',
-                  example: 'https://www.apple.com/example-image-2.jpg',
-                },
-              },
-              specifications: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    specId: { type: 'number', example: 1 },
-                    info: { type: 'string', example: '6.1' },
-                    unit: { type: 'string', example: 'inch' },
-                  },
-                  required: ['specId', 'info'],
-                },
+                required: ['colorId', 'imageUrl'],
               },
             },
-            required: [
-              'variantName',
-              'description',
-              'colors',
-              'price',
-              'images',
-              'specifications',
-            ],
+            price: { type: 'number', example: 17000000 },
+            discountPercent: { type: 'number', example: 15 },
+            images: {
+              type: 'array',
+              items: {
+                type: 'string',
+                example: 'https://www.apple.com/example-image-2.jpg',
+              },
+            },
+            specifications: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  specId: { type: 'number', example: 1 },
+                  info: { type: 'string', example: '6.1' },
+                  unit: { type: 'string', example: 'inch' },
+                },
+                required: ['specId', 'info'],
+              },
+            },
           },
+          required: [
+            'variantName',
+            'description',
+            'colors',
+            'price',
+            'images',
+            'specifications',
+          ],
         },
       },
       required: ['phoneId', 'data'],
