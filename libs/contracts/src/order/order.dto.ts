@@ -135,7 +135,7 @@ export const orderCreateDtoSchema = orderSchema
     items: orderItemCreateDtoSchema
       .array()
       .min(1, 'Order must have at least one item'),
-    voucherIdApplied: z.number().int().positive().optional(),
+    voucherIdsApplied: z.array(z.number().int().positive()).optional(),
     pointUsed: z.number().int().min(0).optional(),
   });
 

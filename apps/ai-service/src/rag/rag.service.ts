@@ -90,7 +90,9 @@ export class RagService implements IRagService {
       );
       const context = this.buildContext(similarResults);
 
-      this.logger.debug(`Starting RAG stream for query: ${query} with context length: ${context.length}`);
+      this.logger.debug(
+        `Starting RAG stream for query: ${query} with context length: ${context.length}`,
+      );
 
       return new Observable<AgentContent>((observer) => {
         observer.next({

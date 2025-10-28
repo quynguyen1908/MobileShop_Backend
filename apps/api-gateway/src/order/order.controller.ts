@@ -297,7 +297,10 @@ export class OrderController {
         communeId: { type: 'number', example: 2677 },
         provinceId: { type: 'number', example: 28 },
         postalCode: { type: 'string', example: '67890' },
-        voucherIdApplied: { type: 'number', example: 2, nullable: true },
+        voucherIdsApplied: {
+          type: 'array',
+          items: { type: 'number', example: 2 },
+        },
         items: {
           type: 'array',
           items: {

@@ -316,7 +316,10 @@ export class OrderService implements IOrderService {
     }
 
     let discountFromVoucher = 0;
-    if (orderCreateDto.voucherIdApplied) {
+    if (
+      orderCreateDto.voucherIdsApplied &&
+      orderCreateDto.voucherIdsApplied.length > 0
+    ) {
       // TODO: Validate voucher and calculate discount
       discountFromVoucher = 0;
     }

@@ -43,16 +43,19 @@ export interface IPhoneService {
   listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
+  deletePhonesByIds(ids: number[]): Promise<void>;
 
   // Brand
   getAllBrands(): Promise<BrandDto[]>;
   createBrand(brandCreateDto: BrandCreateDto): Promise<number>;
   updateBrand(id: number, name?: string, imageUrl?: string): Promise<void>;
+  deleteBrand(id: number): Promise<void>;
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;
   createCategory(categoryCreateDto: CategoryCreateDto): Promise<number>;
   updateCategory(id: number, data: CategoryUpdateDto): Promise<void>;
+  deleteCategory(id: number): Promise<void>;
 
   // Color
   getAllColors(): Promise<Color[]>;
@@ -71,6 +74,7 @@ export interface IPhoneService {
     phoneVariantCreateDto: PhoneVariantCreateDto,
   ): Promise<number>;
   updatePhoneVariant(id: number, data: PhoneVariantUpdateDto): Promise<void>;
+  deletePhoneVariantsByIds(ids: number[]): Promise<void>;
 
   // Image
   getImagesByIds(ids: number[]): Promise<Image[]>;
@@ -101,7 +105,9 @@ export interface IPhoneQueryRepository {
   // Phone
   findPhonesByIds(ids: number[]): Promise<Phone[]>;
   listPhones(paging: PagingDto): Promise<Paginated<Phone>>;
+  findPhonesByBrandId(brandId: number): Promise<Phone[]>;
   findPhonesByCategoryId(categoryId: number): Promise<Phone[]>;
+  findPhonesByCategoryIds(categoryIds: number[]): Promise<Phone[]>;
 
   // Brand
   findBrandsByIds(ids: number[]): Promise<Brand[]>;
@@ -110,6 +116,7 @@ export interface IPhoneQueryRepository {
   // Category
   findCategoriesByIds(ids: number[]): Promise<Category[]>;
   findAllCategories(): Promise<Category[]>;
+  findAllChildCategoryIds(parentId: number): Promise<number[]>;
 
   // Phone Variant
   listPhoneVariants(
@@ -168,18 +175,22 @@ export interface IPhoneCommandRepository {
   insertImage(image: Image): Promise<Image>;
   deleteImage(id: number): Promise<void>;
   deleteImagesByIds(ids: number[]): Promise<void>;
+  softDeleteImagesByIds(ids: number[]): Promise<void>;
 
   // Brand
   insertBrand(brand: Brand): Promise<Brand>;
   updateBrand(id: number, data: BrandUpdateDto): Promise<void>;
+  softDeleteBrand(id: number): Promise<void>;
 
   // Category
   insertCategory(category: Category): Promise<Category>;
   updateCategory(id: number, data: CategoryUpdateDto): Promise<void>;
+  softDeleteCategoriesByIds(ids: number[]): Promise<void>;
 
   // Phone
   insertPhone(phone: Phone): Promise<Phone>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
+  softDeletePhonesByIds(ids: number[]): Promise<void>;
 
   // Color
   insertColor(color: Color): Promise<Color>;
@@ -187,6 +198,7 @@ export interface IPhoneCommandRepository {
   // Phone Variant
   insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant>;
   updatePhoneVariant(id: number, data: PhoneVariantUpdatePrisma): Promise<void>;
+  softDeletePhoneVariantsByIds(ids: number[]): Promise<void>;
 
   // Variant Color
   insertVariantColors(variantColors: VariantColor[]): Promise<void>;
@@ -199,10 +211,12 @@ export interface IPhoneCommandRepository {
     variantId: number,
     colorId: number,
   ): Promise<void>;
+  softDeleteVariantColorsByVariantIds(variantIds: number[]): Promise<void>;
 
   // Variant Price
   insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice>;
   updateVariantPrice(id: number, data: VariantPriceUpdateDto): Promise<void>;
+  softDeleteVariantPricesByVariantIds(variantIds: number[]): Promise<void>;
 
   // Variant Discount
   insertVariantDiscount(
@@ -212,11 +226,13 @@ export interface IPhoneCommandRepository {
     id: number,
     data: VariantDiscountUpdateDto,
   ): Promise<void>;
+  softDeleteVariantDiscountsByVariantIds(variantIds: number[]): Promise<void>;
 
   // Variant Image
   insertVariantImages(variantImages: VariantImage[]): Promise<void>;
   updateVariantImage(id: number, imageId: number): Promise<void>;
   deleteVariantImage(id: number): Promise<void>;
+  softDeleteVariantImagesByVariantIds(variantIds: number[]): Promise<void>;
 
   // Specification
   insertSpecification(specification: Specification): Promise<Specification>;
@@ -234,7 +250,13 @@ export interface IPhoneCommandRepository {
     variantId: number,
     specId: number,
   ): Promise<void>;
+  softDeleteVariantSpecificationsByVariantIds(
+    variantIds: number[],
+  ): Promise<void>;
 
   // Inventory
   updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
+
+  // Review
+  softDeleteReviewsByVariantIds(variantIds: number[]): Promise<void>;
 }

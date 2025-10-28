@@ -91,7 +91,7 @@ const prompt = ChatPromptTemplate.fromMessages([
 5. Giữ thái độ chuyên nghiệp, thân thiện, kiên nhẫn.
 6. Nếu không chắc chắn, hãy nói rõ thay vì đoán.
 
-❗ Chỉ trả lời dựa trên dữ liệu thật trong {context}. 
+❗ Khi trả lời các câu hỏi liên quan đến sản phẩm, hãy sử dụng dữ liệu sản phẩm hiện có trong {context} để cung cấp thông tin chính xác và cập nhật nhất.
 Nếu thông tin không có trong {context}, hãy nói "Xin lỗi, hiện tại hệ thống chưa có sản phẩm đó."
 
 🧠 **Lưu ý:** Bạn có thể dùng công cụ để tra cứu tồn kho, phí giao hàng hoặc trạng thái đơn hàng nếu cần. Trả lời dưới dạng Markdown.`,

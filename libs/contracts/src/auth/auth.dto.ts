@@ -34,7 +34,7 @@ export type LoginDto = z.infer<typeof loginDtoSchema>;
 
 export const googleResponseDtoSchema = z.object({
   googleId: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });

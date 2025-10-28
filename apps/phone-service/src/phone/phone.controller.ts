@@ -40,6 +40,12 @@ export class PhoneController {
     return { success: true };
   }
 
+  @MessagePattern(PHONE_PATTERN.DELETE_PHONE)
+  async deletePhonesByIds(@Payload() id: number) {
+    await this.phoneService.deletePhonesByIds([id]);
+    return { success: true };
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_ALL_CATEGORIES)
   async getAllCategories() {
     return this.phoneService.getAllCategories();
@@ -59,6 +65,12 @@ export class PhoneController {
     return { success: true };
   }
 
+  @MessagePattern(PHONE_PATTERN.DELETE_CATEGORY)
+  async deleteCategory(@Payload() id: number) {
+    await this.phoneService.deleteCategory(id);
+    return { success: true };
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_ALL_BRANDS)
   async getAllBrands() {
     return this.phoneService.getAllBrands();
@@ -75,6 +87,12 @@ export class PhoneController {
   ) {
     const { id, name, imageUrl } = payload;
     await this.phoneService.updateBrand(id, name, imageUrl);
+    return { success: true };
+  }
+
+  @MessagePattern(PHONE_PATTERN.DELETE_BRAND)
+  async deleteBrand(@Payload() id: number) {
+    await this.phoneService.deleteBrand(id);
     return { success: true };
   }
 
@@ -133,6 +151,12 @@ export class PhoneController {
   ) {
     const { id, data } = payload;
     await this.phoneService.updatePhoneVariant(id, data);
+    return { success: true };
+  }
+
+  @MessagePattern(PHONE_PATTERN.DELETE_PHONE_VARIANT)
+  async deletePhoneVariantsByIds(@Payload() id: number) {
+    await this.phoneService.deletePhoneVariantsByIds([id]);
     return { success: true };
   }
 

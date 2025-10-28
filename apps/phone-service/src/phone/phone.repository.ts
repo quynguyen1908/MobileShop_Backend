@@ -224,6 +224,18 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async softDeleteBrand(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      brand: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.brand.update({
+      where: { id },
+      data: { isDeleted: true },
+    });
+  }
+
   // Category
 
   async findCategoriesByIds(ids: number[]): Promise<Category[]> {
@@ -275,6 +287,38 @@ export class PhoneRepository implements IPhoneRepository {
       where: { id },
       data,
     });
+  }
+
+  async softDeleteCategoriesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      category: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.category.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
+  }
+
+  async findAllChildCategoryIds(parentId: number): Promise<number[]> {
+    const allCategories = await this.findAllCategories();
+
+    const childCategoryIds: number[] = [];
+
+    const findChildrenRecursively = (parentId: number) => {
+      const children = allCategories.filter(
+        (category) => category.parentId === parentId,
+      );
+      for (const child of children) {
+        if (child.id !== undefined) {
+          childCategoryIds.push(child.id);
+          findChildrenRecursively(child.id);
+        }
+      }
+    };
+    findChildrenRecursively(parentId);
+    return childCategoryIds;
   }
 
   // Phone Variant
@@ -521,6 +565,18 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async softDeletePhoneVariantsByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phoneVariant.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
+  }
+
   // Review
 
   async findReviewsByVariantIds(variantIds: number[]): Promise<Review[]> {
@@ -536,6 +592,18 @@ export class PhoneRepository implements IPhoneRepository {
       },
     });
     return reviews.map((review) => this._toReviewModel(review));
+  }
+
+  async softDeleteReviewsByVariantIds(variantIds: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      review: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.review.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
   }
 
   // Color
@@ -621,6 +689,20 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async softDeleteVariantPricesByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantPrice.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
   // Variant Discount
 
   async findDiscountsByVariantIds(
@@ -669,6 +751,20 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async softDeleteVariantDiscountsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantDiscount.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
   // Image
 
   async findImagesByIds(ids: number[]): Promise<Image[]> {
@@ -712,6 +808,18 @@ export class PhoneRepository implements IPhoneRepository {
       };
     };
     await prismaService.image.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  async softDeleteImagesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
   }
 
   // Variant Color
@@ -777,6 +885,20 @@ export class PhoneRepository implements IPhoneRepository {
         variantId,
         colorId,
       },
+    });
+  }
+
+  async softDeleteVariantColorsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
     });
   }
 
@@ -898,6 +1020,20 @@ export class PhoneRepository implements IPhoneRepository {
     await prismaService.variantImage.delete({ where: { id } });
   }
 
+  async softDeleteVariantImagesByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
   // Variant Specification
 
   async findSpecificationsByVariantIds(
@@ -970,6 +1106,20 @@ export class PhoneRepository implements IPhoneRepository {
     });
   }
 
+  async softDeleteVariantSpecificationsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
   // Phone
 
   async findPhonesByIds(ids: number[]): Promise<Phone[]> {
@@ -1016,6 +1166,21 @@ export class PhoneRepository implements IPhoneRepository {
     };
   }
 
+  async findPhonesByBrandId(brandId: number): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        brandId: brandId,
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
   async findPhonesByCategoryId(categoryId: number): Promise<Phone[]> {
     const prismaService = this.prisma as unknown as {
       phone: {
@@ -1025,6 +1190,21 @@ export class PhoneRepository implements IPhoneRepository {
     const phones = await prismaService.phone.findMany({
       where: {
         categoryId: categoryId,
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async findPhonesByCategoryIds(categoryIds: number[]): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        categoryId: { in: categoryIds },
         isDeleted: false,
       },
     });
@@ -1050,6 +1230,18 @@ export class PhoneRepository implements IPhoneRepository {
     await prismaService.phone.update({
       where: { id },
       data,
+    });
+  }
+
+  async softDeletePhonesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phone.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
     });
   }
 

@@ -76,7 +76,9 @@ export class PhoneService implements IPhoneService {
     return this.phoneRepository.findPhonesByIds(ids);
   }
 
-  async listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>> {
+  async listPhones(
+    paging: PagingDto,
+  ): Promise<Paginated<PhoneWithVariantsDto>> {
     const paginatedPhones = await this.phoneRepository.listPhones(paging);
 
     if (!paginatedPhones.data || paginatedPhones.data.length === 0) {
@@ -95,68 +97,73 @@ export class PhoneService implements IPhoneService {
       paginatedPhones.data.map((p) => p.categoryId),
     );
 
-    const imageIds = brands.map((b) => b.imageId).filter((id): id is number => typeof id === 'number');
+    const imageIds = brands
+      .map((b) => b.imageId)
+      .filter((id): id is number => typeof id === 'number');
 
     const images = await this.phoneRepository.findImagesByIds(imageIds);
 
     const variants = await this.phoneRepository.findVariantsByPhoneIds(
-      paginatedPhones.data.map((p) => p.id).filter((id): id is number => typeof id === 'number'),
+      paginatedPhones.data
+        .map((p) => p.id)
+        .filter((id): id is number => typeof id === 'number'),
     );
 
-    const variantDtos = variants.length > 0 
-      ? await this.toPhoneVariantDto(variants)
-      : [];
+    const variantDtos =
+      variants.length > 0 ? await this.toPhoneVariantDto(variants) : [];
 
-    const phoneDtos: PhoneWithVariantsDto[] = paginatedPhones.data.map((phone) => {
-      const brand = brands.find((b) => b.id === phone.brandId);
-      if (!brand) {
-        throw new RpcException(
-          AppError.from(ErrBrandNotFound, 404)
-            .withLog('Brand not found for phone')
-            .toJson(false),
-        );
-      }
+    const phoneDtos: PhoneWithVariantsDto[] = paginatedPhones.data.map(
+      (phone) => {
+        const brand = brands.find((b) => b.id === phone.brandId);
+        if (!brand) {
+          throw new RpcException(
+            AppError.from(ErrBrandNotFound, 404)
+              .withLog('Brand not found for phone')
+              .toJson(false),
+          );
+        }
 
-      const brandDto: BrandDto = {
-        id: brand.id,
-        name: brand.name,
-        image: {
-          id: brand.imageId,
-          imageUrl: (() => {
-            const img = images.find((i) => i.id === brand.imageId);
-            return img ? img.imageUrl : '';
-          })(),
-        },
-      };
+        const brandDto: BrandDto = {
+          id: brand.id,
+          name: brand.name,
+          image: {
+            id: brand.imageId,
+            imageUrl: (() => {
+              const img = images.find((i) => i.id === brand.imageId);
+              return img ? img.imageUrl : '';
+            })(),
+          },
+        };
 
-      const category = categories.find((c) => c.id === phone.categoryId);
-      if (!category) {
-        throw new RpcException(
-          AppError.from(ErrCategoryNotFound, 404)
-            .withLog('Category not found for phone')
-            .toJson(false),
-        );
-      }
+        const category = categories.find((c) => c.id === phone.categoryId);
+        if (!category) {
+          throw new RpcException(
+            AppError.from(ErrCategoryNotFound, 404)
+              .withLog('Category not found for phone')
+              .toJson(false),
+          );
+        }
 
-      const phoneVariantDtos = variantDtos
-        .filter(variant => variant.phone?.id === phone.id)
-        .map(({ phone, ...variantWithoutPhone }) => variantWithoutPhone);
+        const phoneVariantDtos = variantDtos
+          .filter((variant) => variant.phone?.id === phone.id)
+          .map(({ phone: _phone, ...variantWithoutPhone }) => variantWithoutPhone);
 
-      return {
-        id: phone.id,
-        name: phone.name,
-        brand: brandDto,
-        category: {
-          id: category.id,
-          name: category.name,
-          parentId: category.parentId,
-        },
-        variants: phoneVariantDtos,
-        createdAt: phone.createdAt,
-        updatedAt: phone.updatedAt,
-        isDeleted: phone.isDeleted,
-      } as PhoneWithVariantsDto;
-    });
+        return {
+          id: phone.id,
+          name: phone.name,
+          brand: brandDto,
+          category: {
+            id: category.id,
+            name: category.name,
+            parentId: category.parentId,
+          },
+          variants: phoneVariantDtos,
+          createdAt: phone.createdAt,
+          updatedAt: phone.updatedAt,
+          isDeleted: phone.isDeleted,
+        } as PhoneWithVariantsDto;
+      },
+    );
 
     return {
       data: phoneDtos,
@@ -211,6 +218,28 @@ export class PhoneService implements IPhoneService {
     const event = PhoneUpdatedEvent.create(
       {
         id: id,
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+  }
+
+  async deletePhonesByIds(ids: number[]): Promise<void> {
+    const phones = await this.phoneRepository.findPhonesByIds(ids);
+    if (!phones || phones.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneNotFound, 404)
+          .withLog('Phones not found for the given IDs')
+          .toJson(false),
+      );
+    }
+
+    await this.deletePhones(ids);
+
+    const event = PhoneUpdatedEvent.create(
+      {
+        id: ids[0],
       },
       PHONE_SERVICE_NAME,
     );
@@ -329,6 +358,43 @@ export class PhoneService implements IPhoneService {
     await this.eventPublisher.publish(event);
   }
 
+  async deleteBrand(id: number): Promise<void> {
+    const brand = await this.phoneRepository.findBrandsByIds([id]);
+    if (!brand || brand.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrBrandNotFound, 404)
+          .withLog('Brand not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    const phones = await this.phoneRepository.findPhonesByBrandId(id);
+    if (phones && phones.length > 0) {
+      await this.deletePhones(
+        phones
+          .map((phone) => phone.id)
+          .filter((id): id is number => id !== undefined),
+      );
+
+      const event = BrandUpdatedEvent.create(
+        {
+          id: id,
+        },
+        PHONE_SERVICE_NAME,
+      );
+
+      await this.eventPublisher.publish(event);
+    }
+
+    await this.phoneRepository.softDeleteImagesByIds(
+      brand
+        .map((b) => b.imageId)
+        .filter((id): id is number => typeof id === 'number'),
+    );
+
+    await this.phoneRepository.softDeleteBrand(id);
+  }
+
   // Category
 
   async getAllCategories(): Promise<CategoryDto[]> {
@@ -384,6 +450,43 @@ export class PhoneService implements IPhoneService {
 
       await this.eventPublisher.publish(event);
     }
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    const category = await this.phoneRepository.findCategoriesByIds([id]);
+    if (!category || category.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrCategoryNotFound, 404)
+          .withLog('Category not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    const childCategoryIds =
+      await this.phoneRepository.findAllChildCategoryIds(id);
+    const categoryIdsToDelete = [id, ...childCategoryIds];
+
+    const phones =
+      await this.phoneRepository.findPhonesByCategoryIds(categoryIdsToDelete);
+
+    if (phones && phones.length > 0) {
+      await this.deletePhones(
+        phones
+          .map((phone) => phone.id)
+          .filter((id): id is number => id !== undefined),
+      );
+
+      const event = CategoryUpdatedEvent.create(
+        {
+          id: id,
+        },
+        PHONE_SERVICE_NAME,
+      );
+
+      await this.eventPublisher.publish(event);
+    }
+
+    await this.phoneRepository.softDeleteCategoriesByIds(categoryIdsToDelete);
   }
 
   // Color
@@ -921,6 +1024,28 @@ export class PhoneService implements IPhoneService {
     }
   }
 
+  async deletePhoneVariantsByIds(ids: number[]): Promise<void> {
+    const variants = await this.phoneRepository.findVariantsByIds(ids);
+    if (!variants || variants.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variants not found for the given IDs')
+          .toJson(false),
+      );
+    }
+
+    await this.deletePhoneVariants(ids);
+
+    const event = PhoneVariantUpdatedEvent.create(
+      {
+        id: ids[0],
+      },
+      PHONE_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+  }
+
   // Image
 
   async getImagesByIds(ids: number[]): Promise<Image[]> {
@@ -1240,6 +1365,16 @@ export class PhoneService implements IPhoneService {
     return variantDtos;
   }
 
+  private async deletePhones(ids: number[]): Promise<void> {
+    const variants = await this.phoneRepository.findVariantsByPhoneIds(ids);
+    const variantIds = variants.map((v) => v.id!);
+    if (variantIds.length > 0) {
+      await this.deletePhoneVariants(variantIds);
+    }
+
+    await this.phoneRepository.softDeletePhonesByIds(ids);
+  }
+
   private async insertPhoneVariant(
     phoneId: number,
     phoneVariantCreateDto: PhoneVariantCreateDto,
@@ -1338,6 +1473,23 @@ export class PhoneService implements IPhoneService {
     );
 
     return newVariant;
+  }
+
+  private async deletePhoneVariants(ids: number[]): Promise<void> {
+    await this.phoneRepository.softDeleteVariantColorsByVariantIds(ids);
+    await this.phoneRepository.softDeleteVariantPricesByVariantIds(ids);
+    await this.phoneRepository.softDeleteVariantDiscountsByVariantIds(ids);
+
+    const variantImages =
+      await this.phoneRepository.findVariantImagesByVariantIds(ids);
+    const imageIdsToDelete = variantImages.map((vi) => vi.imageId);
+
+    await this.phoneRepository.softDeleteVariantImagesByVariantIds(ids);
+    await this.phoneRepository.softDeleteImagesByIds(imageIdsToDelete);
+    await this.phoneRepository.softDeleteVariantSpecificationsByVariantIds(ids);
+    await this.phoneRepository.softDeleteReviewsByVariantIds(ids);
+
+    await this.phoneRepository.softDeletePhoneVariantsByIds(ids);
   }
 
   private buildCategoryTree(categories: Category[]): CategoryDto[] {

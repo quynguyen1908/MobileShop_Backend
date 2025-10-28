@@ -270,9 +270,11 @@ export type PhoneVariantDto = z.infer<typeof phoneVariantDtoSchema>;
 // Phone with Variants
 
 export const phoneWithVariantsDtoSchema = phoneDtoSchema.extend({
-  variants: phoneVariantDtoSchema.omit({
-    phone: true,
-  }).array(),
+  variants: phoneVariantDtoSchema
+    .omit({
+      phone: true,
+    })
+    .array(),
 });
 
 export type PhoneWithVariantsDto = z.infer<typeof phoneWithVariantsDtoSchema>;
