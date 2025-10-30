@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IRagService, IRetrievalRepository } from './rag.port';
 import {
   AGENT_EXECUTOR,
@@ -18,6 +18,7 @@ import { Observable } from 'rxjs';
 export class RagService implements IRagService {
   private chatHistory: (HumanMessage | AIMessage)[] = [];
   private readonly maxContextTokens: number;
+  private readonly logger = new Logger(RagService.name);
 
   constructor(
     @Inject(AGENT_EXECUTOR) private agentExecutor: AgentExecutor,
@@ -88,6 +89,10 @@ export class RagService implements IRagService {
         5,
       );
       const context = this.buildContext(similarResults);
+
+      this.logger.debug(
+        `Starting RAG stream for query: ${query} with context length: ${context.length}`,
+      );
 
       return new Observable<AgentContent>((observer) => {
         observer.next({

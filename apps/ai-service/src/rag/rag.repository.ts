@@ -132,7 +132,7 @@ export class RetrievalRepository implements IRetrievalRepository {
         vector: queryVector,
         limit: topK,
         with_payload: true,
-        score_threshold: 0.7,
+        score_threshold: 0.5,
       });
 
       if (!searchResult || searchResult.length === 0) {

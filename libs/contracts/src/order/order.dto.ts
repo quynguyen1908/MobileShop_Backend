@@ -51,6 +51,18 @@ const pointTransactionDtoSchema = pointTransactionSchema.omit({
   isDeleted: true,
 });
 
+export const pointHistoryDtoSchema = pointTransactionSchema
+  .omit({
+    orderId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    orderCode: orderSchema.shape.orderCode,
+  });
+
+export type PointHistoryDto = z.infer<typeof pointHistoryDtoSchema>;
+
 // Shipment
 
 export const shipmentDtoSchema = shipmentSchema.omit({
@@ -65,9 +77,6 @@ export const orderDtoSchema = orderSchema
   .omit({
     communeId: true,
     provinceId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     commune: communeSchema,
@@ -138,7 +147,7 @@ export const orderCreateDtoSchema = orderSchema
     items: orderItemCreateDtoSchema
       .array()
       .min(1, 'Order must have at least one item'),
-    voucherIdApplied: z.number().int().positive().optional(),
+    voucherIdsApplied: z.array(z.number().int().positive()).optional(),
     pointUsed: z.number().int().min(0).optional(),
   });
 

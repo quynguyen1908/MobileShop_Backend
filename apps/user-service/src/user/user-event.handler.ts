@@ -13,11 +13,14 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { USER_SERVICE_NAME } from '@app/contracts/user';
 import {
   EVT_ORDER_CREATED,
+  EVT_ORDER_UPDATED,
   OrderCreatedEvent,
+  OrderUpdatedEvent,
 } from '@app/contracts/order/order.event';
 import {
   Order,
   ORDER_PATTERN,
+  OrderStatus,
   PointConfig,
   PointType,
 } from '@app/contracts/order';
@@ -138,6 +141,69 @@ export class UserEventHandler {
       const typedError = error as TypedError;
       this.logger.error(
         `Failed to update customer points: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handleOrderUpdated(event: OrderUpdatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling OrderUpdated event for order ID: ${event.payload.id}`,
+    );
+    try {
+      const pointTransactions = event.payload.pointTransactions;
+      const status = event.payload.status;
+
+      const customerId = event.payload.customerId;
+      if (!customerId) {
+        this.logger.log(
+          'No customerId associated with this order, skipping point update',
+        );
+        return;
+      }
+
+      if (!pointTransactions || pointTransactions.length === 0) {
+        this.logger.log(
+          'No point transactions associated with this order, skipping point update',
+        );
+        return;
+      }
+
+      const customer = await this.userService.getCustomerById(customerId);
+      if (!customer) {
+        this.logger.log(
+          `Customer with ID ${customerId} not found, skipping point update`,
+        );
+        return;
+      }
+
+      switch (status) {
+        case OrderStatus.CANCELED.toString(): {
+          let refundedPoints = 0;
+          for (const transaction of pointTransactions) {
+            if (transaction.type === PointType.REFUND) {
+              refundedPoints += transaction.points;
+            }
+          }
+
+          const newPointsBalance = customer.pointsBalance + refundedPoints;
+
+          await this.userService.updateCustomer(customerId, {
+            pointsBalance: newPointsBalance,
+            updatedAt: new Date(),
+          });
+          return;
+        }
+        default: {
+          this.logger.log(
+            `Order status is ${status}, no point update required`,
+          );
+          return;
+        }
+      }
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to handle order updated event: ${typedError.message}`,
       );
     }
   }
@@ -319,6 +385,38 @@ export class UserEventHandler {
             const typedError = error as TypedError;
             this.logger.error(
               `Error processing ${EVT_ORDER_CREATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_ORDER_UPDATED,
+      USER_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_ORDER_UPDATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_ORDER_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = OrderUpdatedEvent.from(eventJson);
+            await this.handleOrderUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_ORDER_UPDATED} event: ${typedError.message}`,
               typedError.stack,
             );
           }

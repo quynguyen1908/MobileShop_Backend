@@ -8,6 +8,7 @@ import {
   Inject,
   Param,
   Post,
+  Put,
   Query,
   Res,
   UseGuards,
@@ -24,11 +25,15 @@ import type {
   Brand,
   BrandCreateDto,
   CategoryCreateDto,
+  CategoryUpdateDto,
   Color,
   PhoneCreateDto,
   PhoneFilterDto,
+  PhoneUpdateDto,
   PhoneVariantCreateDto,
   PhoneVariantDto,
+  PhoneVariantUpdateDto,
+  PhoneWithVariantsDto,
   Specification,
 } from '@app/contracts/phone';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
@@ -54,6 +59,116 @@ export class PhoneController {
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
+
+  @Get('list')
+  @ApiOperation({ summary: 'List phones with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Current page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of items per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phones retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phones retrieved successfully',
+          data: {
+            data: [
+              {
+                id: 1,
+                name: 'Samsung Galaxy S25',
+                brand: {
+                  id: 1,
+                  name: 'Samsung',
+                  image: {
+                    id: 9,
+                    imageUrl: 'https://example.com/brands/samsung.png',
+                  },
+                },
+                category: {
+                  id: 9,
+                  name: 'Galaxy S25 Series',
+                  parentId: 5,
+                },
+                createdAt: '2024-10-01T00:00:00.000Z',
+                updatedAt: '2024-10-01T00:00:00.000Z',
+                isDeleted: false,
+              },
+            ],
+            paging: {
+              page: 1,
+              limit: 10,
+              order: 'asc',
+            },
+            total: 1,
+          },
+        },
+      },
+    },
+  })
+  async listPhones(@Query() pagingDto: PagingDto, @Res() res: Response) {
+    try {
+      const paging = pagingDtoSchema.parse(pagingDto);
+      const result = await this.circuitBreakerService.sendRequest<
+        Paginated<PhoneWithVariantsDto> | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.LIST_PHONES,
+        paging,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phones retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting phones failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 
   @Post('create')
   @UseGuards(RemoteAuthGuard)
@@ -198,6 +313,173 @@ export class PhoneController {
     }
   }
 
+  @Put('update/:phoneId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Update a phone (Admin/Sales only)' })
+  @ApiParam({
+    name: 'phoneId',
+    type: Number,
+    description: 'Phone ID',
+    example: 10,
+  })
+  @ApiBody({
+    description: 'Phone update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'iPhone 16e Updated' },
+        brandId: { type: 'number', example: 2 },
+        categoryId: { type: 'number', example: 6 },
+      },
+      required: [],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updatePhone(
+    @Param('phoneId') phoneId: number,
+    @Body() data: PhoneUpdateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.UPDATE_PHONE,
+          { id: phoneId, data },
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone updated successfully',
+          result,
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Updating phone failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('delete/:phoneId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Soft delete a phone (Admin/Sales only)' })
+  @ApiParam({
+    name: 'phoneId',
+    type: Number,
+    description: 'Phone ID',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone deleted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone deleted successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async deletePhone(@Param('phoneId') phoneId: number, @Res() res: Response) {
+    try {
+      const id: number = phoneId;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.DELETE_PHONE,
+          id,
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone deleted successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Deleting phone failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('variants/filter')
   @ApiOperation({
     summary: 'List phone variants with filtering and pagination',
@@ -302,12 +584,12 @@ export class PhoneController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Phones retrieved successfully',
+    description: 'Phone variants retrieved successfully',
     content: {
       'application/json': {
         example: {
           status: 200,
-          message: 'Phones retrieved successfully',
+          message: 'Phone variants retrieved successfully',
           data: {
             data: [
               {
@@ -735,61 +1017,58 @@ export class PhoneController {
       properties: {
         phoneId: { type: 'number', example: 1 },
         data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              variantName: { type: 'string', example: '128GB' },
-              description: {
-                type: 'string',
-                example:
-                  'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
-              },
-              colors: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    colorId: { type: 'number', example: 6 },
-                    imageUrl: {
-                      type: 'string',
-                      example: 'https://www.apple.com/example-image-1.jpg',
-                    },
+          type: 'object',
+          properties: {
+            variantName: { type: 'string', example: '128GB' },
+            description: {
+              type: 'string',
+              example:
+                'iPhone 16e được trang bị màn hình Super Retina XDR 6.1inch, ...',
+            },
+            colors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  colorId: { type: 'number', example: 6 },
+                  imageUrl: {
+                    type: 'string',
+                    example: 'https://www.apple.com/example-image-1.jpg',
                   },
-                  required: ['colorId', 'imageUrl'],
                 },
-              },
-              price: { type: 'number', example: 17000000 },
-              discountPercent: { type: 'number', example: 15 },
-              images: {
-                type: 'array',
-                items: {
-                  type: 'string',
-                  example: 'https://www.apple.com/example-image-2.jpg',
-                },
-              },
-              specifications: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    specId: { type: 'number', example: 1 },
-                    info: { type: 'string', example: '6.1' },
-                    unit: { type: 'string', example: 'inch' },
-                  },
-                  required: ['specId', 'info'],
-                },
+                required: ['colorId', 'imageUrl'],
               },
             },
-            required: [
-              'variantName',
-              'description',
-              'colors',
-              'price',
-              'images',
-              'specifications',
-            ],
+            price: { type: 'number', example: 17000000 },
+            discountPercent: { type: 'number', example: 15 },
+            images: {
+              type: 'array',
+              items: {
+                type: 'string',
+                example: 'https://www.apple.com/example-image-2.jpg',
+              },
+            },
+            specifications: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  specId: { type: 'number', example: 1 },
+                  info: { type: 'string', example: '6.1' },
+                  unit: { type: 'string', example: 'inch' },
+                },
+                required: ['specId', 'info'],
+              },
+            },
           },
+          required: [
+            'variantName',
+            'description',
+            'colors',
+            'price',
+            'images',
+            'specifications',
+          ],
         },
       },
       required: ['phoneId', 'data'],
@@ -853,6 +1132,222 @@ export class PhoneController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Creating phone variant failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('variants/update/:variantId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Update a phone variant (Admin/Sales only)' })
+  @ApiParam({
+    name: 'variantId',
+    type: Number,
+    description: 'Phone variant ID',
+    example: 1,
+  })
+  @ApiBody({
+    description: 'Phone variant update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        variantName: { type: 'string', example: '128GB' },
+        description: { type: 'string', example: 'Updated description ...' },
+        colors: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              colorId: { type: 'number', example: 6 },
+              newColorId: { type: 'number', example: 7 },
+              imageUrl: {
+                type: 'string',
+                example: 'https://www.apple.com/example-image-1.jpg',
+              },
+              isDeleted: { type: 'boolean', example: false },
+            },
+            required: ['colorId'],
+          },
+        },
+        price: { type: 'number', example: 17000000 },
+        discountPercent: { type: 'number', example: 15 },
+        images: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', example: 10 },
+              imageUrl: {
+                type: 'string',
+                example: 'https://www.apple.com/example-image-2.jpg',
+              },
+              isDeleted: { type: 'boolean', example: false },
+            },
+            required: ['imageUrl'],
+          },
+        },
+        specifications: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              specId: { type: 'number', example: 1 },
+              newSpecId: { type: 'number', example: 2 },
+              info: { type: 'string', example: '6.1' },
+              unit: { type: 'string', example: 'inch' },
+              isDeleted: { type: 'boolean', example: false },
+            },
+            required: ['specId'],
+          },
+        },
+      },
+      required: [],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone variant updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone variant updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updatePhoneVariant(
+    @Param('variantId') variantId: number,
+    @Body() data: PhoneVariantUpdateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.UPDATE_PHONE_VARIANT,
+          { id: variantId, data },
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone variant updated successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Updating phone variant failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('variants/delete/:variantId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.SALES)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Soft delete a phone variant (Admin/Sales only)' })
+  @ApiParam({
+    name: 'variantId',
+    type: Number,
+    description: 'Phone variant ID',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone variant deleted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone variant deleted successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async deletePhoneVariant(
+    @Param('variantId') variantId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const id: number = variantId;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.DELETE_PHONE_VARIANT,
+          id,
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone variant deleted successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Deleting phone variant failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -1348,6 +1843,174 @@ export class BrandController {
       return res.status(statusCode).json(errorResponse);
     }
   }
+
+  @Put('update/:brandId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Update a brand (Admin/Sales only)' })
+  @ApiParam({
+    name: 'brandId',
+    type: Number,
+    description: 'Brand ID',
+    example: 2,
+  })
+  @ApiBody({
+    description: 'Brand update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Apple Inc.' },
+        imageUrl: {
+          type: 'string',
+          example: 'https://example.com/brands/apple.png',
+        },
+      },
+      required: [],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Brand updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updateBrand(
+    @Param('brandId') brandId: number,
+    @Body() body: { name?: string; imageUrl?: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const { name, imageUrl } = body;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.UPDATE_BRAND,
+          { id: brandId, name, imageUrl },
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Brand updated successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Updating brand failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('delete/:brandId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Soft delete a brand (Admin/Sales only)' })
+  @ApiParam({
+    name: 'brandId',
+    type: Number,
+    description: 'Brand ID',
+    example: 2,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand deleted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Brand deleted successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async deleteBrand(@Param('brandId') brandId: number, @Res() res: Response) {
+    try {
+      const id: number = brandId;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.DELETE_BRAND,
+          id,
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Brand deleted successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Deleting brand failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 }
 
 @ApiTags('Categories')
@@ -1510,6 +2173,173 @@ export class CategoryController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Creating category failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('update/:categoryId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Update a category (Admin/Sales only)' })
+  @ApiParam({
+    name: 'categoryId',
+    type: Number,
+    description: 'Category ID',
+    example: 2,
+  })
+  @ApiBody({
+    description: 'Category update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'vivo' },
+        parentId: { type: 'number', nullable: true, example: null },
+      },
+      required: [],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Category updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updateCategory(
+    @Param('categoryId') categoryId: number,
+    @Body() body: CategoryUpdateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.UPDATE_CATEGORY,
+          { id: categoryId, data: body },
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Category updated successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Updating category failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('delete/:categoryId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({ summary: 'Soft delete a category (Admin/Sales only)' })
+  @ApiParam({
+    name: 'categoryId',
+    type: Number,
+    description: 'Category ID',
+    example: 2,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category deleted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Category deleted successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async deleteCategory(
+    @Param('categoryId') categoryId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const id: number = categoryId;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.DELETE_CATEGORY,
+          id,
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 5000 },
+        );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Category deleted successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Deleting category failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

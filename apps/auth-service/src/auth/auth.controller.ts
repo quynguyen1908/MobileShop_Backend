@@ -103,22 +103,27 @@ export class AuthController {
   @MessagePattern(AUTH_PATTERN.UPDATE_PROFILE)
   async updateProfile(
     @Payload() payload: { id: number; data: UserUpdateProfileDto },
-  ): Promise<void> {
+  ) {
     const { id, data } = payload;
-    return this.authService.update(id, data);
+    await this.authService.update(id, {
+      username: data.username,
+      password: data.password,
+      updatedAt: new Date(),
+    });
+    return { success: true };
   }
 
   @MessagePattern(AUTH_PATTERN.UPDATE_USER)
-  async update(
-    @Payload() payload: { id: number; data: UserUpdateDto },
-  ): Promise<void> {
+  async update(@Payload() payload: { id: number; data: UserUpdateDto }) {
     const { id, data } = payload;
-    return this.authService.update(id, data);
+    await this.authService.update(id, data);
+    return { success: true };
   }
 
   @MessagePattern(AUTH_PATTERN.DELETE_USER)
-  async delete(@Payload() id: number): Promise<void> {
-    return this.authService.delete(id);
+  async delete(@Payload() id: number) {
+    await this.authService.delete(id);
+    return { success: true };
   }
 
   @MessagePattern(AUTH_PATTERN.LIST_USERS)

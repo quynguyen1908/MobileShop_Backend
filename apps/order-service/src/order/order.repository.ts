@@ -164,6 +164,20 @@ export class OrderRepository implements IOrderRepository {
     return this._toOrderModel(order);
   }
 
+  async findOrdersByIds(orderIds: number[]): Promise<Order[]> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        findMany: (param: {
+          where: { id: { in: number[] } };
+        }) => Promise<PrismaOrder[]>;
+      };
+    };
+    const orders = await prismaService.order.findMany({
+      where: { id: { in: orderIds } },
+    });
+    return orders.map((order) => this._toOrderModel(order));
+  }
+
   async insertOrder(data: Omit<Order, 'id'>): Promise<Order> {
     const prismaService = this.prisma as unknown as {
       order: {
@@ -258,6 +272,24 @@ export class OrderRepository implements IOrderRepository {
     };
     const transactions = await prismaService.pointTransaction.findMany({
       where: { orderId: { in: orderIds } },
+    });
+    return transactions.map((transaction) =>
+      this._toPointTransactionModel(transaction),
+    );
+  }
+
+  async findPointTransactionsByCustomerId(
+    customerId: number,
+  ): Promise<PointTransaction[]> {
+    const prismaService = this.prisma as unknown as {
+      pointTransaction: {
+        findMany: (param: {
+          where: { customerId: number };
+        }) => Promise<PrismaPointTransaction[]>;
+      };
+    };
+    const transactions = await prismaService.pointTransaction.findMany({
+      where: { customerId },
     });
     return transactions.map((transaction) =>
       this._toPointTransactionModel(transaction),

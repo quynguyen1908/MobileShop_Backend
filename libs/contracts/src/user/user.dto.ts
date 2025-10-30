@@ -1,19 +1,18 @@
 import { z } from 'zod';
 import {
+  addressSchema,
   customerSchema,
   employeeSchema,
   notificationSchema,
 } from './user.model';
 import { userSchema } from '../auth/auth.model';
+import { pointHistoryDtoSchema } from '../order/order.dto';
 
 // Customer
 
 export const customerDtoSchema = customerSchema
   .omit({
     userId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     user: userSchema.omit({
@@ -25,6 +24,7 @@ export const customerDtoSchema = customerSchema
       updatedAt: true,
       isDeleted: true,
     }),
+    pointHistory: pointHistoryDtoSchema.array().optional(),
   });
 
 export type CustomerDto = z.infer<typeof customerDtoSchema>;
@@ -53,6 +53,18 @@ export const customerUpdateDtoSchema = customerSchema
   .partial();
 
 export type CustomerUpdateDto = z.infer<typeof customerUpdateDtoSchema>;
+
+export const CustomerUpdateProfileDtoSchema = customerSchema
+  .pick({
+    gender: true,
+  })
+  .extend({
+    username: userSchema.shape.username.optional(),
+  });
+
+export type CustomerUpdateProfileDto = z.infer<
+  typeof CustomerUpdateProfileDtoSchema
+>;
 
 // Employee
 
@@ -109,3 +121,32 @@ export const notificationUpdateDtoSchema = notificationSchema
   .partial();
 
 export type NotificationUpdateDto = z.infer<typeof notificationUpdateDtoSchema>;
+
+// Address
+
+export const addressCreateDtoSchema = addressSchema
+  .pick({
+    recipientName: true,
+    recipientPhone: true,
+    street: true,
+    provinceId: true,
+    communeId: true,
+  })
+  .required()
+  .extend({
+    customerId: addressSchema.shape.customerId.optional(),
+    postalCode: addressSchema.shape.postalCode,
+    isDefault: addressSchema.shape.isDefault,
+  });
+
+export type AddressCreateDto = z.infer<typeof addressCreateDtoSchema>;
+
+export const addressUpdateDtoSchema = addressSchema
+  .omit({
+    id: true,
+    customerId: true,
+    createdAt: true,
+  })
+  .partial();
+
+export type AddressUpdateDto = z.infer<typeof addressUpdateDtoSchema>;

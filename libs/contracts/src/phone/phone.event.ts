@@ -3,6 +3,10 @@ import { AppEvent } from '../model';
 
 export const EVT_PHONE_CREATED = 'PhoneCreated';
 export const EVT_VARIANT_CREATED = 'VariantCreated';
+export const EVT_BRAND_UPDATED = 'BrandUpdated';
+export const EVT_CATEGORY_UPDATED = 'CategoryUpdated';
+export const EVT_PHONE_VARIANT_UPDATED = 'PhoneVariantUpdated';
+export const EVT_PHONE_UPDATED = 'PhoneUpdated';
 
 export interface BasePhoneEventPayload {
   id: number;
@@ -75,10 +79,74 @@ export abstract class PhoneEvent<
           version,
         });
       }
+      case EVT_BRAND_UPDATED: {
+        const basePayload = validateBasePhoneEventPayload(payload);
+        return new BrandUpdatedEvent(basePayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_CATEGORY_UPDATED: {
+        const basePayload = validateBasePhoneEventPayload(payload);
+        return new CategoryUpdatedEvent(basePayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_PHONE_VARIANT_UPDATED: {
+        const basePayload = validateBasePhoneEventPayload(payload);
+        return new PhoneVariantUpdatedEvent(basePayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_PHONE_UPDATED: {
+        const basePayload = validateBasePhoneEventPayload(payload);
+        return new PhoneUpdatedEvent(basePayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
       default:
         throw new Error(`Unknown event name: ${eventName}`);
     }
   }
+}
+
+function validateBasePhoneEventPayload(
+  payload: Record<string, unknown>,
+): BasePhoneEventPayload {
+  if (typeof payload.id !== 'number') {
+    throw new Error('Invalid payload: id must be a number');
+  }
+
+  return {
+    id: payload.id,
+  };
 }
 
 function validatePhoneCreatedPayload(
@@ -180,5 +248,117 @@ export class VariantCreatedEvent extends PhoneEvent<VariantCreatedPayload> {
 
   static from(json: EventJson): VariantCreatedEvent {
     return PhoneEvent.fromJson(json) as VariantCreatedEvent;
+  }
+}
+
+export class BrandUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
+  constructor(
+    payload: BasePhoneEventPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_BRAND_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: BasePhoneEventPayload,
+    senderId: string,
+  ): BrandUpdatedEvent {
+    return new BrandUpdatedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): BrandUpdatedEvent {
+    return PhoneEvent.fromJson(json) as BrandUpdatedEvent;
+  }
+}
+
+export class CategoryUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
+  constructor(
+    payload: BasePhoneEventPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_CATEGORY_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: BasePhoneEventPayload,
+    senderId: string,
+  ): CategoryUpdatedEvent {
+    return new CategoryUpdatedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): CategoryUpdatedEvent {
+    return PhoneEvent.fromJson(json) as CategoryUpdatedEvent;
+  }
+}
+
+export class PhoneVariantUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
+  constructor(
+    payload: BasePhoneEventPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_PHONE_VARIANT_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: BasePhoneEventPayload,
+    senderId: string,
+  ): PhoneVariantUpdatedEvent {
+    return new PhoneVariantUpdatedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): PhoneVariantUpdatedEvent {
+    return PhoneEvent.fromJson(json) as PhoneVariantUpdatedEvent;
+  }
+}
+
+export class PhoneUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
+  constructor(
+    payload: BasePhoneEventPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_PHONE_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: BasePhoneEventPayload,
+    senderId: string,
+  ): PhoneUpdatedEvent {
+    return new PhoneUpdatedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): PhoneUpdatedEvent {
+    return PhoneEvent.fromJson(json) as PhoneUpdatedEvent;
   }
 }

@@ -41,6 +41,9 @@ export const ErrCategoryNotFound = new Error('Category not found');
 export const ErrPhoneVariantNotFound = new Error('Phone variant not found');
 export const ErrVariantColorNotFound = new Error('Variant color not found');
 export const ErrVariantPriceNotFound = new Error('Variant price not found');
+export const ErrVariantDiscountNotFound = new Error(
+  'Variant discount not found',
+);
 export const ErrVariantImagesNotFound = new Error('Variant images not found');
 export const ErrVariantSpecificationsNotFound = new Error(
   'Variant specifications not found',

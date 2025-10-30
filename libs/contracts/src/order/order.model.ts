@@ -13,6 +13,7 @@ export enum OrderStatus {
 export enum PointType {
   EARN = 'earn',
   REDEEM = 'redeem',
+  REFUND = 'refund',
 }
 
 export enum ShipmentStatus {

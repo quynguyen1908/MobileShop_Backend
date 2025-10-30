@@ -126,6 +126,9 @@ export class OrderController {
                 },
               ],
               shipments: [],
+              createdAt: '2025-10-04T07:32:50.835Z',
+              updatedAt: '2025-10-04T07:34:19.625Z',
+              isDeleted: false,
             },
           ],
         },
@@ -297,7 +300,10 @@ export class OrderController {
         communeId: { type: 'number', example: 2677 },
         provinceId: { type: 'number', example: 28 },
         postalCode: { type: 'string', example: '67890' },
-        voucherIdApplied: { type: 'number', example: 2, nullable: true },
+        voucherIdsApplied: {
+          type: 'array',
+          items: { type: 'number', example: 2 },
+        },
         items: {
           type: 'array',
           items: {
@@ -386,6 +392,88 @@ export class OrderController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Creating order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('cancel')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Cancel an order (requires authentication)' })
+  @ApiBody({
+    description: 'Order cancellation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        orderCode: { type: 'string', example: 'PH3010257917' },
+      },
+      required: ['orderCode'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order cancelled successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Order cancelled successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async cancelOrder(
+    @Req() req: ReqWithRequester,
+    @Body() body: { orderCode: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const { orderCode } = body;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.orderServiceClient,
+          ORDER_SERVICE_NAME,
+          ORDER_PATTERN.CANCEL_ORDER,
+          { requester, orderCode },
+          () => {
+            return {
+              fallback: true,
+              message: 'Order service is temporary unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Order cancelled successfully',
+          { success: true },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Cancelling order failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

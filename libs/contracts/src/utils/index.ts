@@ -3,3 +3,4 @@ export * from './format-currency';
 export * from './normalize-text';
 export * from './format-date';
 export * from './extract-error';
+export * from './parse-float';

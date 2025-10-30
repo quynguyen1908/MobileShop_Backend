@@ -96,12 +96,15 @@ export class AuthRepository implements IAuthRepository {
   async findById(id: number): Promise<User | null> {
     const prismaService = this.prisma as unknown as {
       user: {
-        findUnique: (params: {
-          where: { id: number };
-        }) => Promise<PrismaUser | null>;
+        findUnique: (params: { where: any }) => Promise<PrismaUser | null>;
       };
     };
-    const user = await prismaService.user.findUnique({ where: { id } });
+    const user = await prismaService.user.findUnique({
+      where: {
+        id,
+        isDeleted: false,
+      },
+    });
     return user ? this._toModel(user) : null;
   }
 

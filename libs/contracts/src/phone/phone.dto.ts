@@ -227,9 +227,6 @@ export const phoneDtoSchema = phoneSchema
   .omit({
     brandId: true,
     categoryId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     brand: brandDtoSchema,
@@ -245,9 +242,6 @@ export const phoneDtoSchema = phoneSchema
 export const phoneVariantDtoSchema = phoneVariantSchema
   .omit({
     phoneId: true,
-    createdAt: true,
-    updatedAt: true,
-    isDeleted: true,
   })
   .extend({
     phone: phoneDtoSchema,
@@ -272,6 +266,18 @@ export const phoneVariantDtoSchema = phoneVariantSchema
   });
 
 export type PhoneVariantDto = z.infer<typeof phoneVariantDtoSchema>;
+
+// Phone with Variants
+
+export const phoneWithVariantsDtoSchema = phoneDtoSchema.extend({
+  variants: phoneVariantDtoSchema
+    .omit({
+      phone: true,
+    })
+    .array(),
+});
+
+export type PhoneWithVariantsDto = z.infer<typeof phoneWithVariantsDtoSchema>;
 
 // Create Brand
 
@@ -315,7 +321,7 @@ export type VariantPriceUpdateDto = z.infer<typeof variantPriceUpdateDtoSchema>;
 
 export const variantDiscountUpdateDtoSchema = variantDiscountSchema
   .pick({
-    percent: true,
+    discountPercent: true,
     startDate: true,
     endDate: true,
     updatedAt: true,
@@ -361,11 +367,13 @@ export const phoneVariantCreateDtoSchema = phoneVariantSchema
   .extend({
     colors: variantColorCreateDtoSchema.array(),
     price: variantPriceSchema.shape.price,
-    discountPercent: variantDiscountSchema.shape.discountPercent.optional(),
     images: z.array(z.url()).optional(),
     specifications: variantSpecificationCreateDtoSchema.array(),
   })
-  .required();
+  .required()
+  .extend({
+    discountPercent: variantDiscountSchema.shape.discountPercent.optional(),
+  });
 
 export type PhoneVariantCreateDto = z.infer<typeof phoneVariantCreateDtoSchema>;
 
@@ -383,3 +391,150 @@ export const phoneCreateDtoSchema = phoneSchema
   .required();
 
 export type PhoneCreateDto = z.infer<typeof phoneCreateDtoSchema>;
+
+// Update Brand
+
+export const brandUpdateDtoSchema = brandSchema
+  .pick({
+    name: true,
+    imageId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type BrandUpdateDto = z.infer<typeof brandUpdateDtoSchema>;
+
+// Update Category
+
+export const categoryUpdateDtoSchema = categorySchema
+  .pick({
+    name: true,
+    parentId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type CategoryUpdateDto = z.infer<typeof categoryUpdateDtoSchema>;
+
+// Update Variant Color
+
+export const variantColorUpdateDtoSchema = variantColorSchema
+  .pick({
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    imageUrl: z.url(),
+    newColorId: variantColorSchema.shape.colorId,
+  })
+  .partial()
+  .extend({
+    colorId: variantColorSchema.shape.colorId,
+  });
+
+export const variantColorUpdatePrismaSchema = variantColorSchema
+  .pick({
+    colorId: true,
+    imageId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type VariantColorUpdatePrisma = z.infer<
+  typeof variantColorUpdatePrismaSchema
+>;
+
+// Update Variant Image
+
+export const variantImageUpdateDtoSchema = variantImageSchema
+  .pick({
+    id: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial()
+  .extend({
+    imageUrl: z.url(),
+  });
+
+// Update Variant Specification
+
+export const variantSpecificationUpdateDtoSchema = variantSpecificationSchema
+  .pick({
+    unit: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    newSpecId: variantSpecificationSchema.shape.specId,
+  })
+  .partial()
+  .extend({
+    specId: variantSpecificationSchema.shape.specId,
+    info: variantSpecificationSchema.shape.info,
+  });
+
+export const variantSpecificationUpdatePrismaSchema = variantSpecificationSchema
+  .pick({
+    specId: true,
+    info: true,
+    valueNumeric: true,
+    unit: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type VariantSpecificationUpdatePrisma = z.infer<
+  typeof variantSpecificationUpdatePrismaSchema
+>;
+
+// Update Phone Variant
+
+export const phoneVariantUpdateDtoSchema = phoneVariantSchema
+  .pick({
+    variantName: true,
+    description: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    colors: variantColorUpdateDtoSchema.array().optional(),
+    price: variantPriceSchema.shape.price.optional(),
+    discount: variantDiscountSchema.shape.discountPercent.optional(),
+    images: variantImageUpdateDtoSchema.array().optional(),
+    specifications: variantSpecificationUpdateDtoSchema.array().optional(),
+  })
+  .partial();
+
+export type PhoneVariantUpdateDto = z.infer<typeof phoneVariantUpdateDtoSchema>;
+
+export const phoneVariantUpdatePrismaSchema = phoneVariantSchema
+  .pick({
+    variantName: true,
+    description: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type PhoneVariantUpdatePrisma = z.infer<
+  typeof phoneVariantUpdatePrismaSchema
+>;
+
+// Update Phone
+
+export const phoneUpdateDtoSchema = phoneSchema
+  .pick({
+    name: true,
+    brandId: true,
+    categoryId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type PhoneUpdateDto = z.infer<typeof phoneUpdateDtoSchema>;

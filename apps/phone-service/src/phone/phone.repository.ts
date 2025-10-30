@@ -5,23 +5,29 @@ import { IPhoneRepository } from './phone.port';
 import { PhonePrismaService } from '@app/contracts/prisma';
 import {
   Brand,
+  BrandUpdateDto,
   Category,
+  CategoryUpdateDto,
   Color,
   Image,
   Inventory,
   Phone,
   PhoneFilterDto,
+  PhoneUpdateDto,
   PhoneVariant,
+  PhoneVariantUpdatePrisma,
   PhoneVariantViewDto,
   Review,
   Specification,
   VariantColor,
+  VariantColorUpdatePrisma,
   VariantDiscount,
   VariantDiscountUpdateDto,
   VariantImage,
   VariantPrice,
   VariantPriceUpdateDto,
   VariantSpecification,
+  VariantSpecificationUpdatePrisma,
 } from '@app/contracts/phone';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Paginated, PagingDto } from '@app/contracts';
@@ -206,6 +212,30 @@ export class PhoneRepository implements IPhoneRepository {
     return this._toBrandModel(createdBrand);
   }
 
+  async updateBrand(id: number, data: BrandUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      brand: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.brand.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeleteBrand(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      brand: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.brand.update({
+      where: { id },
+      data: { isDeleted: true },
+    });
+  }
+
   // Category
 
   async findCategoriesByIds(ids: number[]): Promise<Category[]> {
@@ -245,6 +275,50 @@ export class PhoneRepository implements IPhoneRepository {
       data: category,
     });
     return this._toCategoryModel(createdCategory);
+  }
+
+  async updateCategory(id: number, data: CategoryUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      category: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.category.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeleteCategoriesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      category: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.category.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
+  }
+
+  async findAllChildCategoryIds(parentId: number): Promise<number[]> {
+    const allCategories = await this.findAllCategories();
+
+    const childCategoryIds: number[] = [];
+
+    const findChildrenRecursively = (parentId: number) => {
+      const children = allCategories.filter(
+        (category) => category.parentId === parentId,
+      );
+      for (const child of children) {
+        if (child.id !== undefined) {
+          childCategoryIds.push(child.id);
+          findChildrenRecursively(child.id);
+        }
+      }
+    };
+    findChildrenRecursively(parentId);
+    return childCategoryIds;
   }
 
   // Phone Variant
@@ -299,353 +373,19 @@ export class PhoneRepository implements IPhoneRepository {
     return variants.map((variant) => this._toPhoneVariantModel(variant));
   }
 
-  async insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant> {
+  async findVariantsByPhoneIds(phoneIds: number[]): Promise<PhoneVariant[]> {
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
-        create: (params: { data: any }) => Promise<PrismaPhoneVariant>;
+        findMany: (params: { where: any }) => Promise<PrismaPhoneVariant[]>;
       };
     };
-    const createdVariant = await prismaService.phoneVariant.create({
-      data: variant,
-    });
-    return this._toPhoneVariantModel(createdVariant);
-  }
-
-  // Review
-
-  async findReviewsByVariantIds(variantIds: number[]): Promise<Review[]> {
-    const prismaService = this.prisma as unknown as {
-      review: {
-        findMany: (params: { where: any }) => Promise<PrismaReview[]>;
-      };
-    };
-    const reviews = await prismaService.review.findMany({
+    const variants = await prismaService.phoneVariant.findMany({
       where: {
-        variantId: { in: variantIds },
+        phoneId: { in: phoneIds },
         isDeleted: false,
       },
     });
-    return reviews.map((review) => this._toReviewModel(review));
-  }
-
-  // Color
-
-  async findColorsByIds(ids: number[]): Promise<Color[]> {
-    const prismaService = this.prisma as unknown as {
-      color: {
-        findMany: (params: { where: any }) => Promise<PrismaColor[]>;
-      };
-    };
-    const colors = await prismaService.color.findMany({
-      where: {
-        id: { in: ids },
-        isDeleted: false,
-      },
-    });
-    return colors.map((color) => this._toColorModel(color));
-  }
-
-  async findAllColors(): Promise<Color[]> {
-    const prismaService = this.prisma as unknown as {
-      color: {
-        findMany: (params: { where: any }) => Promise<PrismaColor[]>;
-      };
-    };
-    const colors = await prismaService.color.findMany({
-      where: { isDeleted: false },
-    });
-    return colors.map((color) => this._toColorModel(color));
-  }
-
-  async insertColor(color: Color): Promise<Color> {
-    const prismaService = this.prisma as unknown as {
-      color: {
-        create: (params: { data: any }) => Promise<PrismaColor>;
-      };
-    };
-    const createdColor = await prismaService.color.create({ data: color });
-    return this._toColorModel(createdColor);
-  }
-
-  // Variant Price
-
-  async findPricesByVariantIds(variantIds: number[]): Promise<VariantPrice[]> {
-    const prismaService = this.prisma as unknown as {
-      variantPrice: {
-        findMany: (params: { where: any }) => Promise<PrismaVariantPrice[]>;
-      };
-    };
-    const prices = await prismaService.variantPrice.findMany({
-      where: {
-        variantId: { in: variantIds },
-        endDate: null,
-      },
-    });
-    return prices.map((price) => this._toVariantPriceModel(price));
-  }
-
-  async insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice> {
-    const prismaService = this.prisma as unknown as {
-      variantPrice: {
-        create: (params: { data: any }) => Promise<PrismaVariantPrice>;
-      };
-    };
-    const createdPrice = await prismaService.variantPrice.create({
-      data: variantPrice,
-    });
-    return this._toVariantPriceModel(createdPrice);
-  }
-
-  async updateVariantPrice(
-    id: number,
-    data: VariantPriceUpdateDto,
-  ): Promise<void> {
-    const prismaService = this.prisma as unknown as {
-      variantPrice: {
-        update: (params: { where: any; data: any }) => Promise<void>;
-      };
-    };
-    await prismaService.variantPrice.update({
-      where: { id },
-      data,
-    });
-  }
-
-  // Variant Discount
-
-  async findDiscountsByVariantIds(
-    variantIds: number[],
-  ): Promise<VariantDiscount[]> {
-    const prismaService = this.prisma as unknown as {
-      variantDiscount: {
-        findMany: (params: { where: any }) => Promise<PrismaVariantDiscount[]>;
-      };
-    };
-    const discounts = await prismaService.variantDiscount.findMany({
-      where: {
-        variantId: { in: variantIds },
-        endDate: null,
-      },
-    });
-    return discounts.map((discount) => this._toVariantDiscountModel(discount));
-  }
-
-  async insertVariantDiscount(
-    variantDiscount: VariantDiscount,
-  ): Promise<VariantDiscount> {
-    const prismaService = this.prisma as unknown as {
-      variantDiscount: {
-        create: (params: { data: any }) => Promise<PrismaVariantDiscount>;
-      };
-    };
-    const createdDiscount = await prismaService.variantDiscount.create({
-      data: variantDiscount,
-    });
-    return this._toVariantDiscountModel(createdDiscount);
-  }
-
-  async updateVariantDiscount(
-    id: number,
-    data: VariantDiscountUpdateDto,
-  ): Promise<void> {
-    const prismaService = this.prisma as unknown as {
-      variantDiscount: {
-        update: (params: { where: any; data: any }) => Promise<void>;
-      };
-    };
-    await prismaService.variantDiscount.update({
-      where: { id },
-      data,
-    });
-  }
-
-  // Image
-
-  async findImagesByIds(ids: number[]): Promise<Image[]> {
-    const prismaService = this.prisma as unknown as {
-      image: {
-        findMany: (params: { where: any }) => Promise<PrismaImage[]>;
-      };
-    };
-    const images = await prismaService.image.findMany({
-      where: {
-        id: { in: ids },
-        isDeleted: false,
-      },
-    });
-    return images.map((image) => this._toImageModel(image));
-  }
-
-  async insertImage(image: Image): Promise<Image> {
-    const prismaService = this.prisma as unknown as {
-      image: {
-        create: (params: { data: any }) => Promise<PrismaImage>;
-      };
-    };
-    const createdImage = await prismaService.image.create({ data: image });
-    return this._toImageModel(createdImage);
-  }
-
-  // Variant Color
-
-  async findVariantColorsByVariantIds(
-    variantIds: number[],
-  ): Promise<VariantColor[]> {
-    const prismaService = this.prisma as unknown as {
-      variantColor: {
-        findMany: (params: { where: any }) => Promise<PrismaVariantColor[]>;
-      };
-    };
-    const variantColors = await prismaService.variantColor.findMany({
-      where: {
-        variantId: { in: variantIds },
-        isDeleted: false,
-      },
-    });
-    return variantColors.map((variantColor) =>
-      this._toVariantColorModel(variantColor),
-    );
-  }
-
-  async insertVariantColors(variantColors: VariantColor[]): Promise<void> {
-    const prismaService = this.prisma as unknown as {
-      variantColor: {
-        createMany: (params: { data: any[] }) => Promise<void>;
-      };
-    };
-    await prismaService.variantColor.createMany({ data: variantColors });
-  }
-
-  // Specification
-
-  async findSpecificationByIds(ids: number[]): Promise<Specification[]> {
-    const prismaService = this.prisma as unknown as {
-      specification: {
-        findMany: (params: { where: any }) => Promise<PrismaSpecification[]>;
-      };
-    };
-    const specifications = await prismaService.specification.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-        isDeleted: false,
-      },
-    });
-    return specifications.map((specification) =>
-      this._toSpecificationModel(specification),
-    );
-  }
-
-  async findAllSpecifications(): Promise<Specification[]> {
-    const prismaService = this.prisma as unknown as {
-      specification: {
-        findMany: (params: { where: any }) => Promise<PrismaSpecification[]>;
-      };
-    };
-    const specifications = await prismaService.specification.findMany({
-      where: { isDeleted: false },
-    });
-    return specifications.map((specification) =>
-      this._toSpecificationModel(specification),
-    );
-  }
-
-  async insertSpecification(
-    specification: Specification,
-  ): Promise<Specification> {
-    const prismaService = this.prisma as unknown as {
-      specification: {
-        create: (params: { data: any }) => Promise<PrismaSpecification>;
-      };
-    };
-    const createdSpecification = await prismaService.specification.create({
-      data: specification,
-    });
-    return this._toSpecificationModel(createdSpecification);
-  }
-
-  // Variant Image
-
-  async findVariantImagesByVariantIds(
-    variantIds: number[],
-  ): Promise<VariantImage[]> {
-    const prismaService = this.prisma as unknown as {
-      variantImage: {
-        findMany: (params: { where: any }) => Promise<PrismaVariantImage[]>;
-      };
-    };
-    const variantImages = await prismaService.variantImage.findMany({
-      where: {
-        variantId: { in: variantIds },
-        isDeleted: false,
-      },
-    });
-    return variantImages.map((variantImage) =>
-      this._toVariantImageModel(variantImage),
-    );
-  }
-
-  async insertVariantImages(variantImages: VariantImage[]): Promise<void> {
-    const prismaService = this.prisma as unknown as {
-      variantImage: {
-        createMany: (params: { data: any[] }) => Promise<void>;
-      };
-    };
-    await prismaService.variantImage.createMany({ data: variantImages });
-  }
-
-  // Variant Specification
-
-  async findSpecificationsByVariantIds(
-    variantIds: number[],
-  ): Promise<VariantSpecification[]> {
-    const prismaService = this.prisma as unknown as {
-      variantSpecification: {
-        findMany: (params: {
-          where: any;
-        }) => Promise<PrismaVariantSpecification[]>;
-      };
-    };
-    const specifications = await prismaService.variantSpecification.findMany({
-      where: {
-        variantId: { in: variantIds },
-        isDeleted: false,
-      },
-    });
-    return specifications.map((specification) =>
-      this._toVariantSpecificationModel(specification),
-    );
-  }
-
-  async insertVariantSpecifications(
-    variantSpecifications: VariantSpecification[],
-  ): Promise<void> {
-    const prismaService = this.prisma as unknown as {
-      variantSpecification: {
-        createMany: (params: { data: any[] }) => Promise<void>;
-      };
-    };
-    await prismaService.variantSpecification.createMany({
-      data: variantSpecifications,
-    });
-  }
-
-  // Phone
-
-  async findPhoneByIds(ids: number[]): Promise<Phone[]> {
-    const prismaService = this.prisma as unknown as {
-      phone: {
-        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
-      };
-    };
-    const phones = await prismaService.phone.findMany({
-      where: {
-        id: { in: ids },
-        isDeleted: false,
-      },
-    });
-    return phones.map((phone) => this._toPhoneModel(phone));
+    return variants.map((variant) => this._toPhoneVariantModel(variant));
   }
 
   async listPhoneVariants(
@@ -798,6 +538,679 @@ export class PhoneRepository implements IPhoneRepository {
     return { data: variants, paging, total };
   }
 
+  async insertPhoneVariant(variant: PhoneVariant): Promise<PhoneVariant> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        create: (params: { data: any }) => Promise<PrismaPhoneVariant>;
+      };
+    };
+    const createdVariant = await prismaService.phoneVariant.create({
+      data: variant,
+    });
+    return this._toPhoneVariantModel(createdVariant);
+  }
+
+  async updatePhoneVariant(
+    id: number,
+    data: PhoneVariantUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phoneVariant.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeletePhoneVariantsByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phoneVariant.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Review
+
+  async findReviewsByVariantIds(variantIds: number[]): Promise<Review[]> {
+    const prismaService = this.prisma as unknown as {
+      review: {
+        findMany: (params: { where: any }) => Promise<PrismaReview[]>;
+      };
+    };
+    const reviews = await prismaService.review.findMany({
+      where: {
+        variantId: { in: variantIds },
+        isDeleted: false,
+      },
+    });
+    return reviews.map((review) => this._toReviewModel(review));
+  }
+
+  async softDeleteReviewsByVariantIds(variantIds: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      review: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.review.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Color
+
+  async findColorsByIds(ids: number[]): Promise<Color[]> {
+    const prismaService = this.prisma as unknown as {
+      color: {
+        findMany: (params: { where: any }) => Promise<PrismaColor[]>;
+      };
+    };
+    const colors = await prismaService.color.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+    return colors.map((color) => this._toColorModel(color));
+  }
+
+  async findAllColors(): Promise<Color[]> {
+    const prismaService = this.prisma as unknown as {
+      color: {
+        findMany: (params: { where: any }) => Promise<PrismaColor[]>;
+      };
+    };
+    const colors = await prismaService.color.findMany({
+      where: { isDeleted: false },
+    });
+    return colors.map((color) => this._toColorModel(color));
+  }
+
+  async insertColor(color: Color): Promise<Color> {
+    const prismaService = this.prisma as unknown as {
+      color: {
+        create: (params: { data: any }) => Promise<PrismaColor>;
+      };
+    };
+    const createdColor = await prismaService.color.create({ data: color });
+    return this._toColorModel(createdColor);
+  }
+
+  // Variant Price
+
+  async findPricesByVariantIds(variantIds: number[]): Promise<VariantPrice[]> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantPrice[]>;
+      };
+    };
+    const prices = await prismaService.variantPrice.findMany({
+      where: {
+        variantId: { in: variantIds },
+        endDate: null,
+      },
+    });
+    return prices.map((price) => this._toVariantPriceModel(price));
+  }
+
+  async insertVariantPrice(variantPrice: VariantPrice): Promise<VariantPrice> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        create: (params: { data: any }) => Promise<PrismaVariantPrice>;
+      };
+    };
+    const createdPrice = await prismaService.variantPrice.create({
+      data: variantPrice,
+    });
+    return this._toVariantPriceModel(createdPrice);
+  }
+
+  async updateVariantPrice(
+    id: number,
+    data: VariantPriceUpdateDto,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantPrice.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeleteVariantPricesByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantPrice: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantPrice.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Variant Discount
+
+  async findDiscountsByVariantIds(
+    variantIds: number[],
+  ): Promise<VariantDiscount[]> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantDiscount[]>;
+      };
+    };
+    const discounts = await prismaService.variantDiscount.findMany({
+      where: {
+        variantId: { in: variantIds },
+        endDate: null,
+      },
+    });
+    return discounts.map((discount) => this._toVariantDiscountModel(discount));
+  }
+
+  async insertVariantDiscount(
+    variantDiscount: VariantDiscount,
+  ): Promise<VariantDiscount> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        create: (params: { data: any }) => Promise<PrismaVariantDiscount>;
+      };
+    };
+    const createdDiscount = await prismaService.variantDiscount.create({
+      data: variantDiscount,
+    });
+    return this._toVariantDiscountModel(createdDiscount);
+  }
+
+  async updateVariantDiscount(
+    id: number,
+    data: VariantDiscountUpdateDto,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantDiscount.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeleteVariantDiscountsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantDiscount: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantDiscount.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Image
+
+  async findImagesByIds(ids: number[]): Promise<Image[]> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        findMany: (params: { where: any }) => Promise<PrismaImage[]>;
+      };
+    };
+    const images = await prismaService.image.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+    return images.map((image) => this._toImageModel(image));
+  }
+
+  async insertImage(image: Image): Promise<Image> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        create: (params: { data: any }) => Promise<PrismaImage>;
+      };
+    };
+    const createdImage = await prismaService.image.create({ data: image });
+    return this._toImageModel(createdImage);
+  }
+
+  async deleteImage(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        delete: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.delete({ where: { id } });
+  }
+
+  async deleteImagesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  async softDeleteImagesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      image: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.image.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Variant Color
+
+  async findVariantColorsByVariantIds(
+    variantIds: number[],
+  ): Promise<VariantColor[]> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantColor[]>;
+      };
+    };
+    const variantColors = await prismaService.variantColor.findMany({
+      where: {
+        variantId: { in: variantIds },
+        isDeleted: false,
+      },
+    });
+    return variantColors.map((variantColor) =>
+      this._toVariantColorModel(variantColor),
+    );
+  }
+
+  async insertVariantColors(variantColors: VariantColor[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.createMany({ data: variantColors });
+  }
+
+  async updateVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+    data: VariantColorUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.updateMany({
+      where: {
+        variantId,
+        colorId,
+      },
+      data,
+    });
+  }
+
+  async deleteVariantColorByVariantIdAndColorId(
+    variantId: number,
+    colorId: number,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.deleteMany({
+      where: {
+        variantId,
+        colorId,
+      },
+    });
+  }
+
+  async softDeleteVariantColorsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantColor: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantColor.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Specification
+
+  async findSpecificationByIds(ids: number[]): Promise<Specification[]> {
+    const prismaService = this.prisma as unknown as {
+      specification: {
+        findMany: (params: { where: any }) => Promise<PrismaSpecification[]>;
+      };
+    };
+    const specifications = await prismaService.specification.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+        isDeleted: false,
+      },
+    });
+    return specifications.map((specification) =>
+      this._toSpecificationModel(specification),
+    );
+  }
+
+  async findAllSpecifications(): Promise<Specification[]> {
+    const prismaService = this.prisma as unknown as {
+      specification: {
+        findMany: (params: { where: any }) => Promise<PrismaSpecification[]>;
+      };
+    };
+    const specifications = await prismaService.specification.findMany({
+      where: { isDeleted: false },
+    });
+    return specifications.map((specification) =>
+      this._toSpecificationModel(specification),
+    );
+  }
+
+  async insertSpecification(
+    specification: Specification,
+  ): Promise<Specification> {
+    const prismaService = this.prisma as unknown as {
+      specification: {
+        create: (params: { data: any }) => Promise<PrismaSpecification>;
+      };
+    };
+    const createdSpecification = await prismaService.specification.create({
+      data: specification,
+    });
+    return this._toSpecificationModel(createdSpecification);
+  }
+
+  // Variant Image
+
+  async findVariantImagesByVariantIds(
+    variantIds: number[],
+  ): Promise<VariantImage[]> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantImage[]>;
+      };
+    };
+    const variantImages = await prismaService.variantImage.findMany({
+      where: {
+        variantId: { in: variantIds },
+        isDeleted: false,
+      },
+    });
+    return variantImages.map((variantImage) =>
+      this._toVariantImageModel(variantImage),
+    );
+  }
+
+  async findVariantImagesByIds(ids: number[]): Promise<VariantImage[]> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        findMany: (params: { where: any }) => Promise<PrismaVariantImage[]>;
+      };
+    };
+    const variantImages = await prismaService.variantImage.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+
+    return variantImages.map((variantImage) =>
+      this._toVariantImageModel(variantImage),
+    );
+  }
+
+  async insertVariantImages(variantImages: VariantImage[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.createMany({ data: variantImages });
+  }
+
+  updateVariantImage(id: number, imageId: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        update: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    return prismaService.variantImage.update({
+      where: { id },
+      data: { imageId },
+    });
+  }
+
+  async deleteVariantImage(id: number): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        delete: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.delete({ where: { id } });
+  }
+
+  async softDeleteVariantImagesByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantImage: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantImage.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Variant Specification
+
+  async findSpecificationsByVariantIds(
+    variantIds: number[],
+  ): Promise<VariantSpecification[]> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        findMany: (params: {
+          where: any;
+        }) => Promise<PrismaVariantSpecification[]>;
+      };
+    };
+    const specifications = await prismaService.variantSpecification.findMany({
+      where: {
+        variantId: { in: variantIds },
+        isDeleted: false,
+      },
+    });
+    return specifications.map((specification) =>
+      this._toVariantSpecificationModel(specification),
+    );
+  }
+
+  async insertVariantSpecifications(
+    variantSpecifications: VariantSpecification[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        createMany: (params: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.createMany({
+      data: variantSpecifications,
+    });
+  }
+
+  async updateVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
+    data: VariantSpecificationUpdatePrisma,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.updateMany({
+      where: {
+        variantId,
+        specId,
+      },
+      data,
+    });
+  }
+
+  async deleteVariantSpecificationByVariantIdAndSpecId(
+    variantId: number,
+    specId: number,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        deleteMany: (params: { where: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.deleteMany({
+      where: {
+        variantId,
+        specId,
+      },
+    });
+  }
+
+  async softDeleteVariantSpecificationsByVariantIds(
+    variantIds: number[],
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      variantSpecification: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.variantSpecification.updateMany({
+      where: { variantId: { in: variantIds } },
+      data: { isDeleted: true },
+    });
+  }
+
+  // Phone
+
+  async findPhonesByIds(ids: number[]): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async listPhones(paging: PagingDto): Promise<Paginated<Phone>> {
+    const skip = (paging.page - 1) * paging.limit;
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        count: (params: { where: any }) => Promise<number>;
+        findMany: (params: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const total = await prismaService.phone.count({
+      where: { isDeleted: false },
+    });
+    const phones = await prismaService.phone.findMany({
+      where: { isDeleted: false },
+      skip,
+      take: paging.limit,
+      orderBy: { id: 'asc' },
+    });
+    return {
+      data: phones.map((phone) => this._toPhoneModel(phone)),
+      paging,
+      total,
+    };
+  }
+
+  async findPhonesByBrandId(brandId: number): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        brandId: brandId,
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async findPhonesByCategoryId(categoryId: number): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        categoryId: categoryId,
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async findPhonesByCategoryIds(categoryIds: number[]): Promise<Phone[]> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findMany: (params: { where: any }) => Promise<PrismaPhone[]>;
+      };
+    };
+    const phones = await prismaService.phone.findMany({
+      where: {
+        categoryId: { in: categoryIds },
+        isDeleted: false,
+      },
+    });
+    return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
   async insertPhone(phone: Phone): Promise<Phone> {
     const prismaService = this.prisma as unknown as {
       phone: {
@@ -806,6 +1219,30 @@ export class PhoneRepository implements IPhoneRepository {
     };
     const createdPhone = await prismaService.phone.create({ data: phone });
     return this._toPhoneModel(createdPhone);
+  }
+
+  async updatePhone(id: number, data: PhoneUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        update: (params: { where: { id: number }; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phone.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async softDeletePhonesByIds(ids: number[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        updateMany: (params: { where: any; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.phone.updateMany({
+      where: { id: { in: ids } },
+      data: { isDeleted: true },
+    });
   }
 
   // Inventory

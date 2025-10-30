@@ -279,15 +279,41 @@ export class AuthService implements IAuthService {
   async loginWithGoogle(
     profile: GoogleResponseDto,
   ): Promise<{ userId: number; tokens: any }> {
-    const user = await this.authRepository.findByFilter({
-      email: profile.email,
-    });
-    if (!user) {
-      throw new RpcException(
-        AppError.from(ErrUserNotFound, 404)
-          .withLog('User not found')
-          .toJson(false),
-      );
+    const oauth = await this.oauthRepository.findByProviderAndOAuthId(
+      'google',
+      profile.googleId,
+    );
+
+    let user: User | null = null;
+
+    if (oauth) {
+      user = await this.authRepository.findById(oauth.userId);
+      if (!user) {
+        throw new RpcException(
+          AppError.from(ErrUserNotFound, 404)
+            .withLog('User not found')
+            .toJson(false),
+        );
+      }
+    } else {
+      user = await this.authRepository.findByFilter({
+        email: profile.email,
+      });
+      if (!user) {
+        throw new RpcException(
+          AppError.from(ErrUserNotFound, 404)
+            .withLog('User not found')
+            .toJson(false),
+        );
+      }
+
+      const oauthCreateDto: OAuthCreateDto = {
+        oauthProvider: OAuthProvider.GOOGLE,
+        oauthId: profile.googleId,
+        userId: user.id!,
+      };
+
+      await this.createOAuth(oauthCreateDto);
     }
 
     const role = await this.roleRepository.findById(user.roleId);
@@ -298,21 +324,6 @@ export class AuthService implements IAuthService {
       email: user.email,
       role: role ? role.name : 'customer',
     });
-
-    const oauth = await this.oauthRepository.findByProviderAndOAuthId(
-      'google',
-      profile.googleId,
-    );
-
-    if (!oauth) {
-      const oauthCreateDto: OAuthCreateDto = {
-        oauthProvider: OAuthProvider.GOOGLE,
-        oauthId: profile.googleId,
-        userId: user.id!,
-      };
-
-      await this.createOAuth(oauthCreateDto);
-    }
 
     return {
       userId: user.id!,
