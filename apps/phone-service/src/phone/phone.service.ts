@@ -146,7 +146,9 @@ export class PhoneService implements IPhoneService {
 
         const phoneVariantDtos = variantDtos
           .filter((variant) => variant.phone?.id === phone.id)
-          .map(({ phone: _phone, ...variantWithoutPhone }) => variantWithoutPhone);
+          .map(
+            ({ phone: _phone, ...variantWithoutPhone }) => variantWithoutPhone,
+          );
 
         return {
           id: phone.id,

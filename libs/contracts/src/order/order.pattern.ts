@@ -5,6 +5,9 @@ export const ORDER_PATTERN = {
   GET_POINT_CONFIG: 'order.getPointConfig',
   CALCULATE_SHIPPING_FEE: 'order.calculateShippingFee',
   CREATE_ORDER: 'order.createOrder',
+  CANCEL_ORDER: 'order.cancelOrder',
+  GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID:
+    'order.getPointTransactionsByCustomerId',
   GET_CART_BY_CUSTOMER_ID: 'order.getCartByCustomerId',
   ADD_TO_CART: 'order.addToCart',
   UPDATE_QUANTITY: 'order.updateQuantity',

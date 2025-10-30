@@ -51,6 +51,18 @@ const pointTransactionDtoSchema = pointTransactionSchema.omit({
   isDeleted: true,
 });
 
+export const pointHistoryDtoSchema = pointTransactionSchema
+  .omit({
+    orderId: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    orderCode: orderSchema.shape.orderCode,
+  });
+
+export type PointHistoryDto = z.infer<typeof pointHistoryDtoSchema>;
+
 // Shipment
 
 export const shipmentDtoSchema = shipmentSchema.omit({

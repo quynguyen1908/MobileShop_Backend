@@ -51,6 +51,15 @@ export class OrderController {
     return this.orderService.createOrder(requester, orderCreateDto);
   }
 
+  @MessagePattern(ORDER_PATTERN.CANCEL_ORDER)
+  async cancelOrder(
+    @Payload() payload: { requester: Requester; orderCode: string },
+  ) {
+    const { requester, orderCode } = payload;
+    await this.orderService.cancelOrder(requester, orderCode);
+    return { success: true };
+  }
+
   @MessagePattern(ORDER_PATTERN.GET_CART_BY_CUSTOMER_ID)
   async getCartByCustomerId(@Payload() request: Requester) {
     return this.orderService.getCartByCustomerId(request);
@@ -89,5 +98,10 @@ export class OrderController {
     const { requester, itemIds } = payload;
     await this.orderService.deleteCartItems(requester, itemIds);
     return { success: true };
+  }
+
+  @MessagePattern(ORDER_PATTERN.GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID)
+  async getPointTransactionsByCustomerId(@Payload() customerId: number) {
+    return this.orderService.getPointTransactionsByCustomerId(customerId);
   }
 }

@@ -11,6 +11,7 @@ import {
   OrderStatus,
   OrderStatusHistory,
   PointConfig,
+  PointHistoryDto,
   PointTransaction,
   Shipment,
 } from '@app/contracts/order';
@@ -29,9 +30,15 @@ export interface IOrderService {
     newStatus: OrderStatus,
     note?: string,
   ): Promise<void>;
+  cancelOrder(requester: Requester, orderCode: string): Promise<void>;
 
   // Point Config
   getPointConfig(): Promise<PointConfig | null>;
+
+  // Point Transaction
+  getPointTransactionsByCustomerId(
+    customerId: number,
+  ): Promise<PointHistoryDto[]>;
 
   // Shipment
   calculateShippingFee(commune: string, province: string): Promise<string>;
@@ -59,6 +66,7 @@ export interface IOrderQueryRepository {
   findOrdersByCustomerId(customerId: number): Promise<Order[]>;
   findOrderByOrderCode(orderCode: string): Promise<Order | null>;
   findOrderById(orderId: number): Promise<Order | null>;
+  findOrdersByIds(orderIds: number[]): Promise<Order[]>;
 
   // Order Item
   findOrderItemsByOrderIds(orderIds: number[]): Promise<OrderItem[]>;
@@ -71,6 +79,9 @@ export interface IOrderQueryRepository {
   // Point Transaction
   findPointTransactionsByOrderIds(
     orderIds: number[],
+  ): Promise<PointTransaction[]>;
+  findPointTransactionsByCustomerId(
+    customerId: number,
   ): Promise<PointTransaction[]>;
 
   // Point Config

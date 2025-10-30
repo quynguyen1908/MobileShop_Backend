@@ -138,7 +138,7 @@ export const addressSchema = z.object({
   street: z.string(),
   communeId: z.number().int().positive(),
   provinceId: z.number().int().positive(),
-  portalCode: z.string().optional(),
+  postalCode: z.string().optional(),
   isDefault: z.boolean().optional().default(false),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

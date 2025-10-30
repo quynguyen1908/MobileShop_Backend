@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { IUserRepository } from './user.port';
 import { UserPrismaService } from '@app/contracts/prisma';
 import {
+  Address,
+  AddressCreateDto,
+  AddressUpdateDto,
   Commune,
   Customer,
   CustomerUpdateDto,
@@ -38,6 +41,21 @@ interface PrismaCommune {
   divisionType: string;
   codename: string;
   provinceCode: number;
+}
+
+interface PrismaAddress {
+  id: number;
+  customerId: number;
+  recipientName: string;
+  recipientPhone: string;
+  street: string;
+  communeId: number;
+  provinceId: number;
+  postalCode: string | null;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
 }
 
 @Injectable()
@@ -154,6 +172,62 @@ export class UserRepository implements IUserRepository {
     return communes.map((commune) => this._toCommuneModel(commune));
   }
 
+  // Address
+
+  async findAddressesByCustomerId(customerId: number): Promise<Address[]> {
+    const prismaService = this.prisma as unknown as {
+      address: {
+        findMany: (params: {
+          where: { customerId: number; isDeleted: boolean };
+        }) => Promise<PrismaAddress[]>;
+      };
+    };
+    const addresses = await prismaService.address.findMany({
+      where: { customerId, isDeleted: false },
+    });
+    return addresses.map((address) => this._toAddressModel(address));
+  }
+
+  async insertAddress(data: AddressCreateDto): Promise<Address> {
+    const prismaService = this.prisma as unknown as {
+      address: {
+        create: (params: { data: any }) => Promise<PrismaAddress>;
+      };
+    };
+    const address = await prismaService.address.create({ data });
+    return this._toAddressModel(address);
+  }
+
+  async updateAddress(id: number, data: AddressUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      address: {
+        update: (params: { where: { id: number }; data: any }) => Promise<any>;
+      };
+    };
+    await prismaService.address.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async updateAddressesByIds(
+    ids: number[],
+    data: AddressUpdateDto,
+  ): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      address: {
+        updateMany: (params: {
+          where: { id: { in: number[] } };
+          data: any;
+        }) => Promise<any>;
+      };
+    };
+    await prismaService.address.updateMany({
+      where: { id: { in: ids } },
+      data,
+    });
+  }
+
   private _toCustomerModel(data: PrismaCustomer): Customer {
     let typedGender: Gender | undefined;
 
@@ -199,6 +273,23 @@ export class UserRepository implements IUserRepository {
       divisionType: data.divisionType,
       codename: data.codename,
       provinceCode: data.provinceCode,
+    };
+  }
+
+  private _toAddressModel(data: PrismaAddress): Address {
+    return {
+      id: data.id,
+      customerId: data.customerId,
+      recipientName: data.recipientName,
+      recipientPhone: data.recipientPhone,
+      street: data.street,
+      communeId: data.communeId,
+      provinceId: data.provinceId,
+      postalCode: data.postalCode ?? undefined,
+      isDefault: data.isDefault,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
     };
   }
 }

@@ -2,7 +2,9 @@ import { EVENT_SUBSCRIBER, PHONE_SERVICE } from '@app/contracts';
 import type { EventJson, IEventSubscriber } from '@app/contracts';
 import {
   EVT_ORDER_CREATED,
+  EVT_ORDER_UPDATED,
   OrderCreatedEvent,
+  OrderUpdatedEvent,
 } from '@app/contracts/order/order.event';
 import {
   BrandUpdatedEvent,
@@ -25,6 +27,7 @@ import type { IPhoneService } from './phone.port';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { catchError, firstValueFrom } from 'rxjs';
+import { OrderStatus } from '@app/contracts/order';
 
 interface TypedError {
   message: string;
@@ -94,6 +97,51 @@ export class PhoneEventHandler {
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(`Failed to update phone stock: ${typedError.message}`);
+    }
+  }
+
+  async handleOrderUpdated(event: OrderUpdatedEvent): Promise<void> {
+    this.logger.log(
+      `Handling OrderUpdated event for order ID: ${event.payload.id}`,
+    );
+    try {
+      const items = event.payload.items;
+      const status = event.payload.status;
+
+      switch (status) {
+        case OrderStatus.CANCELED.toString(): {
+          for (const item of items) {
+            const variantId = item.variantId;
+            const colorId = item.colorId;
+            const quantity = item.quantity;
+            const inventories =
+              await this.phoneService.getInventoryByVariantIdAndColorId(
+                variantId,
+                colorId,
+              );
+            if (inventories && inventories.id !== undefined) {
+              const newStock = inventories.stockQuantity + quantity;
+              await this.phoneService.updateInventory(inventories.id, {
+                stockQuantity: newStock,
+                updatedAt: new Date(),
+              });
+            } else {
+              this.logger.warn(
+                `No inventory found for variant ID: ${variantId} and color ID: ${colorId}`,
+              );
+            }
+          }
+          break;
+        }
+        default:
+          this.logger.log(`No action required for order status: ${status}`);
+          break;
+      }
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process OrderUpdated event: ${typedError.message}`,
+      );
     }
   }
 
@@ -229,6 +277,38 @@ export class PhoneEventHandler {
             const typedError = error as TypedError;
             this.logger.error(
               `Error processing ${EVT_ORDER_CREATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_ORDER_UPDATED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_ORDER_UPDATED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_ORDER_UPDATED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = OrderUpdatedEvent.from(eventJson);
+            await this.handleOrderUpdated(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_ORDER_UPDATED} event: ${typedError.message}`,
               typedError.stack,
             );
           }

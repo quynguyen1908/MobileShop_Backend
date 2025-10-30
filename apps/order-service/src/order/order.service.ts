@@ -31,6 +31,7 @@ import {
   OrderItemDto,
   OrderStatus,
   PointConfig,
+  PointHistoryDto,
   PointTransaction,
   PointType,
 } from '@app/contracts/order';
@@ -59,7 +60,10 @@ import csv from 'csv-parser';
 import { ConfigService } from '@nestjs/config';
 import { formatCurrency, normalizeText } from '@app/contracts/utils';
 import { HttpService } from '@nestjs/axios';
-import { OrderCreatedEvent } from '@app/contracts/order/order.event';
+import {
+  OrderCreatedEvent,
+  OrderUpdatedEvent,
+} from '@app/contracts/order/order.event';
 
 interface LocationResult {
   wardId: number;
@@ -459,6 +463,127 @@ export class OrderService implements IOrderService {
         },
       ]);
     }
+  }
+
+  async cancelOrder(requester: Requester, orderCode: string): Promise<void> {
+    const customer = await this.validateRequester(requester);
+
+    const order = await this.getOrderByOrderCode(orderCode);
+    if (!order) {
+      throw new RpcException(
+        AppError.from(ErrOrderNotFound, 404)
+          .withLog(`Order not found: ${orderCode}`)
+          .toJson(false),
+      );
+    }
+
+    if (order.customerId !== customer.id) {
+      throw new RpcException(
+        AppError.from(new Error('Unauthorized'), 403)
+          .withLog(
+            `Customer ${customer.id} is not authorized to cancel this order`,
+          )
+          .toJson(false),
+      );
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new RpcException(
+        AppError.from(new Error('Only pending orders can be cancelled'), 400)
+          .withLog(`Order ${orderCode} is not pending and cannot be cancelled`)
+          .toJson(false),
+      );
+    }
+
+    const pointTransactions =
+      await this.orderRepository.findPointTransactionsByOrderIds([order.id!]);
+    const redeemTransaction = pointTransactions.find(
+      (tx) => tx.type === PointType.REDEEM,
+    );
+
+    if (redeemTransaction) {
+      await this.orderRepository.insertPointTransactions([
+        {
+          customerId: order.customerId,
+          orderId: order.id!,
+          type: PointType.REFUND,
+          moneyValue: redeemTransaction.moneyValue,
+          points: redeemTransaction.points,
+          isDeleted: false,
+        },
+      ]);
+    }
+
+    await this.updateOrderStatus(
+      order.id!,
+      OrderStatus.CANCELED,
+      'Đã hủy (khách hàng yêu cầu)',
+    );
+
+    const items = await this.orderRepository.findOrderItemsByOrderIds([
+      order.id!,
+    ]);
+    const points = await this.orderRepository.findPointTransactionsByOrderIds([
+      order.id!,
+    ]);
+
+    const event = OrderUpdatedEvent.create(
+      {
+        id: order.id!,
+        customerId: order.customerId,
+        orderCode: order.orderCode,
+        status: OrderStatus.CANCELED,
+        items: items.map((item) => ({
+          orderId: item.orderId,
+          variantId: item.variantId,
+          colorId: item.colorId,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount,
+        })),
+        pointTransactions: points.map((tx) => ({
+          customerId: tx.customerId,
+          orderId: tx.orderId,
+          type: tx.type,
+          moneyValue: tx.moneyValue,
+          points: tx.points,
+          isDeleted: tx.isDeleted,
+        })),
+      },
+      ORDER_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
+  }
+
+  // Point Transaction
+
+  async getPointTransactionsByCustomerId(
+    customerId: number,
+  ): Promise<PointHistoryDto[]> {
+    const transactions =
+      await this.orderRepository.findPointTransactionsByCustomerId(customerId);
+
+    const orderIds = transactions
+      .map((tx) => tx.orderId)
+      .filter((id): id is number => typeof id === 'number');
+
+    const orders = await this.orderRepository.findOrdersByIds(orderIds);
+
+    const pointHistoryDtos: PointHistoryDto[] = transactions.map((tx) => {
+      const order = orders.find((o) => o.id === tx.orderId);
+      return {
+        id: tx.id!,
+        customerId: tx.customerId,
+        type: tx.type,
+        moneyValue: tx.moneyValue,
+        points: tx.points,
+        createdAt: tx.createdAt,
+        orderCode: order?.orderCode ?? '',
+      };
+    });
+
+    return pointHistoryDtos;
   }
 
   // Shipment
