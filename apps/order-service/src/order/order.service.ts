@@ -1,7 +1,9 @@
 import {
   AppError,
   EVENT_PUBLISHER,
+  GHNOrderResponse,
   ORDER_REPOSITORY,
+  PAYMENT_SERVICE,
   PHONE_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
@@ -34,6 +36,8 @@ import {
   PointHistoryDto,
   PointTransaction,
   PointType,
+  Shipment,
+  ShipmentStatus,
 } from '@app/contracts/order';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -64,6 +68,12 @@ import {
   OrderCreatedEvent,
   OrderUpdatedEvent,
 } from '@app/contracts/order/order.event';
+import {
+  PAYMENT_PATTERN,
+  PaymentDto,
+  PaymentStatus,
+  PayMethod,
+} from '@app/contracts/payment';
 
 interface LocationResult {
   wardId: number;
@@ -83,6 +93,7 @@ export class OrderService implements IOrderService {
     private readonly orderRepository: IOrderRepository,
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
+    @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     private configService: ConfigService,
     private readonly httpService: HttpService,
@@ -154,6 +165,13 @@ export class OrderService implements IOrderService {
       );
     }
 
+    const payments = await firstValueFrom<PaymentDto[]>(
+      this.paymentServiceClient.send(
+        PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS,
+        orderIds,
+      ),
+    );
+
     const orderDtos: OrderDto[] = orders.map((order) => {
       const items = orderItemsDto.filter((item) => item.orderId === order.id);
       const histories = orderStatusHistories
@@ -195,6 +213,8 @@ export class OrderService implements IOrderService {
         );
       }
 
+      const payment = payments.filter((p) => p.orderId === order.id);
+
       return {
         id: order.id,
         customerId: order.customerId,
@@ -229,6 +249,7 @@ export class OrderService implements IOrderService {
         statusHistory: histories,
         transactions: transactions,
         shipments: orderShipments,
+        payments: payment,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
         isDeleted: order.isDeleted,
@@ -433,14 +454,47 @@ export class OrderService implements IOrderService {
       );
     }
 
-    await this.orderRepository.updateOrder(orderId, newStatus.toString());
+    if (!this.canUpdateOrderStatus(order)) {
+      throw new RpcException(
+        AppError.from(
+          new Error('Cannot update status of a finalized order'),
+          400,
+        )
+          .withLog(
+            `Cannot update status of finalized order ${orderId} with status ${order.status}`,
+          )
+          .toJson(false),
+      );
+    }
 
-    await this.orderRepository.insertOrderStatusHistory({
-      orderId: orderId,
-      status: newStatus,
-      note,
-      isDeleted: false,
-    });
+    if (order.status === newStatus) {
+      throw new RpcException(
+        AppError.from(
+          new Error('Order is already in the specified status'),
+          400,
+        )
+          .withLog(`Order ${orderId} is already in status ${newStatus}`)
+          .toJson(false),
+      );
+    }
+
+    const statusHistories =
+      await this.orderRepository.findOrderStatusHistoryByOrderIds([orderId]);
+
+    for (const history of statusHistories) {
+      if (history.status === newStatus) {
+        throw new RpcException(
+          AppError.from(
+            new Error('Order has already been in the specified status before'),
+            400,
+          )
+            .withLog(
+              `Order ${orderId} has already been in status ${newStatus} before`,
+            )
+            .toJson(false),
+        );
+      }
+    }
 
     const pointConfig = await this.getPointConfig();
     if (!pointConfig) {
@@ -451,18 +505,272 @@ export class OrderService implements IOrderService {
       );
     }
 
-    if (newStatus === OrderStatus.PAID) {
-      await this.orderRepository.insertPointTransactions([
-        {
-          customerId: order.customerId,
-          orderId: order.id!,
-          type: PointType.EARN,
-          moneyValue: order.finalAmount,
-          points: Math.floor(order.finalAmount / pointConfig.earnRate),
-          isDeleted: false,
-        },
-      ]);
+    const payments = await firstValueFrom<PaymentDto[]>(
+      this.paymentServiceClient.send(PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS, [
+        order.id!,
+      ]),
+    );
+
+    let isNotPaid = true;
+    let isCodPaid = false;
+
+    switch (newStatus) {
+      case OrderStatus.PAID: {
+        if (order.status !== OrderStatus.PENDING) {
+          throw new RpcException(
+            AppError.from(
+              new Error(
+                'Order status can only be updated to PAID from PENDING',
+              ),
+              400,
+            )
+              .withLog(
+                `Order ${orderId} status can only be updated to PAID from PENDING`,
+              )
+              .toJson(false),
+          );
+        }
+
+        if (!payments || payments.length === 0) {
+          throw new RpcException(
+            AppError.from(new Error('Order has no payment records'), 400)
+              .withLog(`Order ${orderId} has no payment records`)
+              .toJson(false),
+          );
+        }
+
+        for (const payment of payments) {
+          if (payment.status === PaymentStatus.COMPLETED) {
+            isNotPaid = false;
+            break;
+          }
+        }
+
+        if (isNotPaid) {
+          throw new RpcException(
+            AppError.from(new Error('Order has unpaid payments'), 400)
+              .withLog(`Order ${orderId} has unpaid payments`)
+              .toJson(false),
+          );
+        }
+
+        await this.orderRepository.insertPointTransactions([
+          {
+            customerId: order.customerId,
+            orderId: order.id!,
+            type: PointType.EARN,
+            moneyValue: order.finalAmount,
+            points: Math.floor(order.finalAmount / pointConfig.earnRate),
+            isDeleted: false,
+          },
+        ]);
+        break;
+      }
+      case OrderStatus.PROCESSING: {
+        if (order.status !== OrderStatus.PAID) {
+          throw new RpcException(
+            AppError.from(
+              new Error(
+                'Order status can only be updated to PROCESSING from PAID',
+              ),
+              400,
+            )
+              .withLog(
+                `Order ${orderId} status can only be updated to PROCESSING from PAID`,
+              )
+              .toJson(false),
+          );
+        }
+        break;
+      }
+      case OrderStatus.SHIPPED: {
+        for (const payment of payments) {
+          if (
+            payment.status === PaymentStatus.COMPLETED &&
+            payment.paymentMethod.code === PayMethod.COD.toString()
+          ) {
+            isCodPaid = true;
+            break;
+          }
+        }
+
+        const province = await firstValueFrom<Province[]>(
+          this.userServiceClient.send(USER_PATTERN.GET_PROVINCES_BY_IDS, [
+            order.provinceId,
+          ]),
+        );
+        if (!province || province.length === 0) {
+          throw new RpcException(
+            AppError.from(ErrProvinceNotFound, 404)
+              .withLog('Province not found for shipment')
+              .toJson(false),
+          );
+        }
+
+        const commune = await firstValueFrom<Commune[]>(
+          this.userServiceClient.send(USER_PATTERN.GET_COMMUNES_BY_IDS, [
+            order.communeId,
+          ]),
+        );
+        if (!commune || commune.length === 0) {
+          throw new RpcException(
+            AppError.from(ErrCommuneNotFound, 404)
+              .withLog('Commune not found for shipment')
+              .toJson(false),
+          );
+        }
+
+        const locationData = await this.findLocationIds(
+          province[0].name,
+          commune[0].name,
+        );
+        if (!locationData) {
+          throw new RpcException(
+            AppError.from(ErrLocationNotFound, 404)
+              .withLog('Location not found for shipment')
+              .toJson(false),
+          );
+        }
+
+        const orderItems = await this.orderRepository.findOrderItemsByOrderIds([
+          order.id!,
+        ]);
+
+        const orderItemDtos = await this.toOrderItemsDto(orderItems);
+
+        const { data: responseData } = await firstValueFrom(
+          this.httpService
+            .post<GHNOrderResponse>(
+              `${this.ghnApiUrl}/shipping-order/create`,
+              {
+                to_name: order.recipientName,
+                to_phone: order.recipientPhone,
+                required_note: 'KHONGCHOXEMHANG',
+                weight: (
+                  await this.orderRepository.findOrderItemsByOrderIds([
+                    order.id!,
+                  ])
+                ).reduce((total, item) => total + item.quantity * 400, 0),
+                service_type_id: 2,
+                to_address:
+                  order.street +
+                  ', ' +
+                  commune[0].name +
+                  ', ' +
+                  province[0].name,
+                to_ward_code: String(locationData.wardId),
+                to_district_id: locationData.districtId,
+                payment_type_id: isCodPaid ? 2 : 1,
+                items: orderItemDtos.map((item) => ({
+                  name:
+                    item.variant.name +
+                    ' ' +
+                    item.variant.variantName +
+                    ' - ' +
+                    item.variant.color,
+                  quantity: item.quantity,
+                })),
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Token: this.ghnToken,
+                  ShopId: this.ghnShopId,
+                },
+              },
+            )
+            .pipe(
+              catchError((error: unknown) => {
+                interface AxiosErrorResponse {
+                  response?: {
+                    data?: {
+                      message?: string;
+                    };
+                  };
+                  message?: string;
+                }
+
+                const axiosError = error as AxiosErrorResponse;
+
+                console.error(
+                  'GHN API Error:',
+                  axiosError?.response?.data ||
+                    axiosError?.message ||
+                    'Unknown error',
+                );
+
+                const errorMessage =
+                  axiosError?.response?.data?.message ||
+                  axiosError?.message ||
+                  'Unknown error';
+
+                throw new RpcException(
+                  AppError.from(new Error(errorMessage), 500)
+                    .withLog('Failed to create shipment in GHN API')
+                    .toJson(false),
+                );
+              }),
+            ),
+        );
+
+        if (responseData.code === 200 && responseData.data) {
+          const shipment: Shipment = {
+            orderId: order.id!,
+            trackingCode: responseData.data.order_code,
+            provider: 'Giao Hàng Nhanh',
+            status: ShipmentStatus.PENDING,
+            fee: responseData.data.total_fee,
+            estimatedDeliveryDate: new Date(
+              responseData.data.expected_delivery_time,
+            ),
+            createdAt: new Date(),
+            isDeleted: false,
+          };
+
+          await this.orderRepository.insertShipment(shipment);
+        } else {
+          throw new RpcException(
+            AppError.from(
+              new Error('Failed to create shipment in GHN API'),
+              500,
+            )
+              .withLog(
+                `GHN API responded with code ${responseData.code}: ${responseData.message}`,
+              )
+              .toJson(false),
+          );
+        }
+        break;
+      }
+      case OrderStatus.DELIVERED: {
+        if (order.status !== OrderStatus.SHIPPED) {
+          throw new RpcException(
+            AppError.from(
+              new Error(
+                'Order status can only be updated to DELIVERED from SHIPPED',
+              ),
+              400,
+            )
+              .withLog(
+                `Order ${orderId} status can only be updated to DELIVERED from SHIPPED`,
+              )
+              .toJson(false),
+          );
+        }
+        break;
+      }
+      default:
+        break;
     }
+
+    await this.orderRepository.updateOrder(orderId, newStatus.toString());
+
+    await this.orderRepository.insertOrderStatusHistory({
+      orderId: orderId,
+      status: newStatus,
+      note,
+      isDeleted: false,
+    });
   }
 
   async cancelOrder(requester: Requester, orderCode: string): Promise<void> {
@@ -850,6 +1158,16 @@ export class OrderService implements IOrderService {
     const randomPart = Math.floor(1000 + Math.random() * 9000);
 
     return `${prefix}${datePart}${randomPart}`;
+  }
+
+  private canUpdateOrderStatus(order: Order): boolean {
+    const updatableStatuses = [
+      OrderStatus.PENDING,
+      OrderStatus.PAID,
+      OrderStatus.PROCESSING,
+      OrderStatus.SHIPPED,
+    ];
+    return updatableStatuses.includes(order.status);
   }
 
   private async findLocationIds(

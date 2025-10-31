@@ -63,6 +63,20 @@ export class PaymentRepository implements IPaymentRepository {
     return payments.map((payment) => this._toPaymentModel(payment));
   }
 
+  async findPaymentsByOrderIds(orderIds: number[]): Promise<Payment[]> {
+    const prismaService = this.prisma as unknown as {
+      payment: {
+        findMany: (param: {
+          where: { orderId: { in: number[] }; isDeleted: boolean };
+        }) => Promise<PrismaPayment[]>;
+      };
+    };
+    const payments = await prismaService.payment.findMany({
+      where: { orderId: { in: orderIds }, isDeleted: false },
+    });
+    return payments.map((payment) => this._toPaymentModel(payment));
+  }
+
   async insertPayment(data: Omit<Payment, 'id'>): Promise<Payment> {
     const prismaService = this.prisma as unknown as {
       payment: {

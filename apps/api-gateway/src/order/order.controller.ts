@@ -32,11 +32,15 @@ import {
   ORDER_SERVICE_NAME,
   OrderDto,
 } from '@app/contracts/order';
-import type { CartItemCreateDto, OrderCreateDto } from '@app/contracts/order';
+import type {
+  CartItemCreateDto,
+  OrderCreateDto,
+} from '@app/contracts/order';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
-import { ApiResponseDto } from '../dto/response.dto';
+import { ApiResponseDto, UpdateOrderStatusDto } from '../dto/response.dto';
 import { formatError } from '../utils/error';
+import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 
 @ApiTags('Orders')
 @Controller('v1/orders')
@@ -126,6 +130,7 @@ export class OrderController {
                 },
               ],
               shipments: [],
+              payments: [],
               createdAt: '2025-10-04T07:32:50.835Z',
               updatedAt: '2025-10-04T07:34:19.625Z',
               isDeleted: false,
@@ -474,6 +479,97 @@ export class OrderController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Cancelling order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('status/:orderId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @Roles(RoleType.SALES)
+  @ApiOperation({
+    summary: 'Update order status (requires admin or sales role)',
+  })
+  @ApiParam({
+    name: 'orderId',
+    type: Number,
+    description: 'The ID of the order to update',
+    example: 1,
+  })
+  @ApiBody({
+    description: 'Order status update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'shipped' },
+      },
+      required: ['status'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order status updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Order status updated successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async updateOrderStatus(
+    @Param('orderId') orderId: number,
+    @Body() body: UpdateOrderStatusDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.orderServiceClient,
+          ORDER_SERVICE_NAME,
+          ORDER_PATTERN.UPDATE_ORDER_STATUS,
+          { id: orderId, newStatus: body.status },
+          () => {
+            return {
+              fallback: true,
+              message: 'Order service is temporary unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Order status updated successfully',
+          { success: true },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Updating order status failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

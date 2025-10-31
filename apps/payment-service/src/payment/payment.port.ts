@@ -2,10 +2,15 @@ import { Requester } from '@app/contracts';
 import {
   Payment,
   PaymentCreateDto,
+  PaymentDto,
   PaymentMethod,
   VNPayCallbackDto,
   VNPayResultDto,
 } from '@app/contracts/payment';
+
+export interface IPaymentService {
+  getPaymentsByOrderIds(orderIds: number[]): Promise<PaymentDto[]>;
+}
 
 export interface IVNPayService {
   createPaymentUrl(
@@ -30,4 +35,5 @@ export interface IPaymentQueryRepository {
 
   // Payment
   findPaymentsByOrderId(orderId: number): Promise<Payment[]>;
+  findPaymentsByOrderIds(orderIds: number[]): Promise<Payment[]>;
 }

@@ -125,4 +125,7 @@ export interface IOrderCommandRepository {
   insertCartItem(data: CartItem): Promise<CartItem>;
   updateCartItem(id: number, quantity: number): Promise<void>;
   deleteCartItems(ids: number[]): Promise<void>;
+
+  // Shipment
+  insertShipment(data: Shipment): Promise<Shipment>;
 }

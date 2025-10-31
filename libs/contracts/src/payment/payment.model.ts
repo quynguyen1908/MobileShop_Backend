@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export enum PayMethod {
   VNPAY = 'VNPAY',
+  COD = 'COD',
 }
 
 export enum PaymentStatus {

@@ -1,4 +1,6 @@
+import { OrderStatus } from '@app/contracts/order';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum } from 'class-validator';
 
 export class ApiResponseDto<T = any> {
   @ApiProperty({ example: 200 })
@@ -31,4 +33,11 @@ export class ApiResponseDto<T = any> {
     this.data = data;
     this.errors = errors || null;
   }
+}
+
+export class UpdateOrderStatusDto {
+  @IsEnum(OrderStatus, {
+    message: 'Invalid order status',
+  })
+  status: OrderStatus;
 }
