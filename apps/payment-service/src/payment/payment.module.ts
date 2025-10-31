@@ -9,12 +9,14 @@ import {
 } from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 import { VNPayService } from './services/vnpay.service';
+import { PaymentService } from './services/payment.service';
 
 @Module({
   imports: [RabbitMQModule.register()],
   controllers: [PaymentController],
   providers: [
     VNPayService,
+    PaymentService,
     PaymentRepository,
     {
       provide: PAYMENT_REPOSITORY,

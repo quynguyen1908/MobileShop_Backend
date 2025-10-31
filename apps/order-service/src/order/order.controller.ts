@@ -5,6 +5,7 @@ import {
   CartItemCreateDto,
   ORDER_PATTERN,
   OrderCreateDto,
+  OrderStatus,
 } from '@app/contracts/order';
 import type { Requester } from '@app/contracts/interface';
 
@@ -60,9 +61,13 @@ export class OrderController {
     return { success: true };
   }
 
-  @MessagePattern(ORDER_PATTERN.GET_CART_BY_CUSTOMER_ID)
-  async getCartByCustomerId(@Payload() request: Requester) {
-    return this.orderService.getCartByCustomerId(request);
+  @MessagePattern(ORDER_PATTERN.UPDATE_ORDER_STATUS)
+  async updateOrderStatus(
+    @Payload() payload: { id: number; newStatus: OrderStatus },
+  ) {
+    const { id, newStatus } = payload;
+    await this.orderService.updateOrderStatus(id, newStatus);
+    return { success: true };
   }
 
   @MessagePattern(ORDER_PATTERN.ADD_TO_CART)

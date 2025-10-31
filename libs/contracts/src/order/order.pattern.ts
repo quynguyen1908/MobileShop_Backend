@@ -6,6 +6,7 @@ export const ORDER_PATTERN = {
   CALCULATE_SHIPPING_FEE: 'order.calculateShippingFee',
   CREATE_ORDER: 'order.createOrder',
   CANCEL_ORDER: 'order.cancelOrder',
+  UPDATE_ORDER_STATUS: 'order.updateOrderStatus',
   GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID:
     'order.getPointTransactionsByCustomerId',
   GET_CART_BY_CUSTOMER_ID: 'order.getCartByCustomerId',

@@ -1,5 +1,17 @@
 import { z } from 'zod';
-import { paymentSchema } from './payment.model';
+import { paymentMethodSchema, paymentSchema } from './payment.model';
+
+// Payment
+
+export const paymentDtoSchema = paymentSchema
+  .omit({
+    paymentMethodId: true,
+  })
+  .extend({
+    paymentMethod: paymentMethodSchema,
+  });
+
+export type PaymentDto = z.infer<typeof paymentDtoSchema>;
 
 // Create Payment
 

@@ -1,3 +1,4 @@
+import { paymentDtoSchema } from '../payment';
 import {
   ErrColorNameAtMost50Chars,
   ErrPhoneNameAtMost100Chars,
@@ -85,6 +86,7 @@ export const orderDtoSchema = orderSchema
     statusHistory: statusHistoryDtoSchema.array(),
     transactions: pointTransactionDtoSchema.array(),
     shipments: shipmentDtoSchema.array().optional(),
+    payments: paymentDtoSchema.array().optional(),
   });
 
 export type OrderDto = z.infer<typeof orderDtoSchema>;

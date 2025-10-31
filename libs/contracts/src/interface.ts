@@ -124,6 +124,23 @@ export interface GHNShippingResponse {
   };
 }
 
+export interface GHNOrderResponse {
+  code: number;
+  code_message_value: string;
+  message: string;
+  message_display: string;
+  data: {
+    order_code: string;
+    sort_code: string;
+    trans_type: string;
+    ward_encode: string;
+    district_encode: string;
+    total_fee: number;
+    expected_delivery_time: string;
+    operation_partner: string;
+  };
+}
+
 export interface VNPayConfig {
   tmnCode: string;
   hashSecret: string;

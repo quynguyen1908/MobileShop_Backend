@@ -198,7 +198,13 @@ export class OrderRepository implements IOrderRepository {
         }) => Promise<PrismaOrder>;
       };
     };
-    await prismaService.order.update({ where: { id }, data: { status } });
+    await prismaService.order.update({
+      where: { id },
+      data: {
+        status,
+        updatedAt: new Date(),
+      },
+    });
   }
 
   // Order Item
@@ -350,6 +356,16 @@ export class OrderRepository implements IOrderRepository {
       where: { orderId: { in: orderIds } },
     });
     return shipments.map((shipment) => this._toShipmentModel(shipment));
+  }
+
+  async insertShipment(data: Omit<Shipment, 'id'>): Promise<Shipment> {
+    const prismaService = this.prisma as unknown as {
+      shipment: {
+        create: (param: { data: any }) => Promise<PrismaShipment>;
+      };
+    };
+    const shipment = await prismaService.shipment.create({ data });
+    return this._toShipmentModel(shipment);
   }
 
   // Cart
