@@ -32,10 +32,7 @@ import {
   ORDER_SERVICE_NAME,
   OrderDto,
 } from '@app/contracts/order';
-import type {
-  CartItemCreateDto,
-  OrderCreateDto,
-} from '@app/contracts/order';
+import type { CartItemCreateDto, OrderCreateDto } from '@app/contracts/order';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto, UpdateOrderStatusDto } from '../dto/response.dto';

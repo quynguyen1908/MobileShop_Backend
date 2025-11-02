@@ -5,7 +5,6 @@ import type {
   GoogleResponseDto,
   LoginDto,
   RegisterDto,
-  User,
 } from '@app/contracts/auth';
 import {
   Body,
@@ -30,7 +29,6 @@ import * as AuthInterface from './auth.interface';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
-import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Authentication')
@@ -515,13 +513,16 @@ export class AuthController {
       const statusCode =
         typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
 
-      if (statusCode === HttpStatus.NOT_FOUND && typedError.logMessage === 'User not found') {
+      if (
+        typedError.statusCode === HttpStatus.NOT_FOUND &&
+        typedError.logMessage === 'User not found'
+      ) {
         const response = new ApiResponseDto(
           HttpStatus.NOT_FOUND,
           'User not found in the system. Please register an account.',
           {
             googleUser: req.user,
-            isNewUser: true
+            isNewUser: true,
           },
         );
 

@@ -3,6 +3,20 @@ import { ClientProxy } from '@nestjs/microservices';
 import CircuitBreaker from 'opossum';
 import { firstValueFrom, timeout } from 'rxjs';
 
+interface ServiceError {
+  pattern?: string;
+  data?: unknown;
+  message?: string;
+  code?: string | number;
+  status?: number;
+  statusCode?: number;
+}
+
+interface ServiceContext {
+  pattern: string;
+  data: unknown;
+}
+
 @Injectable()
 export class CircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
@@ -121,7 +135,7 @@ export class CircuitBreakerService {
       breaker.fallback(async (err: unknown) => {
         const formattedError = this.formatError(err);
         this.logger.warn(
-          `Executing fallback for ${serviceId}. Error: ${formattedError}`
+          `Executing fallback for ${serviceId}. Error: ${formattedError}`,
         );
         return fallbackFn(formattedError);
       });
@@ -141,7 +155,7 @@ export class CircuitBreakerService {
       const formattedError = this.formatError(error);
       this.logger.error(
         `Error executing request to ${serviceId}: ${formattedError.message}`,
-        formattedError.stack
+        formattedError.stack,
       );
 
       if (fallbackFn) {
@@ -202,32 +216,62 @@ export class CircuitBreakerService {
       }
 
       if (error && typeof error === 'object') {
-        const errorInfo: Record<string, any> = {};
-        
-        if ('pattern' in error && 'data' in error) {
-          errorInfo.pattern = (error as any).pattern;
-          errorInfo.data = (error as any).data;
+        const errorInfo: ServiceError = {};
+
+        if (this.isServiceContext(error)) {
+          errorInfo.pattern = error.pattern;
+          errorInfo.data = error.data;
         }
 
-        ['message', 'code', 'status', 'statusCode'].forEach(field => {
-          if (field in error) {
-            errorInfo[field] = (error as any)[field];
+        const fields = ['message', 'code', 'status', 'statusCode'] as const;
+        fields.forEach((field) => {
+          if (this.hasProperty(error, field)) {
+            const value = error[field];
+            switch (field) {
+              case 'message':
+                if (typeof value === 'string') errorInfo.message = value;
+                break;
+              case 'code':
+                if (typeof value === 'string' || typeof value === 'number')
+                  errorInfo.code = value;
+                break;
+              case 'status':
+              case 'statusCode':
+                if (typeof value === 'number') errorInfo[field] = value;
+                break;
+            }
           }
         });
 
         return new Error(
-          `Service error: ${JSON.stringify(errorInfo, null, 2)}`
+          `Service error: ${JSON.stringify(errorInfo, null, 2)}`,
         );
       }
 
       return new Error(
-        typeof error === 'string' ? error : 'Unknown service error'
+        typeof error === 'string' ? error : 'Unknown service error',
       );
-
     } catch (formatError) {
       this.logger.error('Error while formatting:', formatError);
       return new Error('Service communication error');
     }
+  }
+
+  private isServiceContext(value: unknown): value is ServiceContext {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'pattern' in value &&
+      typeof (value as ServiceContext).pattern === 'string' &&
+      'data' in value
+    );
+  }
+
+  private hasProperty<T extends object, K extends string>(
+    obj: T,
+    prop: K,
+  ): obj is T & Record<K, unknown> {
+    return prop in obj;
   }
 }
 

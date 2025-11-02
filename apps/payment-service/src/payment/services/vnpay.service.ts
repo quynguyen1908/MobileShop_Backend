@@ -258,7 +258,7 @@ export class VNPayService implements IVNPayService {
         message: isSuccess
           ? 'Payment successful'
           : `Payment failed with response code: ${params.vnp_ResponseCode}`,
-        orderId: order.id!,
+        orderId: order.id,
         orderCode: params.vnp_TxnRef,
         amount: parseInt(params.vnp_Amount) / 100,
         transactionId: params.vnp_TransactionNo,
