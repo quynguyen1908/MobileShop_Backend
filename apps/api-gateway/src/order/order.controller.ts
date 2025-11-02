@@ -32,10 +32,7 @@ import {
   ORDER_SERVICE_NAME,
   OrderDto,
 } from '@app/contracts/order';
-import type {
-  CartItemCreateDto,
-  OrderCreateDto,
-} from '@app/contracts/order';
+import type { CartItemCreateDto, OrderCreateDto } from '@app/contracts/order';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
 import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto, UpdateOrderStatusDto } from '../dto/response.dto';
@@ -105,6 +102,7 @@ export class OrderController {
                     phoneId: 1,
                     variantName: 'Ultra 1TB',
                     color: 'Đen',
+                    colorId: 1,
                     name: 'Samsung Galaxy S25',
                     imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
                   },
@@ -718,6 +716,7 @@ export class CartController {
                   phoneId: 3,
                   variantName: '5G 12GB 512GB',
                   color: 'Xám',
+                  colorId: 3,
                   name: 'Xiaomi 14T',
                   imageUrl: 'https://example.com/xiaomi-14t.jpg',
                 },

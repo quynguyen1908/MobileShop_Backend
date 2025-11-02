@@ -13,7 +13,12 @@ import type {
   GHNShippingResponse,
   IEventPublisher,
 } from '@app/contracts/interface';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import type { IOrderRepository, IOrderService } from './order.port';
 import {
   CartDto,
@@ -76,7 +81,7 @@ import {
 } from '@app/contracts/payment';
 
 interface LocationResult {
-  wardId: number;
+  wardCode: string;
   districtId: number;
   found: boolean;
 }
@@ -87,6 +92,7 @@ export class OrderService implements IOrderService {
   private readonly ghnApiUrl: string;
   private readonly ghnToken: string;
   private readonly ghnShopId: number;
+  private readonly logger = new Logger(OrderService.name);
 
   constructor(
     @Inject(ORDER_REPOSITORY)
@@ -658,7 +664,7 @@ export class OrderService implements IOrderService {
                   commune[0].name +
                   ', ' +
                   province[0].name,
-                to_ward_code: String(locationData.wardId),
+                to_ward_code: locationData.wardCode,
                 to_district_id: locationData.districtId,
                 payment_type_id: isCodPaid ? 2 : 1,
                 items: orderItemDtos.map((item) => ({
@@ -910,13 +916,17 @@ export class OrderService implements IOrderService {
       );
     }
 
+    this.logger.log(
+      `Calculated location IDs - District ID: ${locationResult.districtId}, Ward ID: ${locationResult.wardCode}`,
+    );
+
     const { data: responseData } = await firstValueFrom(
       this.httpService
         .post<GHNShippingResponse>(
           `${this.ghnApiUrl}/shipping-order/fee`,
           {
             to_district_id: locationResult.districtId,
-            to_ward_code: String(locationResult.wardId),
+            to_ward_code: locationResult.wardCode,
             weight: 400,
             service_type_id: 2,
           },
@@ -1177,7 +1187,7 @@ export class OrderService implements IOrderService {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
         console.error(`Location CSV file not found at: ${this.csvFilePath}`);
-        resolve({ wardId: 0, districtId: 0, found: false });
+        resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
 
@@ -1217,7 +1227,7 @@ export class OrderService implements IOrderService {
             const record = matchingRecords[0];
 
             resolve({
-              wardId: parseInt(record.WardID),
+              wardCode: record.WardID,
               districtId: parseInt(record.DistrictID),
               found: true,
             });
@@ -1225,7 +1235,7 @@ export class OrderService implements IOrderService {
             console.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
-            resolve({ wardId: 0, districtId: 0, found: false });
+            resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
@@ -1325,6 +1335,7 @@ export class OrderService implements IOrderService {
           phoneId: variant.phone.id,
           variantName: variant.variantName,
           color: matchingColor.color.name,
+          colorId: matchingColor.color.id,
           name: variant.phone.name,
           imageUrl: image.imageUrl,
         },
@@ -1421,6 +1432,7 @@ export class OrderService implements IOrderService {
           phoneId: variant.phone.id,
           variantName: variant.variantName,
           color: matchingColor.color.name,
+          colorId: matchingColor.color.id,
           name: variant.phone.name,
           imageUrl: image.imageUrl,
         },

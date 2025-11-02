@@ -5,7 +5,6 @@ import type {
   GoogleResponseDto,
   LoginDto,
   RegisterDto,
-  User,
 } from '@app/contracts/auth';
 import {
   Body,
@@ -30,7 +29,6 @@ import * as AuthInterface from './auth.interface';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
-import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Authentication')
@@ -413,67 +411,127 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with Google OAuth2' })
   async googleLogin() {}
 
-  @Get('google/callback')
+  @Post('google/callback')
   @UseGuards(AuthGuard('google'))
-  @ApiOperation({
-    summary: 'Google OAuth2 callback',
-    description: `Handles the callback from Google after user authentication.
-    Change FRONTEND_URL in .env to your frontend URL where users will be redirected after login.
-    Access and refresh tokens are set as HTTP-only cookies for security.`,
+  @ApiOperation({ summary: 'Google OAuth2 callback' })
+  @ApiBody({
+    description: 'Google OAuth2 callback',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', example: 'authorizationCodeFromGoogle' },
+      },
+      required: ['code'],
+    },
   })
   @ApiResponse({
-    status: 302,
-    description: 'Redirects to the frontend URL after successful login.',
+    status: 200,
+    description: 'User logged in with Google successfully.',
+    content: {
+      'application/json': {
+        examples: {
+          success: {
+            value: {
+              status: 200,
+              message: 'User logged in with Google successfully',
+              data: {
+                userId: 1,
+                tokens: {
+                  accessToken: 'someAccessToken',
+                  refreshToken: 'someRefreshToken',
+                  expiresIn: 3600,
+                },
+              },
+              errors: null,
+            },
+          },
+          notFound: {
+            value: {
+              status: 404,
+              message:
+                'User not found in the system. Please register an account.',
+              data: {
+                googleUser: {
+                  id: 'googleId123',
+                  email: 'example@gmail.com',
+                  firstName: 'John',
+                  lastName: 'Doe',
+                },
+                isNewUser: true,
+              },
+              errors: null,
+            },
+          },
+        },
+      },
+    },
   })
   async googleLoginCallback(@Req() req: Request, @Res() res: Response) {
     try {
       const googleUser = req.user as GoogleResponseDto;
 
-      const user = await firstValueFrom(
-        this.authServiceClient.send<User | null>(
-          AUTH_PATTERN.GET_USER_BY_EMAIL,
-          googleUser.email,
-        ),
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.LoginResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.GOOGLE_LOGIN,
+        googleUser,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
       );
 
-      if (user) {
-        const result = await firstValueFrom(
-          this.authServiceClient.send<AuthInterface.LoginResponse>(
-            AUTH_PATTERN.GOOGLE_LOGIN,
-            googleUser,
-          ),
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User logged in with Google successfully',
+          {
+            userId: result.userId,
+            tokens: result.tokens,
+          },
         );
 
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL', '');
-
-        const isProduction =
-          this.configService.get<string>('NODE_ENV') === 'production';
-
-        res.cookie('accessToken', result.tokens.accessToken, {
-          httpOnly: true,
-          secure: isProduction,
-          maxAge: result.tokens.expiresIn * 1000,
-          sameSite: isProduction ? 'strict' : 'lax',
-        });
-
-        res.cookie('refreshToken', result.tokens.refreshToken, {
-          httpOnly: true,
-          secure: isProduction,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          sameSite: isProduction ? 'strict' : 'lax',
-        });
-
-        return res.redirect(frontendUrl);
+        return res.status(HttpStatus.OK).json(response);
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode =
         typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.logMessage || 'Google login failed';
+
+      if (
+        typedError.statusCode === HttpStatus.NOT_FOUND &&
+        typedError.logMessage === 'User not found'
+      ) {
+        const response = new ApiResponseDto(
+          HttpStatus.NOT_FOUND,
+          'User not found in the system. Please register an account.',
+          {
+            googleUser: req.user,
+            isNewUser: true,
+          },
+        );
+
+        return res.status(HttpStatus.NOT_FOUND).json(response);
+      }
 
       const errorResponse = new ApiResponseDto(
         statusCode,
-        errorMessage,
+        typedError.logMessage || 'Google login failed',
         null,
         formatError(error),
       );
