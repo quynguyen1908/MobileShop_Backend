@@ -49,6 +49,7 @@ export interface VNPayResultDto {
   isValid: boolean;
   isSuccess: boolean;
   message: string;
+  orderId: number;
   orderCode: string;
   transactionId: string;
   amount: number;

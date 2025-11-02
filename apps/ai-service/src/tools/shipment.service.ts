@@ -16,7 +16,7 @@ import { formatCurrency } from '@app/contracts/utils';
 import { normalizeText } from '@app/contracts/utils';
 
 interface LocationResult {
-  wardId: number;
+  wardCode: string;
   districtId: number;
   found: boolean;
 }
@@ -48,7 +48,7 @@ export class ShipmentToolService {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
         console.error(`Location CSV file not found at: ${this.csvFilePath}`);
-        resolve({ wardId: 0, districtId: 0, found: false });
+        resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
 
@@ -88,7 +88,7 @@ export class ShipmentToolService {
             const record = matchingRecords[0];
 
             resolve({
-              wardId: parseInt(record.WardID),
+              wardCode: record.WardID,
               districtId: parseInt(record.DistrictID),
               found: true,
             });
@@ -96,7 +96,7 @@ export class ShipmentToolService {
             console.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
-            resolve({ wardId: 0, districtId: 0, found: false });
+            resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
@@ -120,7 +120,7 @@ export class ShipmentToolService {
             `${this.ghnApiUrl}/shipping-order/fee`,
             {
               to_district_id: locationResult.districtId,
-              to_ward_code: String(locationResult.wardId),
+              to_ward_code: locationResult.wardCode,
               weight: 400,
               service_type_id: 2,
             },

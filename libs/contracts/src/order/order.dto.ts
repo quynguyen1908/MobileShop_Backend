@@ -29,6 +29,7 @@ const orderItemsDtoSchema = orderItemSchema
       phoneId: z.number().int().positive(),
       variantName: z.string().max(100, ErrVariantNameAtMost100Chars.message),
       color: z.string().max(50, ErrColorNameAtMost50Chars.message),
+      colorId: z.number().int().positive(),
       name: z.string().max(100, ErrPhoneNameAtMost100Chars.message),
       imageUrl: z.url(),
     }),

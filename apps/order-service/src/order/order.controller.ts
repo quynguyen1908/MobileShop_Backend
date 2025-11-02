@@ -70,6 +70,11 @@ export class OrderController {
     return { success: true };
   }
 
+  @MessagePattern(ORDER_PATTERN.GET_CART_BY_CUSTOMER_ID)
+  async getCartByCustomerId(@Payload() request: Requester) {
+    return this.orderService.getCartByCustomerId(request);
+  }
+
   @MessagePattern(ORDER_PATTERN.ADD_TO_CART)
   async addToCart(
     @Payload()

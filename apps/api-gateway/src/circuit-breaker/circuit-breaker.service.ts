@@ -118,9 +118,13 @@ export class CircuitBreakerService {
     const breaker = this.getBreaker(serviceId, options);
 
     if (fallbackFn) {
-      breaker.fallback(async (err: unknown) =>
-        fallbackFn(err instanceof Error ? err : new Error(String(err))),
-      );
+      breaker.fallback(async (err: unknown) => {
+        const formattedError = this.formatError(err);
+        this.logger.warn(
+          `Executing fallback for ${serviceId}. Error: ${formattedError}`
+        );
+        return fallbackFn(formattedError);
+      });
     }
 
     const context: {
@@ -130,8 +134,22 @@ export class CircuitBreakerService {
       timeoutMs?: number;
     } = { client, pattern, data };
 
-    const result = await breaker.fire(context);
-    return result as T;
+    try {
+      const result = await breaker.fire(context);
+      return result as T;
+    } catch (error) {
+      const formattedError = this.formatError(error);
+      this.logger.error(
+        `Error executing request to ${serviceId}: ${formattedError.message}`,
+        formattedError.stack
+      );
+
+      if (fallbackFn) {
+        return fallbackFn(formattedError);
+      }
+
+      throw formattedError;
+    }
   }
 
   getStatus(): Record<string, unknown> {
@@ -175,6 +193,41 @@ export class CircuitBreakerService {
       return true;
     }
     return false;
+  }
+
+  private formatError(error: unknown): Error {
+    try {
+      if (error instanceof Error) {
+        return error;
+      }
+
+      if (error && typeof error === 'object') {
+        const errorInfo: Record<string, any> = {};
+        
+        if ('pattern' in error && 'data' in error) {
+          errorInfo.pattern = (error as any).pattern;
+          errorInfo.data = (error as any).data;
+        }
+
+        ['message', 'code', 'status', 'statusCode'].forEach(field => {
+          if (field in error) {
+            errorInfo[field] = (error as any)[field];
+          }
+        });
+
+        return new Error(
+          `Service error: ${JSON.stringify(errorInfo, null, 2)}`
+        );
+      }
+
+      return new Error(
+        typeof error === 'string' ? error : 'Unknown service error'
+      );
+
+    } catch (formatError) {
+      this.logger.error('Error while formatting:', formatError);
+      return new Error('Service communication error');
+    }
   }
 }
 

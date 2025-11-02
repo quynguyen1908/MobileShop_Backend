@@ -146,7 +146,7 @@ export class PaymentController {
         schema: {
           type: 'string',
           example:
-            'http://localhost:4200/payment/result?isValid=true&isSuccess=true&message=Payment+successful&orderCode=PH1710257334_ZY4PY&transactionId=15209085&amount=42234000&paymentId=2&payDate=20251018172119',
+            'http://localhost:4200/payment/result?orderId=1&isValid=true&isSuccess=true&message=Payment+successful&orderCode=PH1710257334_ZY4PY&transactionId=15209085&amount=42234000&paymentId=2&payDate=20251018172119',
         },
       },
     },
@@ -162,6 +162,11 @@ export class PaymentController {
 
       const frontendPaymentResultUrl = new URL(
         this.configService.get<string>('FRONTEND_PAYMENT_RESULT_URL', ''),
+      );
+
+      frontendPaymentResultUrl.searchParams.append(
+        'orderId',
+        result.orderId.toString(),
       );
 
       frontendPaymentResultUrl.searchParams.append(
