@@ -11,6 +11,9 @@ export const PHONE_PATTERN = {
   DELETE_BRAND: 'phone.deleteBrand',
 
   GET_ALL_CATEGORIES: 'phone.getAllCategories',
+  GET_CATEGORIES_BY_IDS: 'phone.getCategoriesByIds',
+  GET_PARENT_CATEGORY_IDS_BY_VARIANT_IDS:
+    'phone.getParentCategoryIdsByVariantIds',
   CREATE_CATEGORY: 'phone.createCategory',
   UPDATE_CATEGORY: 'phone.updateCategory',
   DELETE_CATEGORY: 'phone.deleteCategory',

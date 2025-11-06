@@ -79,4 +79,10 @@ export class RabbitMQService {
       this.configService.get<string>('PAYMENT_SERVICE_QUEUE', 'payment_queue'),
     );
   }
+
+  get voucherServiceOptions(): RmqOptions {
+    return this.getRmqOptions(
+      this.configService.get<string>('VOUCHER_SERVICE_QUEUE', 'voucher_queue'),
+    );
+  }
 }

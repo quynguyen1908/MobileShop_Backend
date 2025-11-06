@@ -3,6 +3,7 @@ import { PaymentModule } from './payment/payment.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '@app/contracts/prisma';
 import paymentConfig from '@app/contracts/payment/payment.config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import paymentConfig from '@app/contracts/payment/payment.config';
       load: [paymentConfig],
     }),
     PrismaModule,
+    EventEmitterModule.forRoot(),
   ],
   controllers: [],
   providers: [],

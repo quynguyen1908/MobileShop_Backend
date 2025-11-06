@@ -27,6 +27,12 @@ interface PointTransaction {
   isDeleted: boolean;
 }
 
+interface PaymentMethod {
+  id: number;
+  code: string;
+  name: string;
+}
+
 export interface OrderCreatedPayload extends BaseOrderEventPayload {
   customerId: number;
   orderCode: string;
@@ -44,6 +50,8 @@ export interface OrderCreatedPayload extends BaseOrderEventPayload {
   postalCode: string | null;
   items: OrderItem[];
   pointTransactions: PointTransaction[];
+  paymentMethod: PaymentMethod;
+  voucherIds?: number[];
 }
 
 export interface OrderUpdatedPayload extends BaseOrderEventPayload {
@@ -52,6 +60,7 @@ export interface OrderUpdatedPayload extends BaseOrderEventPayload {
   status: string;
   items: OrderItem[];
   pointTransactions: PointTransaction[];
+  isCodPaid?: boolean;
 }
 
 export abstract class OrderEvent<
@@ -240,6 +249,7 @@ function validateOrderCreatedPayload(
   });
 
   let pointTransactions: PointTransaction[] = [];
+  let paymentMethod: PaymentMethod | undefined;
 
   if (payload.pointTransactions !== undefined) {
     if (!Array.isArray(payload.pointTransactions)) {
@@ -280,6 +290,33 @@ function validateOrderCreatedPayload(
         };
       },
     );
+
+    if (payload.paymentMethod !== undefined) {
+      if (!payload.paymentMethod || typeof payload.paymentMethod !== 'object') {
+        throw new Error('paymentMethod must be an object');
+      }
+
+      const typedPaymentMethod = payload.paymentMethod as Record<
+        string,
+        unknown
+      >;
+
+      if (typeof typedPaymentMethod.id !== 'number') {
+        throw new Error('paymentMethod.id must be a number');
+      }
+      if (typeof typedPaymentMethod.code !== 'string') {
+        throw new Error('paymentMethod.code must be a string');
+      }
+      if (typeof typedPaymentMethod.name !== 'string') {
+        throw new Error('paymentMethod.name must be a string');
+      }
+
+      paymentMethod = {
+        id: typedPaymentMethod.id,
+        code: typedPaymentMethod.code,
+        name: typedPaymentMethod.name,
+      };
+    }
   }
 
   return {
@@ -300,6 +337,8 @@ function validateOrderCreatedPayload(
     postalCode: payload.postalCode as string | null,
     items,
     pointTransactions,
+    paymentMethod: paymentMethod as PaymentMethod,
+    voucherIds: payload.voucherIds as number[] | undefined,
   };
 }
 
@@ -424,6 +463,7 @@ function validateOrderUpdatedPayload(
     status: payload.status,
     items,
     pointTransactions,
+    isCodPaid: payload.isCodPaid as boolean | undefined,
   };
 }
 

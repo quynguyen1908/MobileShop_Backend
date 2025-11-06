@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IPaymentRepository, IPaymentService } from '../payment.port';
-import { PaymentDto } from '@app/contracts/payment';
+import {
+  Payment,
+  PaymentDto,
+  PaymentMethod,
+  PaymentUpdateDto,
+} from '@app/contracts/payment';
 import { PAYMENT_REPOSITORY } from '@app/contracts';
 
 @Injectable()
@@ -36,5 +41,18 @@ export class PaymentService implements IPaymentService {
     } else {
       return [];
     }
+  }
+
+  async getAllPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.paymentRepository.findAllPaymentMethods();
+  }
+
+  async createPayment(payment: Payment): Promise<number> {
+    const newPayment = await this.paymentRepository.insertPayment(payment);
+    return newPayment.id!;
+  }
+
+  async updatePayment(id: number, data: PaymentUpdateDto): Promise<void> {
+    await this.paymentRepository.updatePayment(id, data);
   }
 }

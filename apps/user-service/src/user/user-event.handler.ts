@@ -193,6 +193,25 @@ export class UserEventHandler {
           });
           return;
         }
+        case OrderStatus.DELIVERED.toString(): {
+          let earnedPoints = 0;
+
+          if (event.payload.isCodPaid) {
+            for (const transaction of pointTransactions) {
+              if (transaction.type === PointType.EARN) {
+                earnedPoints += transaction.points;
+              }
+            }
+
+            const newPointsBalance = customer.pointsBalance + earnedPoints;
+
+            await this.userService.updateCustomer(customerId, {
+              pointsBalance: newPointsBalance,
+              updatedAt: new Date(),
+            });
+          }
+          return;
+        }
         default: {
           this.logger.log(
             `Order status is ${status}, no point update required`,

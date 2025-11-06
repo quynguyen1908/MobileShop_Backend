@@ -294,9 +294,9 @@ export class OrderController {
       type: 'object',
       properties: {
         totalAmount: { type: 'number', example: 43200000 },
-        discountAmount: { type: 'number', example: 1000000 },
-        shippingFee: { type: 'number', example: 34000 },
-        finalAmount: { type: 'number', example: 42234000 },
+        discountAmount: { type: 'number', example: 1300000 },
+        shippingFee: { type: 'number', example: 22000 },
+        finalAmount: { type: 'number', example: 41922000 },
         recipientName: { type: 'string', example: 'Max Johnson' },
         recipientPhone: { type: 'string', example: '0987654321' },
         street: { type: 'string', example: '456 Le Loi' },
@@ -305,7 +305,7 @@ export class OrderController {
         postalCode: { type: 'string', example: '67890' },
         voucherIdsApplied: {
           type: 'array',
-          items: { type: 'number', example: 2 },
+          items: { type: 'number', example: 1 },
         },
         items: {
           type: 'array',
@@ -322,6 +322,14 @@ export class OrderController {
           },
         },
         pointUsed: { type: 'number', example: 20000, nullable: true },
+        paymentMethod: {
+          type: 'object',
+          properties: {
+            id: { type: 'number', example: 1 },
+            code: { type: 'string', example: 'VNPAY' },
+            name: { type: 'string', example: 'VNPay' },
+          },
+        },
       },
       required: [
         'totalAmount',
@@ -370,7 +378,7 @@ export class OrderController {
             message: 'Order service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 10000 },
+        { timeout: 30000 },
       );
 
       console.log('Order service response:', JSON.stringify(result, null, 2));

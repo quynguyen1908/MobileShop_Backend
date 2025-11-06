@@ -19,6 +19,7 @@ import { RemoteAuthGuard } from '@app/contracts/auth';
 import { PAYMENT_PATTERN, PAYMENT_SERVICE_NAME } from '@app/contracts/payment';
 import type {
   PaymentCreateDto,
+  PaymentMethod,
   VNPayCallbackDto,
   VNPayResultDto,
 } from '@app/contracts/payment';
@@ -210,6 +211,60 @@ export class PaymentController {
       frontendPaymentResultUrl.searchParams.append('message', errorMessage);
 
       return res.redirect(frontendPaymentResultUrl.toString());
+    }
+  }
+
+  @Get('methods')
+  @ApiOperation({ summary: 'Get all payment methods' })
+  async getAllPaymentMethods(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        PaymentMethod[] | FallbackResponse
+      >(
+        this.paymentServiceClient,
+        PAYMENT_SERVICE_NAME,
+        PAYMENT_PATTERN.GET_ALL_PAYMENT_METHODS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Payment service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Payment service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Payment methods retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting payment methods failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
     }
   }
 }

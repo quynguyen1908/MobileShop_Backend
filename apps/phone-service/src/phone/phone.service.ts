@@ -414,6 +414,28 @@ export class PhoneService implements IPhoneService {
     return categoryTree;
   }
 
+  async getCategoriesByIds(ids: number[]): Promise<Category[]> {
+    return this.phoneRepository.findCategoriesByIds(ids);
+  }
+
+  async getParentCategoryIdsByVariantIds(
+    variantIds: number[],
+  ): Promise<number[]> {
+    const variants = await this.phoneRepository.findVariantsByIds(variantIds);
+
+    const phoneIds = variants.map((variant) => variant.phoneId);
+    const phones = await this.phoneRepository.findPhonesByIds(phoneIds);
+
+    const parentCategoryIds = new Set<number>();
+    for (const phone of phones) {
+      const categoryId = phone.categoryId;
+      const parentIds =
+        await this.phoneRepository.findAllParentCategoryIds(categoryId);
+      parentIds.forEach((id) => parentCategoryIds.add(id));
+    }
+    return Array.from(parentCategoryIds);
+  }
+
   async createCategory(categoryCreateDto: CategoryCreateDto): Promise<number> {
     const data = categoryCreateDtoSchema.parse(categoryCreateDto);
 

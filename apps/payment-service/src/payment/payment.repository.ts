@@ -6,6 +6,7 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from '@app/contracts/payment/payment.model';
+import { PaymentUpdateDto } from '@app/contracts/payment';
 
 interface PrismaPaymentMethod {
   id: number;
@@ -85,6 +86,15 @@ export class PaymentRepository implements IPaymentRepository {
     };
     const payment = await prismaService.payment.create({ data });
     return this._toPaymentModel(payment);
+  }
+
+  async updatePayment(id: number, data: PaymentUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      payment: {
+        update: (param: { where: { id: number }; data: any }) => Promise<void>;
+      };
+    };
+    await prismaService.payment.update({ where: { id }, data });
   }
 
   private _toPaymentMethodModel(data: PrismaPaymentMethod): PaymentMethod {
