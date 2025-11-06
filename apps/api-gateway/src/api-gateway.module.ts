@@ -9,6 +9,7 @@ import { PhoneModule } from './phone/phone.module';
 import { OrderModule } from './order/order.module';
 import { AiModule } from './ai/ai.module';
 import { PaymentModule } from './payment/payment.module';
+import { VoucherModule } from './voucher/voucher.module';
 import paymentConfig from '@app/contracts/payment/payment.config';
 
 @Module({
@@ -25,6 +26,7 @@ import paymentConfig from '@app/contracts/payment/payment.config';
     OrderModule,
     AiModule,
     PaymentModule,
+    VoucherModule,
   ],
   controllers: [HealthController],
   providers: [],

@@ -6,6 +6,7 @@ import {
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   USER_SERVICE,
+  VOUCHER_SERVICE,
 } from '@app/contracts';
 import type {
   Requester,
@@ -79,6 +80,12 @@ import {
   PaymentStatus,
   PayMethod,
 } from '@app/contracts/payment';
+import {
+  ApplyTo,
+  DiscountType,
+  VOUCHER_PATTERN,
+  VoucherDto,
+} from '@app/contracts/voucher';
 
 interface LocationResult {
   wardCode: string;
@@ -100,6 +107,7 @@ export class OrderService implements IOrderService {
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
+    @Inject(VOUCHER_SERVICE) private readonly voucherServiceClient: ClientProxy,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     private configService: ConfigService,
     private readonly httpService: HttpService,
@@ -310,6 +318,7 @@ export class OrderService implements IOrderService {
     }
 
     let totalAmount = 0;
+
     for (const item of orderItemsData) {
       const isAvailable = await firstValueFrom<boolean>(
         this.phoneServiceClient.send(
@@ -329,30 +338,111 @@ export class OrderService implements IOrderService {
         );
       }
 
-      if (item.discount === 0) {
-        totalAmount += item.price * item.quantity;
-      } else {
+      if (item.discount > 0 && item.discount < item.price) {
         totalAmount += item.discount * item.quantity;
+      } else {
+        totalAmount += item.price * item.quantity;
       }
     }
 
     const maxDiscountFromPoints = totalAmount * 0.2;
 
     let discountFromPoints = 0;
-    if (orderCreateDto.pointUsed) {
-      discountFromPoints = orderCreateDto.pointUsed * pointConfig.redeemRate;
+    if (orderData.pointUsed) {
+      discountFromPoints = orderData.pointUsed * pointConfig.redeemRate;
       if (discountFromPoints > maxDiscountFromPoints) {
         discountFromPoints = maxDiscountFromPoints;
       }
     }
 
     let discountFromVoucher = 0;
-    if (
-      orderCreateDto.voucherIdsApplied &&
-      orderCreateDto.voucherIdsApplied.length > 0
-    ) {
-      // TODO: Validate voucher and calculate discount
-      discountFromVoucher = 0;
+    const appliedVouchers: Set<number> = new Set<number>();
+
+    if (orderData.voucherIdsApplied && orderData.voucherIdsApplied.length > 0) {
+      const vouchers = await firstValueFrom<VoucherDto[]>(
+        this.voucherServiceClient.send(
+          VOUCHER_PATTERN.GET_VOUCHERS_BY_IDS,
+          orderData.voucherIdsApplied,
+        ),
+      );
+
+      if (vouchers.length === 0) {
+        throw new RpcException(
+          AppError.from(new Error('No valid vouchers found'), 400)
+            .withLog('No valid vouchers found')
+            .toJson(false),
+        );
+      }
+
+      for (const voucher of vouchers) {
+        if (voucher.appliesTo === ApplyTo.CATEGORY && voucher.categories) {
+          const categoryIds = await firstValueFrom<number[]>(
+            this.phoneServiceClient.send(
+              PHONE_PATTERN.GET_PARENT_CATEGORY_IDS_BY_VARIANT_IDS,
+              orderItemsData.map((item) => item.variantId),
+            ),
+          );
+
+          const isApplicable = voucher.categories.some((category) =>
+            categoryIds.includes(category.category.id!),
+          );
+
+          if (!isApplicable) {
+            continue;
+          }
+        }
+
+        if (
+          voucher.appliesTo === ApplyTo.PAYMENT_METHOD &&
+          voucher.paymentMethods
+        ) {
+          const isApplicable = voucher.paymentMethods.some(
+            (pm) => pm.paymentMethod.code === orderData.paymentMethod.code,
+          );
+
+          if (!isApplicable) {
+            continue;
+          }
+        }
+
+        if (voucher.usageLimitPerUser > 0) {
+          const userUsageCount =
+            voucher.usageHistory?.filter(
+              (history) => history.customerId === customer.id,
+            ).length || 0;
+
+          if (userUsageCount >= voucher.usageLimitPerUser) {
+            continue;
+          }
+        }
+
+        if (voucher.usageLimit <= voucher.usedCount) {
+          continue;
+        }
+
+        if (voucher.minOrderValue > totalAmount) {
+          throw new RpcException(
+            AppError.from(new Error('Minimum order value not met'), 400)
+              .withLog('Minimum order value not met')
+              .toJson(false),
+          );
+        }
+
+        if (voucher.discountType === DiscountType.AMOUNT) {
+          discountFromVoucher += voucher.discountValue;
+        } else if (voucher.discountType === DiscountType.PERCENT) {
+          const calculatedDiscount =
+            (totalAmount * voucher.discountValue) / 100;
+          if (voucher.maxDiscountValue) {
+            discountFromVoucher += Math.min(
+              calculatedDiscount,
+              voucher.maxDiscountValue,
+            );
+          } else discountFromVoucher += calculatedDiscount;
+        }
+
+        appliedVouchers.add(voucher.id!);
+      }
     }
 
     const totalDiscount = discountFromPoints + discountFromVoucher;
@@ -399,7 +489,7 @@ export class OrderService implements IOrderService {
 
     const pointTransactions: PointTransaction[] = [];
 
-    if (orderCreateDto.pointUsed && orderCreateDto.pointUsed > 0) {
+    if (orderData.pointUsed && orderData.pointUsed > 0) {
       pointTransactions.push({
         customerId: customer.id!,
         orderId: createdOrder.id!,
@@ -431,6 +521,12 @@ export class OrderService implements IOrderService {
         postalCode: createdOrder.postalCode ?? null,
         items,
         pointTransactions,
+        paymentMethod: {
+          id: orderData.paymentMethod.id!,
+          code: orderData.paymentMethod.code,
+          name: orderData.paymentMethod.name,
+        },
+        voucherIds: [...appliedVouchers],
       },
       ORDER_SERVICE_NAME,
     );
@@ -520,6 +616,18 @@ export class OrderService implements IOrderService {
     let isNotPaid = true;
     let isCodPaid = false;
 
+    for (const payment of payments) {
+      if (
+        payment.status === PaymentStatus.PENDING &&
+        payment.paymentMethod.code === PayMethod.COD.toString()
+      ) {
+        isCodPaid = true;
+        break;
+      }
+    }
+
+    let systemNote = '';
+
     switch (newStatus) {
       case OrderStatus.PAID: {
         if (order.status !== OrderStatus.PENDING) {
@@ -570,36 +678,51 @@ export class OrderService implements IOrderService {
             isDeleted: false,
           },
         ]);
+
+        systemNote = note ? note : 'Đã thanh toán';
+
         break;
       }
       case OrderStatus.PROCESSING: {
-        if (order.status !== OrderStatus.PAID) {
-          throw new RpcException(
-            AppError.from(
-              new Error(
-                'Order status can only be updated to PROCESSING from PAID',
-              ),
-              400,
-            )
-              .withLog(
-                `Order ${orderId} status can only be updated to PROCESSING from PAID`,
+        switch (order.status) {
+          case OrderStatus.PAID:
+            break;
+          case OrderStatus.PENDING:
+            if (!isCodPaid) {
+              throw new RpcException(
+                AppError.from(
+                  new Error(
+                    'Order status can only be updated to PROCESSING from PENDING if COD payment is made',
+                  ),
+                  400,
+                )
+                  .withLog(
+                    `Order ${orderId} status can only be updated to PROCESSING from PENDING if COD payment is made`,
+                  )
+                  .toJson(false),
+              );
+            }
+            break;
+          default:
+            throw new RpcException(
+              AppError.from(
+                new Error(
+                  'Order status can only be updated to PROCESSING from PAID or PENDING',
+                ),
+                400,
               )
-              .toJson(false),
-          );
+                .withLog(
+                  `Order ${orderId} status can only be updated to PROCESSING from PAID or PENDING`,
+                )
+                .toJson(false),
+            );
         }
+
+        systemNote = note ? note : 'Đang xử lý';
+
         break;
       }
       case OrderStatus.SHIPPED: {
-        for (const payment of payments) {
-          if (
-            payment.status === PaymentStatus.COMPLETED &&
-            payment.paymentMethod.code === PayMethod.COD.toString()
-          ) {
-            isCodPaid = true;
-            break;
-          }
-        }
-
         const province = await firstValueFrom<Province[]>(
           this.userServiceClient.send(USER_PATTERN.GET_PROVINCES_BY_IDS, [
             order.provinceId,
@@ -746,6 +869,9 @@ export class OrderService implements IOrderService {
               .toJson(false),
           );
         }
+
+        systemNote = note ? note : 'Đang giao hàng';
+
         break;
       }
       case OrderStatus.DELIVERED: {
@@ -763,9 +889,32 @@ export class OrderService implements IOrderService {
               .toJson(false),
           );
         }
+
+        if (isCodPaid) {
+          await this.orderRepository.insertPointTransactions([
+            {
+              customerId: order.customerId,
+              orderId: order.id!,
+              type: PointType.EARN,
+              moneyValue: order.finalAmount,
+              points: Math.floor(order.finalAmount / pointConfig.earnRate),
+              isDeleted: false,
+            },
+          ]);
+        }
+
+        systemNote = note ? note : 'Đã nhận hàng';
+
+        break;
+      }
+      case OrderStatus.CANCELED: {
+        systemNote = note ? note : 'Đã hủy';
+
         break;
       }
       default:
+        systemNote = note ? note : 'Thất bại';
+
         break;
     }
 
@@ -774,9 +923,45 @@ export class OrderService implements IOrderService {
     await this.orderRepository.insertOrderStatusHistory({
       orderId: orderId,
       status: newStatus,
-      note,
+      note: note ? note : systemNote,
       isDeleted: false,
     });
+
+    const items = await this.orderRepository.findOrderItemsByOrderIds([
+      order.id!,
+    ]);
+    const points = await this.orderRepository.findPointTransactionsByOrderIds([
+      order.id!,
+    ]);
+
+    const event = OrderUpdatedEvent.create(
+      {
+        id: order.id!,
+        customerId: order.customerId,
+        orderCode: order.orderCode,
+        status: newStatus,
+        items: items.map((item) => ({
+          orderId: item.orderId,
+          variantId: item.variantId,
+          colorId: item.colorId,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount,
+        })),
+        pointTransactions: points.map((tx) => ({
+          customerId: tx.customerId,
+          orderId: tx.orderId,
+          type: tx.type,
+          moneyValue: tx.moneyValue,
+          points: tx.points,
+          isDeleted: tx.isDeleted,
+        })),
+        isCodPaid: isCodPaid,
+      },
+      ORDER_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
   }
 
   async cancelOrder(requester: Requester, orderCode: string): Promise<void> {

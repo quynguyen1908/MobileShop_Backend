@@ -1,6 +1,16 @@
 import { z } from 'zod';
 import { paymentMethodSchema, paymentSchema } from './payment.model';
 
+// Payment Method
+
+export const paymentMethodDtoSchema = paymentMethodSchema.omit({
+  createdAt: true,
+  updatedAt: true,
+  isDeleted: true,
+});
+
+export type PaymentMethodDto = z.infer<typeof paymentMethodDtoSchema>;
+
 // Payment
 
 export const paymentDtoSchema = paymentSchema
@@ -25,6 +35,18 @@ export const paymentCreateDtoSchema = paymentSchema
   });
 
 export type PaymentCreateDto = z.infer<typeof paymentCreateDtoSchema>;
+
+// Update Payment
+
+export const paymentUpdateDtoSchema = paymentSchema
+  .pick({
+    status: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .partial();
+
+export type PaymentUpdateDto = z.infer<typeof paymentUpdateDtoSchema>;
 
 // Payment Callback
 

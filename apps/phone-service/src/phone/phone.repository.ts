@@ -321,6 +321,21 @@ export class PhoneRepository implements IPhoneRepository {
     return childCategoryIds;
   }
 
+  async findAllParentCategoryIds(categoryId: number): Promise<number[]> {
+    const allCategories = await this.findAllCategories();
+    const parentCategoryIds: number[] = [];
+
+    const findParentsRecursively = (categoryId: number) => {
+      const category = allCategories.find((cat) => cat.id === categoryId);
+      if (category?.parentId) {
+        parentCategoryIds.push(category.parentId);
+        findParentsRecursively(category.parentId);
+      }
+    };
+    findParentsRecursively(categoryId);
+    return parentCategoryIds;
+  }
+
   // Phone Variant
 
   async findVariantsById(id: number): Promise<PhoneVariant | null> {

@@ -74,6 +74,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/user-service/tsconfig.app.json"
       }
+    },
+    "voucher-service": {
+      "type": "application",
+      "root": "apps/voucher-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/voucher-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/voucher-service/tsconfig.app.json"
+      }
     }
   }
 }

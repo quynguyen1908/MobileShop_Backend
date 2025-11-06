@@ -4,6 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import type {
   PaymentCreateDto,
   PaymentDto,
+  PaymentMethod,
   VNPayCallbackDto,
   VNPayResultDto,
 } from '@app/contracts/payment';
@@ -38,5 +39,10 @@ export class PaymentController {
   @MessagePattern(PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS)
   getPaymentsByOrderIds(@Payload() orderIds: number[]): Promise<PaymentDto[]> {
     return this.paymentService.getPaymentsByOrderIds(orderIds);
+  }
+
+  @MessagePattern(PAYMENT_PATTERN.GET_ALL_PAYMENT_METHODS)
+  getAllPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.paymentService.getAllPaymentMethods();
   }
 }

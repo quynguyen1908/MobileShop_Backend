@@ -51,6 +51,16 @@ export class PhoneController {
     return this.phoneService.getAllCategories();
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_CATEGORIES_BY_IDS)
+  async getCategoriesByIds(@Payload() ids: number[]) {
+    return this.phoneService.getCategoriesByIds(ids);
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_PARENT_CATEGORY_IDS_BY_VARIANT_IDS)
+  async getParentCategoryIds(@Payload() variantIds: number[]) {
+    return this.phoneService.getParentCategoryIdsByVariantIds(variantIds);
+  }
+
   @MessagePattern(PHONE_PATTERN.CREATE_CATEGORY)
   async createCategory(@Payload() categoryCreateDto: CategoryCreateDto) {
     return this.phoneService.createCategory(categoryCreateDto);

@@ -9,6 +9,7 @@ import {
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   USER_SERVICE,
+  VOUCHER_SERVICE,
 } from '@app/contracts';
 import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
@@ -53,6 +54,14 @@ import { OrderEventHandler } from './order-event.handler';
       provide: PAYMENT_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
         const serverOptions = rmqConfigService.paymentServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: VOUCHER_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.voucherServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
       inject: [RabbitMQService],

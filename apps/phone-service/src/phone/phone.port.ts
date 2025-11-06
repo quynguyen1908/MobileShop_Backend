@@ -53,6 +53,8 @@ export interface IPhoneService {
 
   // Category
   getAllCategories(): Promise<CategoryDto[]>;
+  getCategoriesByIds(ids: number[]): Promise<Category[]>;
+  getParentCategoryIdsByVariantIds(variantIds: number[]): Promise<number[]>;
   createCategory(categoryCreateDto: CategoryCreateDto): Promise<number>;
   updateCategory(id: number, data: CategoryUpdateDto): Promise<void>;
   deleteCategory(id: number): Promise<void>;
@@ -117,6 +119,7 @@ export interface IPhoneQueryRepository {
   findCategoriesByIds(ids: number[]): Promise<Category[]>;
   findAllCategories(): Promise<Category[]>;
   findAllChildCategoryIds(parentId: number): Promise<number[]>;
+  findAllParentCategoryIds(categoryId: number): Promise<number[]>;
 
   // Phone Variant
   listPhoneVariants(

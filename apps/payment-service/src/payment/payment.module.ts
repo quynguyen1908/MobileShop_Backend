@@ -5,11 +5,13 @@ import { PaymentRepository } from './payment.repository';
 import {
   ORDER_SERVICE,
   PAYMENT_REPOSITORY,
+  PAYMENT_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 import { VNPayService } from './services/vnpay.service';
 import { PaymentService } from './services/payment.service';
+import { PaymentEventHandler } from './payment-event.handler';
 
 @Module({
   imports: [RabbitMQModule.register()],
@@ -18,6 +20,11 @@ import { PaymentService } from './services/payment.service';
     VNPayService,
     PaymentService,
     PaymentRepository,
+    PaymentEventHandler,
+    {
+      provide: PAYMENT_SERVICE,
+      useExisting: PaymentService,
+    },
     {
       provide: PAYMENT_REPOSITORY,
       useExisting: PaymentRepository,

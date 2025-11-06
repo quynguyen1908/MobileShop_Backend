@@ -1,4 +1,7 @@
-import { paymentDtoSchema } from '../payment';
+import {
+  paymentDtoSchema,
+  paymentMethodDtoSchema,
+} from '../payment/payment.dto';
 import {
   ErrColorNameAtMost50Chars,
   ErrPhoneNameAtMost100Chars,
@@ -152,6 +155,7 @@ export const orderCreateDtoSchema = orderSchema
       .min(1, 'Order must have at least one item'),
     voucherIdsApplied: z.array(z.number().int().positive()).optional(),
     pointUsed: z.number().int().min(0).optional(),
+    paymentMethod: paymentMethodDtoSchema,
   });
 
 export type OrderCreateDto = z.infer<typeof orderCreateDtoSchema>;

@@ -4,12 +4,19 @@ import {
   PaymentCreateDto,
   PaymentDto,
   PaymentMethod,
+  PaymentUpdateDto,
   VNPayCallbackDto,
   VNPayResultDto,
 } from '@app/contracts/payment';
 
 export interface IPaymentService {
+  // Payment
   getPaymentsByOrderIds(orderIds: number[]): Promise<PaymentDto[]>;
+  createPayment(payment: Payment): Promise<number>;
+  updatePayment(id: number, data: PaymentUpdateDto): Promise<void>;
+
+  // Payment methods
+  getAllPaymentMethods(): Promise<PaymentMethod[]>;
 }
 
 export interface IVNPayService {
@@ -27,6 +34,7 @@ export interface IPaymentRepository
 export interface IPaymentCommandRepository {
   // Payment
   insertPayment(data: Payment): Promise<Payment>;
+  updatePayment(id: number, data: PaymentUpdateDto): Promise<void>;
 }
 
 export interface IPaymentQueryRepository {

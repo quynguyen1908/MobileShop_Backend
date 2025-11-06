@@ -6,10 +6,78 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../../node_modules/.prisma/client/voucher"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("VOUCHER_DB_URL")
+}
+
+model Voucher {
+  id                Int       @id @default(autoincrement())
+  code              String    @unique  @db.VarChar(50)
+  title             String    @db.VarChar(255)
+  description       String    @db.Text
+  discountType      String    @map("discount_type") @db.VarChar(50)
+  discountValue     Int       @map("discount_value")
+  minOrderValue     Int       @map("min_order_value")
+  maxDiscountValue  Int       @map("max_discount_value")
+  startDate         DateTime  @map("start_date") @db.Timestamptz()
+  endDate           DateTime? @map("end_date") @db.Timestamptz()
+  usageLimit        Int       @map("usage_limit")
+  usageLimitPerUser Int       @map("usage_limit_per_user")
+  usedCount         Int       @map("used_count")
+  appliesTo         String    @map("applies_to") @db.VarChar(50)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted         Boolean   @default(false) @map("is_deleted")
+
+  categories        VoucherCategory[]
+  paymentMethods    VoucherPaymentMethod[]
+  usages            VoucherUsage[]
+
+  @@map("vouchers")
+}
+
+model VoucherCategory {
+  voucherId  Int      @map("voucher_id")
+  categoryId Int      @map("category_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+
+  voucher    Voucher  @relation(fields: [voucherId], references: [id])
+
+  @@id([voucherId, categoryId])
+  @@map("voucher_categories")
+}
+
+model VoucherPaymentMethod {
+  voucherId       Int      @map("voucher_id")
+  paymentMethodId Int      @map("payment_method_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+
+  voucher         Voucher  @relation(fields: [voucherId], references: [id])
+
+  @@id([voucherId, paymentMethodId])
+  @@map("voucher_payment_methods")
+}
+
+model VoucherUsage {
+  id          Int      @id @default(autoincrement())
+  voucherId   Int      @map("voucher_id")
+  customerId  Int      @map("customer_id")
+  orderId     Int      @map("order_id")
+  usedAt      DateTime @map("used_at") @db.Timestamptz()
+
+  voucher     Voucher  @relation(fields: [voucherId], references: [id])
+
+  @@unique([voucherId, orderId])
+  @@index([voucherId])
+  @@index([customerId])
+  @@index([orderId])
+  @@map("voucher_usages")
 }
