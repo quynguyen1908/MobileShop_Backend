@@ -57,6 +57,8 @@ export type CustomerUpdateDto = z.infer<typeof customerUpdateDtoSchema>;
 export const CustomerUpdateProfileDtoSchema = customerSchema
   .pick({
     gender: true,
+    firstName: true,
+    lastName: true,
   })
   .extend({
     username: userSchema.shape.username.optional(),

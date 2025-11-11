@@ -10,9 +10,10 @@ import type {
   PhoneUpdateDto,
   PhoneVariantCreateDto,
   PhoneVariantUpdateDto,
+  ReviewCreateDto,
 } from '@app/contracts/phone';
 import { PHONE_PATTERN } from '@app/contracts/phone/phone.pattern';
-import type { PagingDto } from '@app/contracts';
+import type { PagingDto, Requester } from '@app/contracts';
 
 @Controller()
 export class PhoneController {
@@ -26,6 +27,11 @@ export class PhoneController {
   @MessagePattern(PHONE_PATTERN.LIST_PHONES)
   async listPhones(@Payload() paging: PagingDto) {
     return this.phoneService.listPhones(paging);
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_PHONE_BY_ID)
+  async getPhoneById(@Payload() id: number) {
+    return this.phoneService.getPhoneById(id);
   }
 
   @MessagePattern(PHONE_PATTERN.CREATE_PHONE)
@@ -205,5 +211,16 @@ export class PhoneController {
       colorId,
       requiredQuantity,
     );
+  }
+
+  @MessagePattern(PHONE_PATTERN.CREATE_REVIEW)
+  async createReview(
+    @Payload() payload: {
+      requester: Requester;
+      reviewCreateDto: ReviewCreateDto;
+    }
+  ) {
+    const { requester, reviewCreateDto } = payload;
+    return this.phoneService.createReview(requester, reviewCreateDto);
   }
 }

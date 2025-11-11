@@ -8,6 +8,7 @@ import {
   OrderStatus,
 } from '@app/contracts/order';
 import type { Requester } from '@app/contracts/interface';
+import type { PagingDto } from '@app/contracts';
 
 @Controller()
 export class OrderController {
@@ -26,6 +27,24 @@ export class OrderController {
   @MessagePattern(ORDER_PATTERN.GET_ORDER_BY_ID)
   async getOrderById(@Payload() orderId: number) {
     return this.orderService.getOrderById(orderId);
+  }
+
+  @MessagePattern(ORDER_PATTERN.GET_ORDER_DETAIL)
+  async getOrderDetail(@Payload() orderId: number) {
+    return this.orderService.getOrderDetail(orderId);
+  }
+
+  @MessagePattern(ORDER_PATTERN.LIST_ORDERS)
+  async listOrders(@Payload() paging: PagingDto) {
+    return this.orderService.listOrders(paging);
+  }
+
+  @MessagePattern(ORDER_PATTERN.LIST_CUSTOMER_ORDERS)
+  async listCustomerOrders(
+    @Payload() payload: { requester: Requester; paging: PagingDto },
+  ) {
+    const { requester, paging } = payload;
+    return this.orderService.listCustomerOrders(requester, paging);
   }
 
   @MessagePattern(ORDER_PATTERN.GET_POINT_CONFIG)
@@ -59,6 +78,17 @@ export class OrderController {
     const { requester, orderCode } = payload;
     await this.orderService.cancelOrder(requester, orderCode);
     return { success: true };
+  }
+
+  @MessagePattern(ORDER_PATTERN.HAS_CUSTOMER_ORDERED_VARIANT)
+  async hasCustomerOrderedVariant(
+    @Payload() payload: { customerId: number; variantId: number },
+  ) {
+    const { customerId, variantId } = payload;
+    return this.orderService.hasCustomerOrderedVariant(
+      customerId,
+      variantId,
+    );
   }
 
   @MessagePattern(ORDER_PATTERN.UPDATE_ORDER_STATUS)

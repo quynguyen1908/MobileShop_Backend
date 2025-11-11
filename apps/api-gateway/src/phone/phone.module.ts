@@ -4,6 +4,7 @@ import {
   CategoryController,
   InventoryController,
   PhoneController,
+  ReviewController,
 } from './phone.controller';
 import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
@@ -18,6 +19,7 @@ import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module'
     CategoryController,
     InventoryController,
     BrandController,
+    ReviewController,
   ],
   providers: [
     {

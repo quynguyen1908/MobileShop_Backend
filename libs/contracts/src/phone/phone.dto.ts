@@ -188,6 +188,8 @@ const variantSpecificationDtoSchema = variantSpecificationSchema
     specification: specificationSchema.pick({
       name: true,
     }),
+    valueNumeric: variantSpecificationSchema.shape.valueNumeric.optional(),
+    unit: variantSpecificationSchema.shape.unit.optional(),
   });
 
 export type VariantSpecificationDto = z.infer<
@@ -391,6 +393,20 @@ export const phoneCreateDtoSchema = phoneSchema
   .required();
 
 export type PhoneCreateDto = z.infer<typeof phoneCreateDtoSchema>;
+
+// Cteate Review
+
+export const reviewCreateDtoSchema = reviewSchema
+  .pick({
+    rating: true,
+    variantId: true,
+  })
+  .required()
+  .extend({
+    comment: reviewSchema.shape.comment,
+  });
+
+export type ReviewCreateDto = z.infer<typeof reviewCreateDtoSchema>;
 
 // Update Brand
 

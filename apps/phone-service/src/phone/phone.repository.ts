@@ -609,6 +609,32 @@ export class PhoneRepository implements IPhoneRepository {
     return reviews.map((review) => this._toReviewModel(review));
   }
 
+  async findReviewsByCustomerIdAndVariantId(customerId: number, variantId: number): Promise<Review[]> {
+    const prismaService = this.prisma as unknown as {
+      review: {
+        findMany: (params: { where: any }) => Promise<PrismaReview[]>;
+      };
+    };
+    const reviews = await prismaService.review.findMany({
+      where: {
+        customerId: customerId,
+        variantId: variantId,
+        isDeleted: false,
+      },
+    });
+    return reviews.map((review) => this._toReviewModel(review));
+  }
+
+  async insertReview(review: Review): Promise<Review> {
+    const prismaService = this.prisma as unknown as {
+      review: {
+        create: (params: { data: any }) => Promise<PrismaReview>;
+      };
+    };
+    const createdReview = await prismaService.review.create({ data: review });
+    return this._toReviewModel(createdReview);
+  }
+
   async softDeleteReviewsByVariantIds(variantIds: number[]): Promise<void> {
     const prismaService = this.prisma as unknown as {
       review: {
@@ -1224,6 +1250,21 @@ export class PhoneRepository implements IPhoneRepository {
       },
     });
     return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async findPhoneById(id: number): Promise<Phone | null> {
+    const prismaService = this.prisma as unknown as {
+      phone: {
+        findFirst: (params: { where: any }) => Promise<PrismaPhone | null>;
+      };
+    };
+    const phone = await prismaService.phone.findFirst({
+      where: { id: id, isDeleted: false },
+    });
+    if (!phone) {
+      return null;
+    }
+    return this._toPhoneModel(phone);
   }
 
   async insertPhone(phone: Phone): Promise<Phone> {
