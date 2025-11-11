@@ -168,6 +168,8 @@ export class UserService implements IUserService {
 
     const customerUpdateData: CustomerUpdateDto = {
       gender: data.gender,
+      firstName: data.firstName,
+      lastName: data.lastName,
       updatedAt: new Date(),
     };
 

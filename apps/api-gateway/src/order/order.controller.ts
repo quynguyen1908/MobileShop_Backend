@@ -1,5 +1,5 @@
-import { ORDER_SERVICE } from '@app/contracts';
-import type { ReqWithRequester } from '@app/contracts';
+import { ORDER_SERVICE, Paginated, pagingDtoSchema } from '@app/contracts';
+import type { PagingDto, ReqWithRequester } from '@app/contracts';
 import {
   Body,
   Controller,
@@ -10,6 +10,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -19,6 +20,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -47,7 +49,195 @@ export class OrderController {
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
-  @Get('/me')
+  @Get('list')
+  @ApiOperation({ summary: 'List orders with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Current page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of items per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Orders listed successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Orders listed successfully',
+          data: {
+            data: [
+              {
+                id: 1,
+                customerId: 1,
+                orderCode: 'PH0611255349',
+                orderDate: '2025-11-06T00:00:00.000Z',
+                totalAmount: 8100000,
+                discountAmount: 0,
+                shippingFee: 22000,
+                finalAmount: 8122000,
+                recipientName: 'Jane Smith',
+                recipientPhone: '0987654321',
+                street: '456 Le Loi',
+                status: 'paid',
+                postalCode: '67890',
+                commune: {
+                  id: 2677,
+                  code: 27043,
+                  name: 'Phường Đức Nhuận',
+                  divisionType: 'phường',
+                  codename: 'phuong_duc_nhuan',
+                  provinceCode: 79,
+                },
+                province: {
+                  id: 28,
+                  code: 79,
+                  name: 'Thành phố Hồ Chí Minh',
+                  divisionType: 'thành phố trung ương',
+                  codename: 'ho_chi_minh',
+                  phoneCode: 28,
+                },
+                items: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    quantity: 1,
+                    price: 9000000,
+                    discount: 8100000,
+                    variant: {
+                      id: 8,
+                      phoneId: 5,
+                      variantName: 'F 4G 8GB 256GB',
+                      color: 'Tím',
+                      colorId: 7,
+                      name: 'OPPO Reno13',
+                      imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                    },
+                  },
+                ],
+                statusHistory: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    status: 'pending',
+                    note: 'Đặt hàng thành công',
+                    createdAt: '2025-10-04T07:32:50.838Z',
+                  },
+                  {
+                    id: 2,
+                    orderId: 1,
+                    status: 'paid',
+                    note: 'Đã thanh toán',
+                    createdAt: '2025-10-04T07:32:50.838Z',
+                  },
+                ],
+                transactions: [
+                  {
+                    id: 1,
+                    customerId: 1,
+                    orderId: 1,
+                    type: 'earn',
+                    point: 81220,
+                    moneyValue: 8122000,
+                    createdAt: '2025-10-04T07:34:19.622Z',
+                  },
+                ],
+                shipments: [],
+                payments: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    transactionId: '15239088',
+                    status: 'completed',
+                    amount: 8122000,
+                    paymentMethod: {
+                      id: 1,
+                      code: 'VNPAY',
+                      name: 'VNPay',
+                    },
+                    payDate: '2025-11-05T10:54:46.000Z',
+                    createdAt: '2025-11-05T03:55:42.337Z',
+                    updatedAt: '2025-11-05T03:55:42.337Z',
+                    isDeleted: false
+                  }
+                ],
+                createdAt: '2025-10-04T07:32:50.835Z',
+                updatedAt: '2025-10-04T07:34:19.625Z',
+                isDeleted: false,
+              }
+            ],
+            paging: {
+              page: 1,
+              limit: 10,
+              order: 'asc',
+            },
+            total: 1,
+          },
+        },
+      },
+    },
+  })
+  async listOrders(@Query() pagingDto: PagingDto, @Res() res: Response) {
+    try {
+      const paging = pagingDtoSchema.parse(pagingDto);
+      const result = await this.circuitBreakerService.sendRequest<
+        Paginated<OrderDto> | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.LIST_ORDERS,
+        paging,
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Orders listed successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Listing orders failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('me')
   @ApiOperation({
     summary: 'Get current customer orders (requires authentication)',
   })
@@ -191,6 +381,196 @@ export class OrderController {
     }
   }
 
+  @Get('me/list')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: "List customer's orders with pagination (requires authentication)" })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Current page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of items per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Orders listed successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Orders listed successfully',
+          data: {
+            data: [
+              {
+                id: 1,
+                customerId: 1,
+                orderCode: 'PH0611255349',
+                orderDate: '2025-11-06T00:00:00.000Z',
+                totalAmount: 8100000,
+                discountAmount: 0,
+                shippingFee: 22000,
+                finalAmount: 8122000,
+                recipientName: 'Jane Smith',
+                recipientPhone: '0987654321',
+                street: '456 Le Loi',
+                status: 'paid',
+                postalCode: '67890',
+                commune: {
+                  id: 2677,
+                  code: 27043,
+                  name: 'Phường Đức Nhuận',
+                  divisionType: 'phường',
+                  codename: 'phuong_duc_nhuan',
+                  provinceCode: 79,
+                },
+                province: {
+                  id: 28,
+                  code: 79,
+                  name: 'Thành phố Hồ Chí Minh',
+                  divisionType: 'thành phố trung ương',
+                  codename: 'ho_chi_minh',
+                  phoneCode: 28,
+                },
+                items: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    quantity: 1,
+                    price: 9000000,
+                    discount: 8100000,
+                    variant: {
+                      id: 8,
+                      phoneId: 5,
+                      variantName: 'F 4G 8GB 256GB',
+                      color: 'Tím',
+                      colorId: 7,
+                      name: 'OPPO Reno13',
+                      imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                    },
+                  },
+                ],
+                statusHistory: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    status: 'pending',
+                    note: 'Đặt hàng thành công',
+                    createdAt: '2025-10-04T07:32:50.838Z',
+                  },
+                  {
+                    id: 2,
+                    orderId: 1,
+                    status: 'paid',
+                    note: 'Đã thanh toán',
+                    createdAt: '2025-10-04T07:32:50.838Z',
+                  },
+                ],
+                transactions: [
+                  {
+                    id: 1,
+                    customerId: 1,
+                    orderId: 1,
+                    type: 'earn',
+                    point: 81220,
+                    moneyValue: 8122000,
+                    createdAt: '2025-10-04T07:34:19.622Z',
+                  },
+                ],
+                shipments: [],
+                payments: [
+                  {
+                    id: 1,
+                    orderId: 1,
+                    transactionId: '15239088',
+                    status: 'completed',
+                    amount: 8122000,
+                    paymentMethod: {
+                      id: 1,
+                      code: 'VNPAY',
+                      name: 'VNPay',
+                    },
+                    payDate: '2025-11-05T10:54:46.000Z',
+                    createdAt: '2025-11-05T03:55:42.337Z',
+                    updatedAt: '2025-11-05T03:55:42.337Z',
+                    isDeleted: false
+                  }
+                ],
+                createdAt: '2025-10-04T07:32:50.835Z',
+                updatedAt: '2025-10-04T07:34:19.625Z',
+                isDeleted: false,
+              }
+            ],
+            paging: {
+              page: 1,
+              limit: 10,
+              order: 'asc',
+            },
+            total: 1,
+          },
+        },
+      },
+    },
+  })
+  async listMyOrders(@Req() req: ReqWithRequester, @Query() pagingDto: PagingDto, @Res() res: Response) {
+    try {
+      const paging = pagingDtoSchema.parse(pagingDto);
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        Paginated<OrderDto> | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.LIST_CUSTOMER_ORDERS,
+        { requester, paging },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Orders listed successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Listing customer orders failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('code/:orderCode')
   @ApiOperation({ summary: 'Get order by order code' })
   @ApiParam({
@@ -274,6 +654,173 @@ export class OrderController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting order failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get(':orderId')
+  @ApiOperation({ summary: 'Get order by ID' })
+  @ApiParam({
+    name: 'orderId',
+    type: Number,
+    description: 'The ID of the order to retrieve',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order details retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Order details retrieved successfully',
+          data: {
+            id: 1,
+            customerId: 1,
+            orderCode: 'PH0611255349',
+            orderDate: '2025-11-06T00:00:00.000Z',
+            totalAmount: 8100000,
+            discountAmount: 0,
+            shippingFee: 22000,
+            finalAmount: 8122000,
+            recipientName: 'Jane Smith',
+            recipientPhone: '0987654321',
+            street: '456 Le Loi',
+            status: 'paid',
+            postalCode: '67890',
+            commune: {
+              id: 2677,
+              code: 27043,
+              name: 'Phường Đức Nhuận',
+              divisionType: 'phường',
+              codename: 'phuong_duc_nhuan',
+              provinceCode: 79,
+            },
+            province: {
+              id: 28,
+              code: 79,
+              name: 'Thành phố Hồ Chí Minh',
+              divisionType: 'thành phố trung ương',
+              codename: 'ho_chi_minh',
+              phoneCode: 28,
+            },
+            items: [
+              {
+                id: 1,
+                orderId: 1,
+                quantity: 1,
+                price: 9000000,
+                discount: 8100000,
+                variant: {
+                  id: 8,
+                  phoneId: 5,
+                  variantName: 'F 4G 8GB 256GB',
+                  color: 'Tím',
+                  colorId: 7,
+                  name: 'OPPO Reno13',
+                  imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                },
+              },
+            ],
+            statusHistory: [
+              {
+                id: 1,
+                orderId: 1,
+                status: 'pending',
+                note: 'Đặt hàng thành công',
+                createdAt: '2025-10-04T07:32:50.838Z',
+              },
+              {
+                id: 2,
+                orderId: 1,
+                status: 'paid',
+                note: 'Đã thanh toán',
+                createdAt: '2025-10-04T07:32:50.838Z',
+              },
+            ],
+            transactions: [
+              {
+                id: 1,
+                customerId: 1,
+                orderId: 1,
+                type: 'earn',
+                point: 81220,
+                moneyValue: 8122000,
+                createdAt: '2025-10-04T07:34:19.622Z',
+              },
+            ],
+            shipments: [],
+            payments: [
+              {
+                id: 1,
+                orderId: 1,
+                transactionId: '15239088',
+                status: 'completed',
+                amount: 8122000,
+                paymentMethod: {
+                  id: 1,
+                  code: 'VNPAY',
+                  name: 'VNPay',
+                },
+                payDate: '2025-11-05T10:54:46.000Z',
+                createdAt: '2025-11-05T03:55:42.337Z',
+                updatedAt: '2025-11-05T03:55:42.337Z',
+                isDeleted: false
+              }
+            ],
+            createdAt: '2025-10-04T07:32:50.835Z',
+            updatedAt: '2025-10-04T07:34:19.625Z',
+            isDeleted: false,
+          },
+        },
+      },
+    },
+  })
+  async getOrderDetails(@Param('orderId') orderId: number, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        OrderDto | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.GET_ORDER_DETAIL,
+        orderId,
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res.status(HttpStatus.SERVICE_UNAVAILABLE).json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Order details retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting order details failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -499,7 +1046,6 @@ export class OrderController {
   @Put('status/:orderId')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
   @ApiOperation({
     summary: 'Update order status (requires admin or sales role)',
   })

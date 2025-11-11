@@ -3,6 +3,8 @@ import {
   EVENT_PUBLISHER,
   GHNOrderResponse,
   ORDER_REPOSITORY,
+  Paginated,
+  PagingDto,
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   USER_SERVICE,
@@ -132,145 +134,7 @@ export class OrderService implements IOrderService {
       return [];
     }
 
-    const orderIds = [...new Set(orders.map((order) => order.id))].filter(
-      (id): id is number => typeof id === 'number',
-    );
-
-    const orderStatusHistories =
-      await this.orderRepository.findOrderStatusHistoryByOrderIds(orderIds);
-    const pointTransactions =
-      await this.orderRepository.findPointTransactionsByOrderIds(orderIds);
-    const shipments =
-      await this.orderRepository.findShipmentsByOrderIds(orderIds);
-    const orderItems =
-      await this.orderRepository.findOrderItemsByOrderIds(orderIds);
-
-    const orderItemsDto = await this.toOrderItemsDto(orderItems);
-
-    const communeIds = [
-      ...new Set(orders.map((order) => order.communeId)),
-    ].filter((id): id is number => typeof id === 'number');
-    const provinceIds = [
-      ...new Set(orders.map((order) => order.provinceId)),
-    ].filter((id): id is number => typeof id === 'number');
-
-    const communes = await firstValueFrom<Commune[]>(
-      this.userServiceClient.send(USER_PATTERN.GET_COMMUNES_BY_IDS, communeIds),
-    );
-    if (!communes || communes.length === 0) {
-      throw new RpcException(
-        AppError.from(ErrCommuneNotFound, 404)
-          .withLog('Communes not found for orders')
-          .toJson(false),
-      );
-    }
-
-    const provinces = await firstValueFrom<Province[]>(
-      this.userServiceClient.send(
-        USER_PATTERN.GET_PROVINCES_BY_IDS,
-        provinceIds,
-      ),
-    );
-    if (!provinces || provinces.length === 0) {
-      throw new RpcException(
-        AppError.from(ErrProvinceNotFound, 404)
-          .withLog('Provinces not found for orders')
-          .toJson(false),
-      );
-    }
-
-    const payments = await firstValueFrom<PaymentDto[]>(
-      this.paymentServiceClient.send(
-        PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS,
-        orderIds,
-      ),
-    );
-
-    const orderDtos: OrderDto[] = orders.map((order) => {
-      const items = orderItemsDto.filter((item) => item.orderId === order.id);
-      const histories = orderStatusHistories
-        .filter((history) => history.orderId === order.id)
-        .map(
-          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
-        );
-      const transactions = pointTransactions
-        .filter((transaction) => transaction.orderId === order.id)
-        .map(
-          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
-        );
-      const orderShipments = shipments
-        .filter((s) => s.orderId === order.id)
-        .map(
-          ({
-            createdAt: _createdAt,
-            updatedAt: _updatedAt,
-            isDeleted: _isDeleted,
-            ...rest
-          }) => rest,
-        );
-
-      const commune = communes.find((c) => c.id === order.communeId);
-      if (!commune) {
-        throw new RpcException(
-          AppError.from(ErrCommuneNotFound, 404)
-            .withLog('Commune not found for order')
-            .toJson(false),
-        );
-      }
-
-      const province = provinces.find((p) => p.id === order.provinceId);
-      if (!province) {
-        throw new RpcException(
-          AppError.from(ErrProvinceNotFound, 404)
-            .withLog('Province not found for order')
-            .toJson(false),
-        );
-      }
-
-      const payment = payments.filter((p) => p.orderId === order.id);
-
-      return {
-        id: order.id,
-        customerId: order.customerId,
-        orderCode: order.orderCode,
-        orderDate: order.orderDate,
-        totalAmount: order.totalAmount,
-        discountAmount: order.discountAmount,
-        shippingFee: order.shippingFee,
-        finalAmount: order.finalAmount,
-        recipientName: order.recipientName,
-        recipientPhone: order.recipientPhone,
-        street: order.street,
-        status: order.status,
-        postalCode: order.postalCode,
-        commune: {
-          id: commune.id,
-          code: commune.code,
-          name: commune.name,
-          divisionType: commune.divisionType,
-          codename: commune.codename,
-          provinceCode: commune.provinceCode,
-        },
-        province: {
-          id: province.id,
-          code: province.code,
-          name: province.name,
-          divisionType: province.divisionType,
-          codename: province.codename,
-          phoneCode: province.phoneCode,
-        },
-        items: items,
-        statusHistory: histories,
-        transactions: transactions,
-        shipments: orderShipments,
-        payments: payment,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        isDeleted: order.isDeleted,
-      } as OrderDto;
-    });
-
-    return orderDtos;
+    return this.toOrdersDto(orders);
   }
 
   async getOrderById(orderId: number): Promise<Order> {
@@ -295,6 +159,65 @@ export class OrderService implements IOrderService {
       );
     }
     return order;
+  }
+
+  async getOrderDetail(orderId: number): Promise<OrderDto> {
+    const order = await this.orderRepository.findOrderById(orderId);
+    if (!order) {
+      throw new RpcException(
+        AppError.from(ErrOrderNotFound, 404)
+          .withLog('Order not found')
+          .toJson(false),
+      );
+    }
+
+    const [orderDto] = await this.toOrdersDto([order]);
+    return orderDto;
+  }
+
+  async listOrders(paging: PagingDto): Promise<Paginated<OrderDto>> {
+    const paginatedOrders = await this.orderRepository.listOrders(paging);
+
+    if (!paginatedOrders.data || paginatedOrders.data.length === 0) {
+      return {
+        data: [],
+        paging: paginatedOrders.paging,
+        total: paginatedOrders.total,
+      };
+    }
+
+    const orderDtos = await this.toOrdersDto(paginatedOrders.data);
+
+    return {
+      data: orderDtos,
+      paging,
+      total: paginatedOrders.total,
+    };
+  }
+
+  async listCustomerOrders(requester: Requester, paging: PagingDto): Promise<Paginated<OrderDto>> {
+    const customer = await this.validateRequester(requester);
+
+    const paginatedOrders = await this.orderRepository.listOrdersByCustomerId(
+      customer.id!,
+      paging,
+    );
+
+    if (!paginatedOrders.data || paginatedOrders.data.length === 0) {
+      return {
+        data: [],
+        paging: paginatedOrders.paging,
+        total: paginatedOrders.total,
+      };
+    }
+
+    const orderDtos = await this.toOrdersDto(paginatedOrders.data);
+
+    return {
+      data: orderDtos,
+      paging,
+      total: paginatedOrders.total,
+    };
   }
 
   async createOrder(
@@ -1055,6 +978,30 @@ export class OrderService implements IOrderService {
     await this.eventPublisher.publish(event);
   }
 
+  async hasCustomerOrderedVariant(customerId: number, variantId: number): Promise<number> {
+    const orders = await this.orderRepository.findOrdersByCustomerId(customerId);
+    if (!orders || orders.length === 0) {
+      return 0;
+    }
+
+    const orderIds = orders
+      .map((order) => order.id)
+      .filter((id): id is number => typeof id === 'number');
+
+    const orderItems = await this.orderRepository.findOrderItemsByOrderIds(orderIds);
+
+    if (!orderItems || orderItems.length === 0) {
+      return 0;
+    }
+
+    const foundItem = orderItems.find((item) => item.variantId === variantId);
+    if (!foundItem || typeof foundItem.orderId !== 'number') {
+      return 0;
+    }
+
+    return foundItem.orderId;
+  }
+
   // Point Transaction
 
   async getPointTransactionsByCustomerId(
@@ -1428,6 +1375,148 @@ export class OrderService implements IOrderService {
           reject(new Error(`Error reading CSV file: ${String(error)}`));
         });
     });
+  }
+
+  private async toOrdersDto(orders: Order[]): Promise<OrderDto[]> {
+    const orderIds = [...new Set(orders.map((order) => order.id))].filter(
+      (id): id is number => typeof id === 'number',
+    );
+
+    const orderStatusHistories =
+      await this.orderRepository.findOrderStatusHistoryByOrderIds(orderIds);
+    const pointTransactions =
+      await this.orderRepository.findPointTransactionsByOrderIds(orderIds);
+    const shipments =
+      await this.orderRepository.findShipmentsByOrderIds(orderIds);
+    const orderItems =
+      await this.orderRepository.findOrderItemsByOrderIds(orderIds);
+
+    const orderItemsDto = await this.toOrderItemsDto(orderItems);
+
+    const communeIds = [
+      ...new Set(orders.map((order) => order.communeId)),
+    ].filter((id): id is number => typeof id === 'number');
+    const provinceIds = [
+      ...new Set(orders.map((order) => order.provinceId)),
+    ].filter((id): id is number => typeof id === 'number');
+
+    const communes = await firstValueFrom<Commune[]>(
+      this.userServiceClient.send(USER_PATTERN.GET_COMMUNES_BY_IDS, communeIds),
+    );
+    if (!communes || communes.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrCommuneNotFound, 404)
+          .withLog('Communes not found for orders')
+          .toJson(false),
+      );
+    }
+
+    const provinces = await firstValueFrom<Province[]>(
+      this.userServiceClient.send(
+        USER_PATTERN.GET_PROVINCES_BY_IDS,
+        provinceIds,
+      ),
+    );
+    if (!provinces || provinces.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrProvinceNotFound, 404)
+          .withLog('Provinces not found for orders')
+          .toJson(false),
+      );
+    }
+
+    const payments = await firstValueFrom<PaymentDto[]>(
+      this.paymentServiceClient.send(
+        PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS,
+        orderIds,
+      ),
+    );
+
+    const orderDtos: OrderDto[] = orders.map((order) => {
+      const items = orderItemsDto.filter((item) => item.orderId === order.id);
+      const histories = orderStatusHistories
+        .filter((history) => history.orderId === order.id)
+        .map(
+          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
+        );
+      const transactions = pointTransactions
+        .filter((transaction) => transaction.orderId === order.id)
+        .map(
+          ({ updatedAt: _updatedAt, isDeleted: _isDeleted, ...rest }) => rest,
+        );
+      const orderShipments = shipments
+        .filter((s) => s.orderId === order.id)
+        .map(
+          ({
+            createdAt: _createdAt,
+            updatedAt: _updatedAt,
+            isDeleted: _isDeleted,
+            ...rest
+          }) => rest,
+        );
+
+      const commune = communes.find((c) => c.id === order.communeId);
+      if (!commune) {
+        throw new RpcException(
+          AppError.from(ErrCommuneNotFound, 404)
+            .withLog('Commune not found for order')
+            .toJson(false),
+        );
+      }
+
+      const province = provinces.find((p) => p.id === order.provinceId);
+      if (!province) {
+        throw new RpcException(
+          AppError.from(ErrProvinceNotFound, 404)
+            .withLog('Province not found for order')
+            .toJson(false),
+        );
+      }
+
+      const payment = payments.filter((p) => p.orderId === order.id);
+
+      return {
+        id: order.id,
+        customerId: order.customerId,
+        orderCode: order.orderCode,
+        orderDate: order.orderDate,
+        totalAmount: order.totalAmount,
+        discountAmount: order.discountAmount,
+        shippingFee: order.shippingFee,
+        finalAmount: order.finalAmount,
+        recipientName: order.recipientName,
+        recipientPhone: order.recipientPhone,
+        street: order.street,
+        status: order.status,
+        postalCode: order.postalCode,
+        commune: {
+          id: commune.id,
+          code: commune.code,
+          name: commune.name,
+          divisionType: commune.divisionType,
+          codename: commune.codename,
+          provinceCode: commune.provinceCode,
+        },
+        province: {
+          id: province.id,
+          code: province.code,
+          name: province.name,
+          divisionType: province.divisionType,
+          codename: province.codename,
+          phoneCode: province.phoneCode,
+        },
+        items: items,
+        statusHistory: histories,
+        transactions: transactions,
+        shipments: orderShipments,
+        payments: payment,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        isDeleted: order.isDeleted,
+      } as OrderDto;
+    });
+
+    return orderDtos;
   }
 
   private async toOrderItemsDto(items: OrderItem[]): Promise<OrderItemDto[]> {

@@ -1,4 +1,4 @@
-import { Paginated, PagingDto } from '@app/contracts';
+import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   BrandCreateDto,
   BrandDto,
@@ -12,6 +12,7 @@ import {
   PhoneVariantUpdateDto,
   PhoneVariantUpdatePrisma,
   PhoneWithVariantsDto,
+  ReviewCreateDto,
   VariantColorUpdatePrisma,
   VariantDiscountUpdateDto,
   VariantPriceUpdateDto,
@@ -41,6 +42,7 @@ export interface IPhoneService {
   // Phone
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
   listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>>;
+  getPhoneById(id: number): Promise<PhoneWithVariantsDto>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
   deletePhonesByIds(ids: number[]): Promise<void>;
@@ -97,6 +99,9 @@ export interface IPhoneService {
     requiredQuantity: number,
   ): Promise<boolean>;
   updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
+
+  // Review
+  createReview(requester: Requester, reviewCreateDto: ReviewCreateDto): Promise<number>;
 }
 
 export interface IPhoneRepository
@@ -110,6 +115,7 @@ export interface IPhoneQueryRepository {
   findPhonesByBrandId(brandId: number): Promise<Phone[]>;
   findPhonesByCategoryId(categoryId: number): Promise<Phone[]>;
   findPhonesByCategoryIds(categoryIds: number[]): Promise<Phone[]>;
+  findPhoneById(id: number): Promise<Phone | null>;
 
   // Brand
   findBrandsByIds(ids: number[]): Promise<Brand[]>;
@@ -133,6 +139,7 @@ export interface IPhoneQueryRepository {
 
   // Review
   findReviewsByVariantIds(variantIds: number[]): Promise<Review[]>;
+  findReviewsByCustomerIdAndVariantId(customerId: number, variantId: number): Promise<Review[]>;
 
   // Color
   findColorsByIds(ids: number[]): Promise<Color[]>;
@@ -261,5 +268,6 @@ export interface IPhoneCommandRepository {
   updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
 
   // Review
+  insertReview(review: Review): Promise<Review>;
   softDeleteReviewsByVariantIds(variantIds: number[]): Promise<void>;
 }

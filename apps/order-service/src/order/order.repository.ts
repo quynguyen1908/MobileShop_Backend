@@ -14,6 +14,7 @@ import {
   Shipment,
   ShipmentStatus,
 } from '@app/contracts/order/order.model';
+import { PagingDto, Paginated } from '@app/contracts';
 
 interface PrismaOrder {
   id: number;
@@ -176,6 +177,70 @@ export class OrderRepository implements IOrderRepository {
       where: { id: { in: orderIds } },
     });
     return orders.map((order) => this._toOrderModel(order));
+  }
+
+  async listOrders(paging: PagingDto): Promise<Paginated<Order>> {
+    const skip = (paging.page - 1) * paging.limit;
+    const prismaService = this.prisma as unknown as {
+      order: {
+        count: (param: { where: any }) => Promise<number>;
+        findMany: (param: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaOrder[]>;
+      };
+    };
+
+    const total = await prismaService.order.count({
+      where: { isDeleted: false },
+    });
+
+    const orders = await prismaService.order.findMany({
+      where: { isDeleted: false },
+      skip,
+      take: paging.limit,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      data: orders.map((order) => this._toOrderModel(order)),
+      paging,
+      total,
+    }
+  }
+
+  async listOrdersByCustomerId(customerId: number, paging: PagingDto): Promise<Paginated<Order>> {
+    const skip = (paging.page - 1) * paging.limit;
+    const prismaService = this.prisma as unknown as {
+      order: {
+        count: (param: { where: any }) => Promise<number>;
+        findMany: (param: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaOrder[]>;
+      };
+    };
+
+    const total = await prismaService.order.count({
+      where: { customerId, isDeleted: false },
+    });
+
+    const orders = await prismaService.order.findMany({
+      where: { customerId, isDeleted: false },
+      skip,
+      take: paging.limit,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      data: orders.map((order) => this._toOrderModel(order)),
+      paging,
+      total,
+    }
   }
 
   async insertOrder(data: Omit<Order, 'id'>): Promise<Order> {

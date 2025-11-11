@@ -248,6 +248,34 @@ export class VoucherRepository implements IVoucherRepository {
     return categories.map((c) => this._toVoucherCategoryModel(c));
   }
 
+  async findVouchersByCode(code: string): Promise<Voucher[]> {
+    const prismaService = this.prisma as unknown as {
+      voucher: {
+        findMany: (param: { where: any }) => Promise<PrismaVoucher[]>;
+      };
+    };
+    const vouchers = await prismaService.voucher.findMany({
+      where: {
+        code: code,
+        isDeleted: false,
+        startDate: { lte: new Date() },
+        OR: [{ endDate: null }, { endDate: { gt: new Date() } }],
+      },
+    });
+    return vouchers.map((v) => this._toVoucherModel(v));
+  }
+
+  async insertVoucherCategories(voucherCategories: VoucherCategory[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      voucherCategory: {
+        createMany: (param: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.voucherCategory.createMany({
+      data: voucherCategories,
+    });
+  }
+
   // Voucher Payment Method
 
   async findVoucherPaymentMethodsByVoucherIds(
@@ -267,6 +295,17 @@ export class VoucherRepository implements IVoucherRepository {
       },
     });
     return paymentMethods.map((pm) => this._toVoucherPaymentMethodModel(pm));
+  }
+
+  async insertVoucherPaymentMethods(voucherPaymentMethods: VoucherPaymentMethod[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      voucherPaymentMethod: {
+        createMany: (param: { data: any[] }) => Promise<void>;
+      };
+    };
+    await prismaService.voucherPaymentMethod.createMany({
+      data: voucherPaymentMethods,
+    });
   }
 
   private _toVoucherModel(data: PrismaVoucher): Voucher {

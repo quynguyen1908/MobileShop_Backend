@@ -56,7 +56,55 @@ export const voucherUsageFilterSchema = voucherUsageSchema
 
 export type VoucherUsageFilter = z.infer<typeof voucherUsageFilterSchema>;
 
+// Create Voucher
+
+export const voucherCreateDtoSchema = voucherSchema
+  .omit({
+    id: true,
+    startDate: true,
+    endDate: true,
+    usedCount: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .required()
+  .extend({
+    startDate: z.string()
+      .refine((date) => !isNaN(Date.parse(date)), {
+        message: 'Invalid start date format',
+      })
+      .transform((date) => new Date(date)),
+    endDate: z.string()
+      .optional()
+      .nullable()
+      .refine((date) => {
+        if (date == null || date === '') return true;
+        return !isNaN(Date.parse(date));
+      }, {
+        message: 'Invalid end date format',
+      })
+      .transform((date) => {
+        if (date == null || date === '') return null;
+        return new Date(date);
+      }),
+    categories: z.array(z.number()).optional(),
+    paymentMethods: z.number().optional(),
+  });
+
+export type VoucherCreateDto = z.infer<typeof voucherCreateDtoSchema>;
+
 // Update Voucher
+
+export const voucherUpdateRequestSchema = voucherSchema
+  .pick({
+    title: true,
+    description: true,
+    endDate: true,
+  })
+  .partial();
+
+export type VoucherUpdateRequest = z.infer<typeof voucherUpdateRequestSchema>;
 
 export const voucherUpdateDtoSchema = voucherSchema
   .omit({

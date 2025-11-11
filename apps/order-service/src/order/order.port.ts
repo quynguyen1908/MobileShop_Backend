@@ -1,4 +1,4 @@
-import { Requester } from '@app/contracts';
+import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   Cart,
   CartDto,
@@ -21,6 +21,9 @@ export interface IOrderService {
   getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]>;
   getOrderByOrderCode(orderCode: string): Promise<Order>;
   getOrderById(orderId: number): Promise<Order>;
+  getOrderDetail(orderId: number): Promise<OrderDto>;
+  listOrders(paging: PagingDto): Promise<Paginated<OrderDto>>;
+  listCustomerOrders(requester: Requester, paging: PagingDto): Promise<Paginated<OrderDto>>;
   createOrder(
     requester: Requester,
     orderCreateDto: OrderCreateDto,
@@ -31,6 +34,7 @@ export interface IOrderService {
     note?: string,
   ): Promise<void>;
   cancelOrder(requester: Requester, orderCode: string): Promise<void>;
+  hasCustomerOrderedVariant(customerId: number, variantId: number): Promise<number>;
 
   // Point Config
   getPointConfig(): Promise<PointConfig | null>;
@@ -67,6 +71,11 @@ export interface IOrderQueryRepository {
   findOrderByOrderCode(orderCode: string): Promise<Order | null>;
   findOrderById(orderId: number): Promise<Order | null>;
   findOrdersByIds(orderIds: number[]): Promise<Order[]>;
+  listOrders(paging: PagingDto): Promise<Paginated<Order>>;
+  listOrdersByCustomerId(
+    customerId: number,
+    paging: PagingDto,
+  ): Promise<Paginated<Order>>;
 
   // Order Item
   findOrderItemsByOrderIds(orderIds: number[]): Promise<OrderItem[]>;

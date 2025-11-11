@@ -1,5 +1,5 @@
 import { pagingDtoSchema, PHONE_SERVICE } from '@app/contracts';
-import type { Paginated, PagingDto } from '@app/contracts';
+import type { Paginated, PagingDto, ReqWithRequester } from '@app/contracts';
 import {
   Body,
   Controller,
@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -34,6 +35,7 @@ import type {
   PhoneVariantDto,
   PhoneVariantUpdateDto,
   PhoneWithVariantsDto,
+  ReviewCreateDto,
   Specification,
 } from '@app/contracts/phone';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
@@ -102,6 +104,56 @@ export class PhoneController {
                   name: 'Galaxy S25 Series',
                   parentId: 5,
                 },
+                variants: [
+                  {
+                    id: 1,
+                    variantName: 'Ultra 1TB',
+                    description: 'Latest model with advanced features',
+                    colors: [
+                      {
+                        variantId: 1,
+                        imageId: 1,
+                        color: {
+                          id: 1,
+                          name: 'Đen',
+                        },
+                      },
+                    ],
+                    price: {
+                      id: 1,
+                      variantId: 1,
+                      price: 44000000,
+                      startDate: '2025-10-05T17:00:00.000Z',
+                      endDate: null,
+                    },
+                    discount: {
+                      id: 1,
+                      variantId: 1,
+                      discountPercent: 20,
+                      startDate: '2025-10-05T17:00:00.000Z',
+                      endDate: null,
+                    },
+                    images: [
+                      {
+                        id: 1,
+                        variantId: 1,
+                        image: {
+                          id: 1,
+                          imageUrl:
+                            'https://images.samsung.com/samsung-galaxy-s25-ultra.jpg',
+                        },
+                      },
+                    ],
+                    specifications: [
+                      {
+                        info: '6.9 inches',
+                        specification: {
+                          name: 'Kích thước màn hình',
+                        },
+                      },
+                    ],
+                  },
+                ],
                 createdAt: '2024-10-01T00:00:00.000Z',
                 updatedAt: '2024-10-01T00:00:00.000Z',
                 isDeleted: false,
@@ -172,9 +224,8 @@ export class PhoneController {
 
   @Post('create')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Create a new phone (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new phone (Admin only)' })
   @ApiBody({
     description: 'Phone creation payload',
     schema: {
@@ -315,9 +366,8 @@ export class PhoneController {
 
   @Put('update/:phoneId')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Update a phone (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Update a phone (Admin only)' })
   @ApiParam({
     name: 'phoneId',
     type: Number,
@@ -407,9 +457,8 @@ export class PhoneController {
 
   @Put('delete/:phoneId')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Soft delete a phone (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Soft delete a phone (Admin only)' })
   @ApiParam({
     name: 'phoneId',
     type: Number,
@@ -1007,9 +1056,8 @@ export class PhoneController {
 
   @Post('variants/create')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Create a new phone variant (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new phone variant (Admin only)' })
   @ApiBody({
     description: 'Phone variant creation payload',
     schema: {
@@ -1145,9 +1193,8 @@ export class PhoneController {
 
   @Put('variants/update/:variantId')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Update a phone variant (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Update a phone variant (Admin only)' })
   @ApiParam({
     name: 'variantId',
     type: Number,
@@ -1282,9 +1329,8 @@ export class PhoneController {
 
   @Put('variants/delete/:variantId')
   @UseGuards(RemoteAuthGuard)
-  @Roles(RoleType.SALES)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Soft delete a phone variant (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Soft delete a phone variant (Admin only)' })
   @ApiParam({
     name: 'variantId',
     type: Number,
@@ -1433,8 +1479,7 @@ export class PhoneController {
   @Post('colors/create')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Create a new color (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new color (Admin only)' })
   @ApiBody({
     description: 'Color creation payload',
     schema: {
@@ -1585,8 +1630,7 @@ export class PhoneController {
   @Post('specifications/create')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Create a new specification (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new specification (Admin only)' })
   @ApiBody({
     description: 'Specification creation payload',
     schema: {
@@ -1655,6 +1699,148 @@ export class PhoneController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Creating specification failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get(':phoneId')
+  @ApiOperation({ summary: 'Get phone by ID' })
+  @ApiParam({
+    name: 'phoneId',
+    type: Number,
+    description: 'Phone ID',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone retrieved successfully',
+          data: {
+            id: 1,
+            name: 'Samsung Galaxy S25',
+            brand: {
+              id: 1,
+              name: 'Samsung',
+              image: {
+                id: 9,
+                imageUrl: 'https://example.com/brands/samsung.png',
+              },
+            },
+            category: {
+              id: 9,
+              name: 'Galaxy S25 Series',
+              parentId: 5,
+            },
+            variants: [
+              {
+                id: 1,
+                variantName: 'Ultra 1TB',
+                description: 'Latest model with advanced features',
+                colors: [
+                  {
+                    variantId: 1,
+                    imageId: 1,
+                    color: {
+                      id: 1,
+                      name: 'Đen',
+                    },
+                  },
+                ],
+                price: {
+                  id: 1,
+                  variantId: 1,
+                  price: 44000000,
+                  startDate: '2025-10-05T17:00:00.000Z',
+                  endDate: null,
+                },
+                discount: {
+                  id: 1,
+                  variantId: 1,
+                  discountPercent: 20,
+                  startDate: '2025-10-05T17:00:00.000Z',
+                  endDate: null,
+                },
+                images: [
+                  {
+                    id: 1,
+                    variantId: 1,
+                    image: {
+                      id: 1,
+                      imageUrl:
+                        'https://images.samsung.com/samsung-galaxy-s25-ultra.jpg',
+                    },
+                  },
+                ],
+                specifications: [
+                  {
+                    info: '6.9 inches',
+                    specification: {
+                      name: 'Kích thước màn hình',
+                    },
+                  },
+                ],
+              },
+            ],
+            createdAt: '2024-10-01T00:00:00.000Z',
+            updatedAt: '2024-10-01T00:00:00.000Z',
+            isDeleted: false,
+          },
+        },
+      },
+    },
+  })
+  async getPhoneById(@Param('phoneId') phoneId: number, @Res() res: Response) {
+    try {
+      const id: number = phoneId;
+      const result = await this.circuitBreakerService.sendRequest<
+        PhoneWithVariantsDto | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_PHONE_BY_ID,
+        id,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 5000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      } 
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting phone failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -1761,8 +1947,7 @@ export class BrandController {
   @Post('create')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Create a new brand (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new brand (Admin only)' })
   @ApiBody({
     description: 'Brand creation payload',
     schema: {
@@ -1847,8 +2032,7 @@ export class BrandController {
   @Put('update/:brandId')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Update a brand (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Update a brand (Admin only)' })
   @ApiParam({
     name: 'brandId',
     type: Number,
@@ -1940,8 +2124,7 @@ export class BrandController {
   @Put('delete/:brandId')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Soft delete a brand (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Soft delete a brand (Admin only)' })
   @ApiParam({
     name: 'brandId',
     type: Number,
@@ -2104,8 +2287,7 @@ export class CategoryController {
   @Post('create')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Create a new category (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Create a new category (Admin only)' })
   @ApiBody({
     description: 'Category creation payload',
     schema: {
@@ -2187,8 +2369,7 @@ export class CategoryController {
   @Put('update/:categoryId')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Update a category (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Update a category (Admin only)' })
   @ApiParam({
     name: 'categoryId',
     type: Number,
@@ -2276,8 +2457,7 @@ export class CategoryController {
   @Put('delete/:categoryId')
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
-  @Roles(RoleType.SALES)
-  @ApiOperation({ summary: 'Soft delete a category (Admin/Sales only)' })
+  @ApiOperation({ summary: 'Soft delete a category (Admin only)' })
   @ApiParam({
     name: 'categoryId',
     type: Number,
@@ -2426,6 +2606,99 @@ export class InventoryController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting inventory failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Reviews')
+@Controller('v1/reviews')
+export class ReviewController {
+  constructor(
+    @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Post()
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Create a new review (requires authentication)' })
+  @ApiBody({
+    description: 'Review creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        variantId: { type: 'number', example: 1 },
+        rating: { type: 'number', example: 5 },
+        comment: { type: 'string', example: 'Great phone with excellent features!' },
+      },
+      required: ['variantId', 'rating'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Review created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'Review created successfully',
+          data: { reviewId: 15 },
+        },
+      },
+    },
+  })
+  async createReview(
+    @Req() req: ReqWithRequester,
+    @Body() reviewCreateDto: ReviewCreateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.CREATE_REVIEW,
+        { requester, reviewCreateDto },
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        }
+        , { timeout: 10000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'Review created successfully',
+          { reviewId: result },
+        );
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Creating review failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

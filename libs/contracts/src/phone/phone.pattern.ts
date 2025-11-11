@@ -1,6 +1,7 @@
 export const PHONE_PATTERN = {
   LIST_PHONES: 'phone.listPhones',
   GET_PHONES_BY_IDS: 'phone.getPhonesByIds',
+  GET_PHONE_BY_ID: 'phone.getPhoneById',
   CREATE_PHONE: 'phone.createPhone',
   UPDATE_PHONE: 'phone.updatePhone',
   DELETE_PHONE: 'phone.deletePhone',
@@ -36,6 +37,8 @@ export const PHONE_PATTERN = {
 
   GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
   CHECK_INVENTORY_AVAILABILITY: 'phone.checkInventoryAvailability',
+
+  CREATE_REVIEW: 'phone.createReview',
 };
 
 export const PHONE_SERVICE_NAME = 'phone-service';
