@@ -100,4 +100,18 @@ export class UserController {
     await this.userService.deleteAddressBook(requester, addressId);
     return { success: true };
   }
+
+  @MessagePattern(USER_PATTERN.GET_NOTIFICATIONS)
+  async getNotifications(@Payload() request: Requester) {
+    return this.userService.getNotifications(request);
+  }
+
+  @MessagePattern(USER_PATTERN.READ_NOTIFICATIONS)
+  async readNotifications(
+    @Payload() payload: { requester: Requester; notificationIds: number[] },
+  ) {
+    const { requester, notificationIds } = payload;
+    await this.userService.readNotifications(requester, notificationIds);
+    return { success: true };
+  }
 }

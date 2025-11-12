@@ -50,7 +50,9 @@ export class OrderController {
   ) {}
 
   @Get('list')
-  @ApiOperation({ summary: 'List orders with pagination' })
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'List orders with pagination (Admin only)' })
   @ApiQuery({
     name: 'page',
     required: false,

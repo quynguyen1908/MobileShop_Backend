@@ -9,6 +9,9 @@ import {
   Customer,
   CustomerUpdateDto,
   Gender,
+  Notification,
+  NotificationType,
+  NotificationUpdateDto,
   Province,
 } from '@app/contracts/user';
 
@@ -53,6 +56,19 @@ interface PrismaAddress {
   provinceId: number;
   postalCode: string | null;
   isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+}
+
+interface PrismaNotification {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  readAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -228,6 +244,61 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  // Notification
+
+  async findNotificationsByUserId(userId: number): Promise<Notification[]> {
+    const prismaService = this.prisma as unknown as {
+      notification: {
+        findMany: (params: {
+          where: { userId: number; isDeleted: boolean };
+        }) => Promise<PrismaNotification[]>;
+      };
+    };
+    const notifications = await prismaService.notification.findMany({
+      where: { userId, isDeleted: false },
+    });
+    return notifications.map((notification) =>
+      this._toNotificationModel(notification),
+    );
+  }
+
+  async findNotificationsByIds(ids: number[]): Promise<Notification[]> {
+    const prismaService = this.prisma as unknown as {
+      notification: {
+        findMany: (params: {
+          where: { id: { in: number[] }; isDeleted: boolean };
+        }) => Promise<PrismaNotification[]>;
+      };
+    };
+    const notifications = await prismaService.notification.findMany({
+      where: { id: { in: ids }, isDeleted: false },
+    });
+    return notifications.map((notification) =>
+      this._toNotificationModel(notification),
+    );
+  }
+
+  async insertNotifications(data: Notification[]): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      notification: {
+        createMany: (params: { data: any[] }) => Promise<any>;
+      };
+    };
+    await prismaService.notification.createMany({ data });
+  }
+
+  async updateNotifications(ids: number[], data: NotificationUpdateDto): Promise<void> {
+    const prismaService = this.prisma as unknown as {
+      notification: {
+        updateMany: (params: { where: { id: { in: number[] } }; data: any }) => Promise<any>;
+      };
+    };
+    await prismaService.notification.updateMany({
+      where: { id: { in: ids } },
+      data,
+    });
+  }
+
   private _toCustomerModel(data: PrismaCustomer): Customer {
     let typedGender: Gender | undefined;
 
@@ -287,6 +358,32 @@ export class UserRepository implements IUserRepository {
       provinceId: data.provinceId,
       postalCode: data.postalCode ?? undefined,
       isDefault: data.isDefault,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      isDeleted: data.isDeleted,
+    };
+  }
+
+  private _toNotificationModel(data: PrismaNotification): Notification {
+    let typedType: NotificationType | undefined;
+
+    if (data.type !== null && data.type !== undefined) {
+      if (typeof data.type === 'string') {
+        const validTypes = Object.values(NotificationType) as string[];
+        if (validTypes.includes(data.type)) {
+          typedType = data.type as NotificationType;
+        }
+      }
+    }
+    
+    return {
+      id: data.id,
+      userId: data.userId,
+      title: data.title,
+      message: data.message,
+      type: typedType,
+      isRead: data.isRead,
+      readAt: data.readAt ?? undefined,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

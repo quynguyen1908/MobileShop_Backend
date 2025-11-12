@@ -7,6 +7,8 @@ export const AUTH_PATTERN = {
   VALIDATE_TOKEN: 'auth.validateToken',
   DECODE_TOKEN: 'auth.decodeToken',
   GOOGLE_LOGIN: 'auth.googleLogin',
+  GET_ADMIN_USER_IDS: 'auth.getAdminUserIds',
+  GET_CUSTOMER_USER_IDS: 'auth.getCustomerUserIds',
 
   CREATE_USER: 'auth.createUser',
   GET_USER: 'auth.getUser',

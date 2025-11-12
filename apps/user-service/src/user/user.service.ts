@@ -19,6 +19,8 @@ import {
   customerSchema,
   CustomerUpdateDto,
   CustomerUpdateProfileDto,
+  Notification,
+  NotificationUpdateDto,
   Province,
 } from '@app/contracts/user';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
@@ -78,44 +80,7 @@ export class UserService implements IUserService {
       );
     }
 
-    const user = await firstValueFrom<User>(
-      this.authServiceClient.send(AUTH_PATTERN.GET_USER, request.sub),
-    );
-    if (!user) {
-      throw new RpcException(
-        AppError.from(new Error('User not found'))
-          .withLog('User not found')
-          .toJson(false),
-      );
-    }
-
-    const pointHistory = await firstValueFrom<PointHistoryDto[]>(
-      this.orderServiceClient.send(
-        ORDER_PATTERN.GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID,
-        customer.id,
-      ),
-    );
-
-    const customerDto: CustomerDto = {
-      id: customer.id,
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      gender: customer.gender,
-      dateOfBirth: customer.dateOfBirth,
-      pointsBalance: customer.pointsBalance,
-      pointHistory: pointHistory,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        phone: user.phone,
-      },
-      createdAt: customer.createdAt,
-      updatedAt: customer.updatedAt,
-      isDeleted: customer.isDeleted,
-    };
-
-    return customerDto;
+    return this.toCustomerDto(customer);
   }
 
   async updateCustomer(id: number, data: CustomerUpdateDto): Promise<void> {
@@ -358,5 +323,74 @@ export class UserService implements IUserService {
         });
       }
     }
+  }
+
+  // Notification
+
+  async getNotifications(request: Requester): Promise<Notification[]> {
+    return this.userRepository.findNotificationsByUserId(request.sub);
+  }
+
+  async createNotifications(data: Notification[]): Promise<void> {
+    await this.userRepository.insertNotifications(data);
+  }
+
+  async readNotifications(request: Requester, notificationIds: number[]): Promise<void> {
+    const notifications = await this.userRepository.findNotificationsByIds(notificationIds);
+    if (!notifications || notifications.length === 0 || notifications.some(n => n.isDeleted)) {
+      throw new RpcException(
+        AppError.from(new Error('Notification not found'))
+          .withLog('Notification not found')
+          .toJson(false),
+      );
+    }
+    
+    const data: NotificationUpdateDto = {
+      isRead: true,
+      readAt: new Date(),
+      updatedAt: new Date(),
+    }
+    await this.userRepository.updateNotifications(notificationIds, data);
+  }
+
+  private async toCustomerDto(customer: Customer): Promise<CustomerDto> {
+    const user = await firstValueFrom<User>(
+      this.authServiceClient.send(AUTH_PATTERN.GET_USER, customer.userId),
+    );
+    if (!user) {
+      throw new RpcException(
+        AppError.from(new Error('User not found'))
+          .withLog('User not found')
+          .toJson(false),
+      );
+    }
+
+    const pointHistory = await firstValueFrom<PointHistoryDto[]>(
+      this.orderServiceClient.send(
+        ORDER_PATTERN.GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID,
+        customer.id,
+      ),
+    );
+
+    const customerDto: CustomerDto = {
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      gender: customer.gender,
+      dateOfBirth: customer.dateOfBirth,
+      pointsBalance: customer.pointsBalance,
+      pointHistory: pointHistory,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+      },
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+      isDeleted: customer.isDeleted,
+    };
+
+    return customerDto;
   }
 }

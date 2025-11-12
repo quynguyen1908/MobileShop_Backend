@@ -50,6 +50,7 @@ import {
 } from '@app/contracts/auth';
 import { randomInt } from 'crypto';
 import { RpcException } from '@nestjs/microservices';
+import { RoleType } from '@app/contracts/auth/roles.decorator';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -329,6 +330,32 @@ export class AuthService implements IAuthService {
       userId: user.id!,
       tokens,
     };
+  }
+
+  async getAdminUserIds(): Promise<number[]> {
+    const roles = await this.roleRepository.findAll();
+    const adminRole = roles.find((role) => role.name === RoleType.ADMIN.toString());
+
+    if (!adminRole) {
+      return [];
+    }
+
+    const adminUsers = await this.authRepository.findByFilter({ roleId: adminRole.id });
+
+    return adminUsers ? [adminUsers.id!] : [];
+  }
+
+  async getCustomerUserIds(): Promise<number[]> {
+    const roles = await this.roleRepository.findAll();
+    const customerRole = roles.find((role) => role.name === RoleType.CUSTOMER.toString());
+
+    if (!customerRole) {
+      return [];
+    }
+
+    const customerUsers = await this.authRepository.findByFilter({ roleId: customerRole.id });
+
+    return customerUsers ? [customerUsers.id!] : [];
   }
 
   async create(userCreateDto: UserCreateDto): Promise<number> {

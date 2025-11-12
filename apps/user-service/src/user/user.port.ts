@@ -9,6 +9,8 @@ import {
   CustomerDto,
   CustomerUpdateDto,
   CustomerUpdateProfileDto,
+  Notification,
+  NotificationUpdateDto,
   Province,
 } from '@app/contracts/user';
 
@@ -40,6 +42,14 @@ export interface IUserService {
     data: AddressUpdateDto,
   ): Promise<void>;
   deleteAddressBook(request: Requester, addressId: number): Promise<void>;
+
+  // Notification
+  getNotifications(request: Requester): Promise<Notification[]>;
+  readNotifications(
+    request: Requester,
+    notificationIds: number[],
+  ): Promise<void>;
+  createNotifications(data: Notification[]): Promise<void>;
 }
 
 export interface IUserRepository
@@ -55,6 +65,10 @@ export interface IUserCommandRepository {
   insertAddress(data: AddressCreateDto): Promise<Address>;
   updateAddress(id: number, data: AddressUpdateDto): Promise<void>;
   updateAddressesByIds(ids: number[], data: AddressUpdateDto): Promise<void>;
+
+  // Notification
+  insertNotifications(data: Notification[]): Promise<void>;
+  updateNotifications(ids: number[], data: NotificationUpdateDto): Promise<void>;
 }
 
 export interface IUserQueryRepository {
@@ -72,4 +86,8 @@ export interface IUserQueryRepository {
 
   // Address
   findAddressesByCustomerId(customerId: number): Promise<Address[]>;
+
+  // Notification
+  findNotificationsByIds(ids: number[]): Promise<Notification[]>;
+  findNotificationsByUserId(userId: number): Promise<Notification[]>;
 }

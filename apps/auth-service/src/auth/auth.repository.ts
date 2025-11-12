@@ -245,6 +245,18 @@ export class RoleRepository implements IRoleQueryRepository {
     return role ? this._toModel(role) : null;
   }
 
+  async findAll(): Promise<Role[]> {
+    const prismaService = this.prisma as unknown as {
+      role: {
+        findMany: (params: { where: any }) => Promise<PrismaRole[]>;
+      };
+    };
+    const roles = await prismaService.role.findMany({
+      where: { isDeleted: false },
+    });
+    return roles.map((role) => this._toModel(role));
+  }
+
   private _toModel(data: PrismaRole): Role {
     return {
       id: data.id,

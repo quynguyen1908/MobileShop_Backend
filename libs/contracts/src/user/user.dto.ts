@@ -102,22 +102,11 @@ export type EmployeeUpdateDto = z.infer<typeof employeeUpdateDtoSchema>;
 
 // Notification
 
-export const notificationCreateDtoSchema = notificationSchema
-  .pick({
-    userId: true,
-    title: true,
-    type: true,
-    message: true,
-  })
-  .required();
-
-export type NotificationCreateDto = z.infer<typeof notificationCreateDtoSchema>;
-
 export const notificationUpdateDtoSchema = notificationSchema
   .pick({
-    type: true,
     isRead: true,
     readAt: true,
+    updatedAt: true,
     isDeleted: true,
   })
   .partial();

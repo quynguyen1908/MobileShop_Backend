@@ -76,6 +76,16 @@ export class AuthController {
     return this.authService.loginWithGoogle(profile);
   }
 
+  @MessagePattern(AUTH_PATTERN.GET_ADMIN_USER_IDS)
+  async getAdminUserIds(): Promise<number[]> {
+    return this.authService.getAdminUserIds();
+  }
+
+  @MessagePattern(AUTH_PATTERN.GET_CUSTOMER_USER_IDS)
+  async getCustomerUserIds(): Promise<number[]> {
+    return this.authService.getCustomerUserIds();
+  }
+
   @MessagePattern(AUTH_PATTERN.CREATE_USER)
   async create(@Payload() userCreateDto: UserCreateDto): Promise<number> {
     return this.authService.create(userCreateDto);

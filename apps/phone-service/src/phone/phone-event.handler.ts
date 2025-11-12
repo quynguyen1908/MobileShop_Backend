@@ -1,5 +1,5 @@
-import { EVENT_SUBSCRIBER, PHONE_SERVICE } from '@app/contracts';
-import type { EventJson, IEventSubscriber } from '@app/contracts';
+import { EVENT_PUBLISHER, EVENT_SUBSCRIBER, PHONE_SERVICE } from '@app/contracts';
+import type { EventJson, IEventPublisher, IEventSubscriber } from '@app/contracts';
 import {
   EVT_ORDER_CREATED,
   EVT_ORDER_UPDATED,
@@ -15,6 +15,7 @@ import {
   EVT_PHONE_UPDATED,
   EVT_PHONE_VARIANT_UPDATED,
   EVT_VARIANT_CREATED,
+  InventoryLowEvent,
   PHONE_SERVICE_NAME,
   PhoneCreatedEvent,
   PhoneUpdatedEvent,
@@ -47,6 +48,7 @@ export class PhoneEventHandler {
     @Inject(EVENT_SUBSCRIBER)
     private readonly eventSubscriber: IEventSubscriber,
     @Inject(PHONE_SERVICE) private readonly phoneService: IPhoneService,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     private eventEmitter: EventEmitter2,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
@@ -88,6 +90,25 @@ export class PhoneEventHandler {
             stockQuantity: newStock,
             updatedAt: new Date(),
           });
+
+          if (newStock <= 10) {
+            const event = InventoryLowEvent.create(
+              {
+                id: inventories.id,
+                variantId: variantId,
+                colorId: colorId,
+                sku: inventories.sku,
+                stockQuantity: newStock,
+              },
+              PHONE_SERVICE_NAME,
+            );
+
+            await this.eventPublisher.publish(event);
+
+            this.logger.warn(
+              `Inventory low for variant ID: ${variantId}, color ID: ${colorId}, stock left: ${newStock}. Emitting InventoryLowEvent.`,
+            );
+          } 
         } else {
           this.logger.warn(
             `No inventory found for variant ID: ${variantId} and color ID: ${colorId}`,

@@ -34,6 +34,8 @@ export interface IAuthService {
   loginWithGoogle(
     profile: GoogleResponseDto,
   ): Promise<{ userId: number; tokens: any }>;
+  getAdminUserIds(): Promise<number[]>;
+  getCustomerUserIds(): Promise<number[]>;
 
   create(userCreateDto: UserCreateDto): Promise<number>;
   get(id: number): Promise<User>;
@@ -71,6 +73,7 @@ export interface IAuthQueryRepository {
 
 export interface IRoleQueryRepository {
   findById(id: number): Promise<Role | null>;
+  findAll(): Promise<Role[]>;
 }
 
 //  OAuth
