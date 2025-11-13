@@ -7,6 +7,7 @@ export const EVT_BRAND_UPDATED = 'BrandUpdated';
 export const EVT_CATEGORY_UPDATED = 'CategoryUpdated';
 export const EVT_PHONE_VARIANT_UPDATED = 'PhoneVariantUpdated';
 export const EVT_PHONE_UPDATED = 'PhoneUpdated';
+export const EVT_INVENTORY_LOW = 'InventoryLow';
 
 export interface BasePhoneEventPayload {
   id: number;
@@ -22,6 +23,13 @@ export interface VariantCreatedPayload extends BasePhoneEventPayload {
   phoneId: number;
   variantName: string;
   description?: string;
+}
+
+export interface InventoryLowPayload extends BasePhoneEventPayload {
+  variantId: number;
+  colorId: number;
+  sku: string;
+  stockQuantity: number;
 }
 
 export abstract class PhoneEvent<
@@ -131,6 +139,19 @@ export abstract class PhoneEvent<
           version,
         });
       }
+      case EVT_INVENTORY_LOW: {
+        const inventoryLowPayload = validateInventoryLowPayload(payload);
+        return new InventoryLowEvent(inventoryLowPayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
       default:
         throw new Error(`Unknown event name: ${eventName}`);
     }
@@ -192,6 +213,34 @@ function validateVariantCreatedPayload(
     variantName: payload.variantName,
     description:
       typeof payload.description === 'string' ? payload.description : undefined,
+  };
+}
+
+function validateInventoryLowPayload(
+  payload: Record<string, unknown>,
+): InventoryLowPayload {
+  if (typeof payload.id !== 'number') {
+    throw new Error('Invalid payload: id must be a number');
+  }
+  if (typeof payload.variantId !== 'number') {
+    throw new Error('Invalid payload: variantId must be a number');
+  }
+  if (typeof payload.colorId !== 'number') {
+    throw new Error('Invalid payload: colorId must be a number');
+  }
+  if (typeof payload.sku !== 'string') {
+    throw new Error('Invalid payload: sku must be a string');
+  }
+  if (typeof payload.stockQuantity !== 'number') {
+    throw new Error('Invalid payload: stockQuantity must be a number');
+  }
+
+  return {
+    id: payload.id,
+    variantId: payload.variantId,
+    colorId: payload.colorId,
+    sku: payload.sku,
+    stockQuantity: payload.stockQuantity,
   };
 }
 
@@ -360,5 +409,33 @@ export class PhoneUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
 
   static from(json: EventJson): PhoneUpdatedEvent {
     return PhoneEvent.fromJson(json) as PhoneUpdatedEvent;
+  }
+}
+
+export class InventoryLowEvent extends PhoneEvent<InventoryLowPayload> {
+  constructor(
+    payload: InventoryLowPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_INVENTORY_LOW, payload, options);
+  }
+
+  static create(
+    payload: InventoryLowPayload,
+    senderId: string,
+  ): InventoryLowEvent {
+    return new InventoryLowEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): InventoryLowEvent {
+    return PhoneEvent.fromJson(json) as InventoryLowEvent;
   }
 }

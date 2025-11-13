@@ -11,6 +11,7 @@ import type {
   UserFilterDto,
   User,
   GoogleResponseDto,
+  AdminCreateDto,
 } from '@app/contracts/auth';
 import type { PagingDto, Requester, TokenResponse } from '@app/contracts';
 
@@ -76,14 +77,25 @@ export class AuthController {
     return this.authService.loginWithGoogle(profile);
   }
 
-  @MessagePattern(AUTH_PATTERN.CREATE_USER)
-  async create(@Payload() userCreateDto: UserCreateDto): Promise<number> {
-    return this.authService.create(userCreateDto);
+  @MessagePattern(AUTH_PATTERN.GET_ADMIN_USER_IDS)
+  async getAdminUserIds(): Promise<number[]> {
+    return this.authService.getAdminUserIds();
+  }
+
+  @MessagePattern(AUTH_PATTERN.GET_CUSTOMER_USER_IDS)
+  async getCustomerUserIds(): Promise<number[]> {
+    return this.authService.getCustomerUserIds();
   }
 
   @MessagePattern(AUTH_PATTERN.GET_USER)
   async get(@Payload() id: number) {
     return this.authService.get(id).then((user) => this._toResponseModel(user));
+  }
+
+  @MessagePattern(AUTH_PATTERN.GET_USERS_BY_IDS)
+  async getByIds(@Payload() ids: number[]) {
+    const users = await this.authService.getByIds(ids);
+    return users.map((user) => this._toResponseModel(user));
   }
 
   @MessagePattern(AUTH_PATTERN.GET_USER_BY_EMAIL)
@@ -100,6 +112,16 @@ export class AuthController {
     return this.authService.profile(id);
   }
 
+  @MessagePattern(AUTH_PATTERN.CREATE_USER)
+  async create(@Payload() userCreateDto: UserCreateDto): Promise<number> {
+    return this.authService.create(userCreateDto);
+  }
+
+  @MessagePattern(AUTH_PATTERN.CREATE_ADMIN)
+  async createAdmin(@Payload() adminCreateDto: AdminCreateDto): Promise<number> {
+    return this.authService.createAdmin(adminCreateDto);
+  }
+
   @MessagePattern(AUTH_PATTERN.UPDATE_PROFILE)
   async updateProfile(
     @Payload() payload: { id: number; data: UserUpdateProfileDto },
@@ -108,7 +130,6 @@ export class AuthController {
     await this.authService.update(id, {
       username: data.username,
       password: data.password,
-      updatedAt: new Date(),
     });
     return { success: true };
   }

@@ -55,7 +55,6 @@ export class PaymentEventHandler {
           transactionId: transactionId,
           status: PaymentStatus.PENDING,
           amount: event.payload.finalAmount,
-          payDate: event.payload.orderDate.toISOString(),
           isDeleted: false,
         };
 
@@ -96,8 +95,13 @@ export class PaymentEventHandler {
         ) {
           switch (event.payload.status) {
             case OrderStatus.DELIVERED.toString(): {
+              const now = new Date();
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              const formatted = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
               await this.paymentService.updatePayment(payment.id!, {
                 status: PaymentStatus.COMPLETED,
+                payDate: formatted,
                 updatedAt: new Date(),
               });
               break;

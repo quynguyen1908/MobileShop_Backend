@@ -1,4 +1,4 @@
-import { Requester } from '@app/contracts';
+import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   Address,
   AddressCreateDto,
@@ -9,14 +9,17 @@ import {
   CustomerDto,
   CustomerUpdateDto,
   CustomerUpdateProfileDto,
+  Notification,
+  NotificationUpdateDto,
   Province,
 } from '@app/contracts/user';
 
 export interface IUserService {
   // Customer
-  createCustomer(data: CustomerCreateDto): Promise<number>;
+  listCustomers(paging: PagingDto): Promise<Paginated<CustomerDto>>;
   getCustomerByUserId(request: Requester): Promise<CustomerDto>;
   getCustomerById(id: number): Promise<Customer>;
+  createCustomer(data: CustomerCreateDto): Promise<number>;
   updateCustomer(id: number, data: CustomerUpdateDto): Promise<void>;
   updateCustomerProfile(
     request: Requester,
@@ -40,6 +43,15 @@ export interface IUserService {
     data: AddressUpdateDto,
   ): Promise<void>;
   deleteAddressBook(request: Requester, addressId: number): Promise<void>;
+
+  // Notification
+  getNotifications(request: Requester): Promise<Notification[]>;
+  getUnreadNotifications(request: Requester): Promise<Notification[]>;
+  readNotifications(
+    request: Requester,
+    notificationIds: number[],
+  ): Promise<void>;
+  createNotifications(data: Notification[]): Promise<void>;
 }
 
 export interface IUserRepository
@@ -55,10 +67,15 @@ export interface IUserCommandRepository {
   insertAddress(data: AddressCreateDto): Promise<Address>;
   updateAddress(id: number, data: AddressUpdateDto): Promise<void>;
   updateAddressesByIds(ids: number[], data: AddressUpdateDto): Promise<void>;
+
+  // Notification
+  insertNotifications(data: Notification[]): Promise<void>;
+  updateNotifications(ids: number[], data: NotificationUpdateDto): Promise<void>;
 }
 
 export interface IUserQueryRepository {
   // Customer
+  listCustomers(paging: PagingDto): Promise<Paginated<Customer>>
   findCustomerByUserId(userId: number): Promise<Customer | null>;
   findCustomerById(id: number): Promise<Customer | null>;
 
@@ -72,4 +89,9 @@ export interface IUserQueryRepository {
 
   // Address
   findAddressesByCustomerId(customerId: number): Promise<Address[]>;
+
+  // Notification
+  findNotificationsByIds(ids: number[]): Promise<Notification[]>;
+  findNotificationsByUserId(userId: number): Promise<Notification[]>;
+  findUnreadNotificationsByUserId(userId: number): Promise<Notification[]>;
 }

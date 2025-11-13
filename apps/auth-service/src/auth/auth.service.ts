@@ -47,9 +47,12 @@ import {
   OAuth,
   GoogleResponseDto,
   OAuthProvider,
+  AdminCreateDto,
+  adminCreateDtoSchema,
 } from '@app/contracts/auth';
 import { randomInt } from 'crypto';
 import { RpcException } from '@nestjs/microservices';
+import { RoleType } from '@app/contracts/auth/roles.decorator';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -331,6 +334,70 @@ export class AuthService implements IAuthService {
     };
   }
 
+  async getAdminUserIds(): Promise<number[]> {
+    const roles = await this.roleRepository.findAll();
+    const adminRole = roles.find((role) => role.name === RoleType.ADMIN.toString());
+
+    if (!adminRole) {
+      return [];
+    }
+
+    const adminUsers = await this.authRepository.findByFilter({ roleId: adminRole.id });
+
+    return adminUsers ? [adminUsers.id!] : [];
+  }
+
+  async getCustomerUserIds(): Promise<number[]> {
+    const roles = await this.roleRepository.findAll();
+    const customerRole = roles.find((role) => role.name === RoleType.CUSTOMER.toString());
+
+    if (!customerRole) {
+      return [];
+    }
+
+    const customerUsers = await this.authRepository.findByFilter({ roleId: customerRole.id });
+
+    return customerUsers ? [customerUsers.id!] : [];
+  }
+
+  async getByIds(ids: number[]): Promise<User[]> {
+    const users = await this.authRepository.findByIds(ids);
+    return users;
+  }
+
+  async get(id: number): Promise<User> {
+    const user = await this.authRepository.findById(id);
+    if (!user) {
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
+    }
+    return user;
+  }
+
+  async getByFilter(filter: UserFilterDto): Promise<User | null> {
+    const user = await this.authRepository.findByFilter(filter);
+    if (!user) {
+      return null;
+    }
+    return user;
+  }
+
+  async profile(id: number): Promise<Omit<User, 'password'>> {
+    const user = await this.authRepository.findById(id);
+    if (!user) {
+      throw new RpcException(
+        AppError.from(ErrUserNotFound, 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
+    }
+    const { password: _, ...profile } = user;
+    return profile;
+  }
+
   async create(userCreateDto: UserCreateDto): Promise<number> {
     const data = userSchema.parse(userCreateDto);
 
@@ -379,37 +446,62 @@ export class AuthService implements IAuthService {
     return newUser.id!;
   }
 
-  async get(id: number): Promise<User> {
-    const user = await this.authRepository.findById(id);
-    if (!user) {
+  async createAdmin(adminCreateDto: AdminCreateDto): Promise<number> {
+    const data = adminCreateDtoSchema.parse(adminCreateDto);
+
+    const userExists = await this.authRepository.findExistingUser({
+      username: data.username,
+      email: data.email,
+      phone: data.phone,
+    });
+
+    if (userExists) {
+      if (userExists.username === data.username) {
+        throw new RpcException(
+          AppError.from(ErrUsernameAlreadyExists, 400)
+            .withLog('Username already exists')
+            .toJson(false),
+        );
+      }
+      if (userExists.email === data.email) {
+        throw new RpcException(
+          AppError.from(ErrEmailAlreadyExists, 400)
+            .withLog('Email already exists')
+            .toJson(false),
+        );
+      }
+      if (userExists.phone === data.phone) {
+        throw new RpcException(
+          AppError.from(ErrPhoneAlreadyExists, 400)
+            .withLog('Phone already exists')
+            .toJson(false),
+        );
+      }
+    }
+
+    const role = await this.roleRepository.findAll();
+    const adminRole = role.find((r) => r.name === RoleType.ADMIN.toString());
+    if (!adminRole) {
       throw new RpcException(
-        AppError.from(ErrUserNotFound, 404)
-          .withLog('User not found')
+        AppError.from(new Error('Admin role not found'), 500)
+          .withLog('Admin role not found')
           .toJson(false),
       );
     }
-    return user;
-  }
 
-  async getByFilter(filter: UserFilterDto): Promise<User | null> {
-    const user = await this.authRepository.findByFilter(filter);
-    if (!user) {
-      return null;
-    }
-    return user;
-  }
+    const user: User = {
+      username: adminCreateDto.username,
+      password: adminCreateDto.password,
+      phone: adminCreateDto.phone,
+      email: adminCreateDto.email,
+      roleId: adminRole.id!,
+      status: UserStatus.ACTIVE,
+      isDeleted: false,
+    };
 
-  async profile(id: number): Promise<Omit<User, 'password'>> {
-    const user = await this.authRepository.findById(id);
-    if (!user) {
-      throw new RpcException(
-        AppError.from(ErrUserNotFound, 404)
-          .withLog('User not found')
-          .toJson(false),
-      );
-    }
-    const { password: _, ...profile } = user;
-    return profile;
+    const newUser = await this.authRepository.insert(user);
+
+    return newUser.id!;
   }
 
   async update(id: number, data: UserUpdateDto): Promise<void> {
@@ -421,7 +513,20 @@ export class AuthService implements IAuthService {
           .toJson(false),
       );
     }
-    await this.authRepository.update(id, data);
+
+    if (userExists.status === UserStatus.BANNED) {
+      throw new RpcException(
+        AppError.from(new Error('Cannot update a banned user'), 400)
+          .withLog('Cannot update a banned user')
+          .toJson(false),
+      );
+    }
+
+
+    await this.authRepository.update(id, {
+      ...data,
+      updatedAt: new Date(),
+    });
   }
 
   async delete(id: number): Promise<void> {

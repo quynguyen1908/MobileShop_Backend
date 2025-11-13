@@ -56,7 +56,7 @@ export const userSchema = z.object({
       /^(0[2-9][0-9]{8,9})$|^(\+84[2-9][0-9]{8,9})$/,
       ErrPhoneInvalid.message,
     ),
-  email: z.string().email(ErrEmailInvalid.message),
+  email: z.email(ErrEmailInvalid.message),
   roleId: z.number().int().positive(),
   lastChangePass: z.date().optional(),
   status: z.enum(UserStatus).optional().default(UserStatus.ACTIVE),

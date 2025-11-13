@@ -1,5 +1,5 @@
-import { USER_SERVICE } from '@app/contracts';
-import type { ReqWithRequester } from '@app/contracts';
+import { pagingDtoSchema, USER_SERVICE } from '@app/contracts';
+import type { Paginated, PagingDto, ReqWithRequester } from '@app/contracts';
 import {
   Body,
   Controller,
@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -18,6 +19,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -26,6 +28,7 @@ import type { Response } from 'express';
 import {
   Commune,
   CustomerDto,
+  Notification,
   Province,
   USER_PATTERN,
   USER_SERVICE_NAME,
@@ -40,6 +43,7 @@ import { isFallbackResponse } from '../utils/fallback';
 import { ApiResponseDto } from '../dto/response.dto';
 import { formatError } from '../utils/error';
 import { RemoteAuthGuard } from '@app/contracts/auth/auth.guard';
+import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 
 @ApiTags('Customers')
 @Controller('v1/customers')
@@ -48,6 +52,117 @@ export class CustomerController {
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
+
+  @Get('list')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'List customers (Admin only)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Current page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of items per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Customers retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Customers retrieved successfully',
+          data: {
+            data: [
+              {
+                id: 1,
+                firstName: 'Jane',
+                lastName: 'Doe',
+                gender: 'male',
+                dateOfBirth: '1990-05-15T00:00:00.000Z',
+                pointBalance: 150000,
+                user: {
+                  id: 1,
+                  username: 'janedoe',
+                  email: 'janedoe@example.com',
+                  phone: '0987654321',
+                  status: 'active',
+                  lastChangePass: '2024-06-01T00:00:00.000Z',
+                },
+                createdAt: '2024-10-01T00:00:00.000Z',
+                updatedAt: '2024-10-01T00:00:00.000Z',
+                isDeleted: false,
+              },
+            ],
+            paging: {
+              page: 1,
+              limit: 10,
+              order: 'asc',
+            },
+            total: 1,
+          },
+        },
+      },
+    },
+  })
+  async listCustomers(@Query() pagingDto: PagingDto, @Res() res: Response) {
+    try {
+      const paging = pagingDtoSchema.parse(pagingDto);
+      const result = await this.circuitBreakerService.sendRequest<
+        Paginated<CustomerDto> | FallbackResponse
+      >(
+        this.userServiceClient,
+        USER_SERVICE_NAME,
+        USER_PATTERN.LIST_CUSTOMERS,
+        paging,
+        () => {
+          return {
+            fallback: true,
+            message: 'User service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('User service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Customers retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Listing customers failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 
   @Get('/me')
   @ApiOperation({
@@ -103,7 +218,7 @@ export class CustomerController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -276,7 +391,7 @@ export class CustomerController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -373,7 +488,7 @@ export class CustomerController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -477,7 +592,7 @@ export class CustomerController {
               message: 'User service is temporary unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -558,7 +673,7 @@ export class CustomerController {
               message: 'User service is temporary unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -643,7 +758,7 @@ export class LocationController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -727,7 +842,7 @@ export class LocationController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('User service response:', JSON.stringify(result, null, 2));
@@ -752,6 +867,276 @@ export class LocationController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Getting communes failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Notifications')
+@Controller('v1/notifications')
+export class NotificationController {
+  constructor(
+    @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get()
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Get current user notifications (requires authentication)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Notifications retrieved successfully',
+          data: [
+            {
+              id: 2,
+              userId: 1,
+              title: 'Đơn hàng #PH1211259266 đã được tạo!',
+              message: 'Vui lòng kiểm tra và xử lý đơn hàng kịp thời.',
+              type: 'admin',
+              isRead: false,
+              createdAt: '2024-10-05T08:30:00.000Z',
+              updatedAt: '2024-10-05T08:30:00.000Z',
+              isDeleted: false,
+            },
+          ],
+        },
+      },
+    },
+  })
+  async getNotifications(
+    @Req() req: ReqWithRequester,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        Notification[] | FallbackResponse
+      >(
+        this.userServiceClient,
+        USER_SERVICE_NAME,
+        USER_PATTERN.GET_NOTIFICATIONS,
+        requester,
+        () => {
+          return {
+            fallback: true,
+            message: 'User service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('User service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Notifications retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting notifications failed';
+        
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('/unread')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Get current user unread notifications (requires authentication)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Unread notifications retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Unread notifications retrieved successfully',
+          data: [
+            {
+              id: 2,
+              userId: 1,
+              title: 'Đơn hàng #PH1211259266 đã được tạo!',
+              message: 'Vui lòng kiểm tra và xử lý đơn hàng kịp thời.',
+              type: 'admin',
+              isRead: false,
+              createdAt: '2024-10-05T08:30:00.000Z',
+              updatedAt: '2024-10-05T08:30:00.000Z',
+              isDeleted: false,
+            },
+          ],
+        },
+      },
+    },
+  })
+  async getUnreadNotifications(
+    @Req() req: ReqWithRequester,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        Notification[] | FallbackResponse
+      >(
+        this.userServiceClient,
+        USER_SERVICE_NAME,
+        USER_PATTERN.GET_UNREAD_NOTIFICATIONS,
+        requester,
+        () => {
+          return {
+            fallback: true,
+            message: 'User service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('User service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Unread notifications retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting unread notifications failed';
+        
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('/read')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Mark notifications as read (requires authentication)',
+  })
+  @ApiBody({
+    description: 'Notification IDs to mark as read',
+    schema: {
+      type: 'object',
+      properties: {
+        notificationIds: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 2, 3],
+        },
+      },
+      required: ['notificationIds'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications marked as read successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Notifications marked as read successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async readNotifications(
+    @Req() req: ReqWithRequester,
+    @Body() body: { notificationIds: number[] },
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const { notificationIds } = body;
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.userServiceClient,
+          USER_SERVICE_NAME,
+          USER_PATTERN.READ_NOTIFICATIONS,
+          { requester, notificationIds },
+          () => {
+            return {
+              fallback: true,
+              message: 'User service is temporary unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
+
+      console.log('User service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Notifications marked as read successfully',
+          { success: true },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Marking notifications as read failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

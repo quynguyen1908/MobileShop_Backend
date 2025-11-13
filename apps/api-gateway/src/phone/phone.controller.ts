@@ -186,7 +186,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -417,7 +417,7 @@ export class PhoneController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -493,7 +493,7 @@ export class PhoneController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -737,7 +737,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -876,7 +876,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1017,7 +1017,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1154,7 +1154,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1290,7 +1290,7 @@ export class PhoneController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1368,7 +1368,7 @@ export class PhoneController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1440,7 +1440,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1519,7 +1519,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1590,7 +1590,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1673,7 +1673,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1816,7 +1816,7 @@ export class PhoneController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1908,7 +1908,7 @@ export class BrandController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -1993,7 +1993,7 @@ export class BrandController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2085,7 +2085,7 @@ export class BrandController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2159,7 +2159,7 @@ export class BrandController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2248,7 +2248,7 @@ export class CategoryController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2330,7 +2330,7 @@ export class CategoryController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2418,7 +2418,7 @@ export class CategoryController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2495,7 +2495,7 @@ export class CategoryController {
               message: 'Phone service is temporarily unavailable',
             } as FallbackResponse;
           },
-          { timeout: 5000 },
+          { timeout: 10000 },
         );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));
@@ -2581,7 +2581,7 @@ export class InventoryController {
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));

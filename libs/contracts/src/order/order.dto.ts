@@ -35,6 +35,7 @@ const orderItemsDtoSchema = orderItemSchema
       colorId: z.number().int().positive(),
       name: z.string().max(100, ErrPhoneNameAtMost100Chars.message),
       imageUrl: z.url(),
+      stockQuantity: z.number().int().min(0).optional(),
     }),
   });
 

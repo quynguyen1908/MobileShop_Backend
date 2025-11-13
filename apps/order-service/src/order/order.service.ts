@@ -1695,6 +1695,10 @@ export class OrderService implements IOrderService {
         );
       }
 
+      const inventory = variant.inventories.find(
+        (inv) => inv.colorId === item.colorId,
+      );
+
       return {
         id: item.id,
         cartId: item.cartId,
@@ -1709,6 +1713,7 @@ export class OrderService implements IOrderService {
           colorId: matchingColor.color.id,
           name: variant.phone.name,
           imageUrl: image.imageUrl,
+          stockQuantity: inventory ? inventory.stockQuantity : 0,
         },
       } as CartItemDto;
     });

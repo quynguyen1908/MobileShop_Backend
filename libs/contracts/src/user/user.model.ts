@@ -12,9 +12,9 @@ export enum EmployeePosition {
 }
 
 export enum NotificationType {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
+  ORDER = 'order',
+  VOUCHER = 'voucher',
+  ADMIN = 'admin',
 }
 
 // Customer
@@ -88,7 +88,7 @@ export const notificationSchema = z.object({
   userId: z.number().int().positive(),
   title: z.string(),
   message: z.string(),
-  type: z.enum(NotificationType).optional().default(NotificationType.INFO),
+  type: z.enum(NotificationType).optional(),
   isRead: z.boolean().optional().default(false),
   readAt: z.date().optional(),
   createdAt: z.date().optional(),

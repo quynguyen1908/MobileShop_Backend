@@ -7,6 +7,8 @@ import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 import {
   AUTH_SERVICE,
   ORDER_SERVICE,
+  PAYMENT_SERVICE,
+  PHONE_SERVICE,
   USER_REPOSITORY,
   USER_SERVICE,
 } from '@app/contracts';
@@ -39,6 +41,22 @@ import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-fa
       provide: ORDER_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
         const serverOptions = rmqConfigService.orderServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: PHONE_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.phoneServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: PAYMENT_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.paymentServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
       inject: [RabbitMQService],

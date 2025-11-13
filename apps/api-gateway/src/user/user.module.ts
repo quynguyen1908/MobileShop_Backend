@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ClientProxyFactory } from '@nestjs/microservices';
 import { USER_SERVICE } from '@app/contracts';
-import { LocationController, CustomerController } from './user.controller';
+import { LocationController, CustomerController, NotificationController } from './user.controller';
 import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 
 @Module({
   imports: [RabbitMQModule.register(), CircuitBreakerModule],
-  controllers: [CustomerController, LocationController],
+  controllers: [CustomerController, LocationController, NotificationController],
   providers: [
     {
       provide: USER_SERVICE,

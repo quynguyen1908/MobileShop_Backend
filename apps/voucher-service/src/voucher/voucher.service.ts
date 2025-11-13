@@ -2,16 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IVoucherRepository, IVoucherService } from './voucher.port';
 import {
   AppError,
+  EVENT_PUBLISHER,
   Paginated,
   PagingDto,
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   VOUCHER_REPOSITORY,
 } from '@app/contracts';
+import type { IEventPublisher } from '@app/contracts';
 import {
   ApplyTo,
   DiscountType,
   Voucher,
+  VOUCHER_SERVICE_NAME,
   VoucherCategory,
   VoucherCategoryDto,
   VoucherCreateDto,
@@ -26,6 +29,7 @@ import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Category, PHONE_PATTERN, PhoneVariantDto } from '@app/contracts/phone';
 import { PAYMENT_PATTERN, PaymentMethod } from '@app/contracts/payment';
+import { VoucherCreatedEvent } from '@app/contracts/voucher/voucher.event';
 
 @Injectable()
 export class VoucherService implements IVoucherService {
@@ -34,6 +38,7 @@ export class VoucherService implements IVoucherService {
     private readonly voucherRepository: IVoucherRepository,
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
+    @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
   ) {}
 
   // Voucher
@@ -258,6 +263,22 @@ export class VoucherService implements IVoucherService {
       };
       await this.voucherRepository.insertVoucherPaymentMethods([voucherPaymentMethod]);
     }
+
+    const event = VoucherCreatedEvent.create(
+      {
+        id: createdVoucher.id!,
+        code: createdVoucher.code,
+        discountType: createdVoucher.discountType,
+        discountValue: createdVoucher.discountValue,
+        maxDiscountValue: createdVoucher.maxDiscountValue,
+        appliesTo: createdVoucher.appliesTo,
+        categories: data.categories,
+        paymentMethods: data.paymentMethods,
+      },
+      VOUCHER_SERVICE_NAME,
+    );
+
+    await this.eventPublisher.publish(event);
 
     return createdVoucher.id!;
   }

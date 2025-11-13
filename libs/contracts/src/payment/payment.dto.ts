@@ -41,6 +41,7 @@ export type PaymentCreateDto = z.infer<typeof paymentCreateDtoSchema>;
 export const paymentUpdateDtoSchema = paymentSchema
   .pick({
     status: true,
+    payDate: true,
     updatedAt: true,
     isDeleted: true,
   })
