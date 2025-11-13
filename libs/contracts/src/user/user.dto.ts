@@ -15,15 +15,17 @@ export const customerDtoSchema = customerSchema
     userId: true,
   })
   .extend({
-    user: userSchema.omit({
-      password: true,
-      roleId: true,
-      status: true,
-      lastChangePass: true,
-      createdAt: true,
-      updatedAt: true,
-      isDeleted: true,
-    }),
+    user: userSchema
+      .omit({
+        password: true,
+        roleId: true,
+        createdAt: true,
+        updatedAt: true,
+        isDeleted: true,
+      })
+      .extend({
+        status: userSchema.shape.status.optional(),
+      }),
     pointHistory: pointHistoryDtoSchema.array().optional(),
   });
 

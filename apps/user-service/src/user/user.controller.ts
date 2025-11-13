@@ -8,11 +8,16 @@ import {
   CustomerUpdateProfileDto,
   USER_PATTERN,
 } from '@app/contracts/user';
-import type { Requester } from '@app/contracts';
+import type { PagingDto, Requester } from '@app/contracts';
 
 @Controller()
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @MessagePattern(USER_PATTERN.LIST_CUSTOMERS)
+  async listCustomers(@Payload() paging: PagingDto) {
+    return this.userService.listCustomers(paging);
+  }
 
   @MessagePattern(USER_PATTERN.GET_CUSTOMER_BY_USER_ID)
   async getCustomerByUserId(@Payload() request: Requester) {
@@ -104,6 +109,11 @@ export class UserController {
   @MessagePattern(USER_PATTERN.GET_NOTIFICATIONS)
   async getNotifications(@Payload() request: Requester) {
     return this.userService.getNotifications(request);
+  }
+
+  @MessagePattern(USER_PATTERN.GET_UNREAD_NOTIFICATIONS)
+  async getUnreadNotifications(@Payload() request: Requester) {
+    return this.userService.getUnreadNotifications(request);
   }
 
   @MessagePattern(USER_PATTERN.READ_NOTIFICATIONS)

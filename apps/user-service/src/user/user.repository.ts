@@ -14,6 +14,7 @@ import {
   NotificationUpdateDto,
   Province,
 } from '@app/contracts/user';
+import { PagingDto, Paginated } from '@app/contracts';
 
 interface PrismaCustomer {
   id: number;
@@ -80,14 +81,33 @@ export class UserRepository implements IUserRepository {
 
   // Customer
 
-  async insertCustomer(data: Omit<Customer, 'id'>): Promise<Customer> {
+  async listCustomers(paging: PagingDto): Promise<Paginated<Customer>> {
+    const skip = (paging.page - 1) * paging.limit;
     const prismaService = this.prisma as unknown as {
       customer: {
-        create: (params: { data: any }) => Promise<PrismaCustomer>;
+        count: (params: { where: any }) => Promise<number>;
+        findMany: (params: {
+          where: any;
+          skip: number;
+          take: number;
+          orderBy: any;
+        }) => Promise<PrismaCustomer[]>;
       };
     };
-    const customer = await prismaService.customer.create({ data });
-    return this._toCustomerModel(customer);
+    const total = await prismaService.customer.count({
+      where: { isDeleted: false },
+    });
+    const customers = await prismaService.customer.findMany({
+      where: { isDeleted: false },
+      skip,
+      take: paging.limit,
+      orderBy: { id: 'asc' },
+    });
+    return {
+      data: customers.map((customer) => this._toCustomerModel(customer)),
+      paging,
+      total,
+    };
   }
 
   async findCustomerById(id: number): Promise<Customer | null> {
@@ -117,6 +137,16 @@ export class UserRepository implements IUserRepository {
       where: { userId, isDeleted: false },
     });
     if (!customer) return null;
+    return this._toCustomerModel(customer);
+  }
+
+  async insertCustomer(data: Omit<Customer, 'id'>): Promise<Customer> {
+    const prismaService = this.prisma as unknown as {
+      customer: {
+        create: (params: { data: any }) => Promise<PrismaCustomer>;
+      };
+    };
+    const customer = await prismaService.customer.create({ data });
     return this._toCustomerModel(customer);
   }
 
@@ -272,6 +302,22 @@ export class UserRepository implements IUserRepository {
     };
     const notifications = await prismaService.notification.findMany({
       where: { id: { in: ids }, isDeleted: false },
+    });
+    return notifications.map((notification) =>
+      this._toNotificationModel(notification),
+    );
+  }
+
+  async findUnreadNotificationsByUserId(userId: number): Promise<Notification[]> {
+    const prismaService = this.prisma as unknown as {
+      notification: {
+        findMany: (params: {
+          where: { userId: number; isRead: boolean; isDeleted: boolean };
+        }) => Promise<PrismaNotification[]>;
+      };
+    };
+    const notifications = await prismaService.notification.findMany({
+      where: { userId, isRead: false, isDeleted: false },
     });
     return notifications.map((notification) =>
       this._toNotificationModel(notification),

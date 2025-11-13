@@ -55,6 +55,12 @@ export const userCreateDtoSchema = userSchema
 
 export type UserCreateDto = z.infer<typeof userCreateDtoSchema>;
 
+export const adminCreateDtoSchema = userCreateDtoSchema.omit({
+  roleId: true,
+});
+
+export type AdminCreateDto = z.infer<typeof adminCreateDtoSchema>;
+
 export const userUpdateDtoSchema = userSchema
   .pick({
     username: true,

@@ -1,7 +1,8 @@
 export const USER_PATTERN = {
-  CREATE_CUSTOMER: 'user.createCustomer',
+  LIST_CUSTOMERS: 'user.listCustomers',
   GET_CUSTOMER_BY_USER_ID: 'user.getCustomerByUserId',
   GET_CUSTOMER_BY_ID: 'user.getCustomerById',
+  CREATE_CUSTOMER: 'user.createCustomer',
   UPDATE_CUSTOMER: 'user.updateCustomer',
   UPDATE_CUSTOMER_PROFILE: 'user.updateCustomerProfile',
 
@@ -17,6 +18,7 @@ export const USER_PATTERN = {
   GET_COMMUNES_BY_IDS: 'user.getCommunesByIds',
 
   GET_NOTIFICATIONS: 'user.getNotifications',
+  GET_UNREAD_NOTIFICATIONS: 'user.getUnreadNotifications',
   READ_NOTIFICATIONS: 'user.readNotifications',
 };
 

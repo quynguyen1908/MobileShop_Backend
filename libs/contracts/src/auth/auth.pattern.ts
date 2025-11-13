@@ -10,10 +10,12 @@ export const AUTH_PATTERN = {
   GET_ADMIN_USER_IDS: 'auth.getAdminUserIds',
   GET_CUSTOMER_USER_IDS: 'auth.getCustomerUserIds',
 
-  CREATE_USER: 'auth.createUser',
+  GET_USERS_BY_IDS: 'auth.getUsersByIds',
   GET_USER: 'auth.getUser',
   GET_USER_BY_EMAIL: 'auth.getUserByEmail',
   GET_PROFILE: 'auth.getProfile',
+  CREATE_USER: 'auth.createUser',
+  CREATE_ADMIN: 'auth.createAdmin',
   UPDATE_PROFILE: 'auth.updateProfile',
   UPDATE_USER: 'auth.updateUser',
   DELETE_USER: 'auth.deleteUser',

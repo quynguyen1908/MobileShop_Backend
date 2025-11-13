@@ -9,6 +9,7 @@ import {
   OAuth,
   OAuthCreateDto,
   GoogleResponseDto,
+  AdminCreateDto,
 } from '@app/contracts/auth';
 import {
   Requester,
@@ -37,9 +38,11 @@ export interface IAuthService {
   getAdminUserIds(): Promise<number[]>;
   getCustomerUserIds(): Promise<number[]>;
 
-  create(userCreateDto: UserCreateDto): Promise<number>;
+  getByIds(ids: number[]): Promise<User[]>;
   get(id: number): Promise<User>;
   profile(id: number): Promise<Omit<User, 'password'>>;
+  create(userCreateDto: UserCreateDto): Promise<number>;
+  createAdmin(adminCreateDto: AdminCreateDto): Promise<number>;
   update(id: number, data: UserUpdateDto): Promise<void>;
   delete(id: number): Promise<void>;
   list(filter: UserFilterDto, paging: PagingDto): Promise<Paginated<User>>;

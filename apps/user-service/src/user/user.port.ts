@@ -1,4 +1,4 @@
-import { Requester } from '@app/contracts';
+import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   Address,
   AddressCreateDto,
@@ -16,9 +16,10 @@ import {
 
 export interface IUserService {
   // Customer
-  createCustomer(data: CustomerCreateDto): Promise<number>;
+  listCustomers(paging: PagingDto): Promise<Paginated<CustomerDto>>;
   getCustomerByUserId(request: Requester): Promise<CustomerDto>;
   getCustomerById(id: number): Promise<Customer>;
+  createCustomer(data: CustomerCreateDto): Promise<number>;
   updateCustomer(id: number, data: CustomerUpdateDto): Promise<void>;
   updateCustomerProfile(
     request: Requester,
@@ -45,6 +46,7 @@ export interface IUserService {
 
   // Notification
   getNotifications(request: Requester): Promise<Notification[]>;
+  getUnreadNotifications(request: Requester): Promise<Notification[]>;
   readNotifications(
     request: Requester,
     notificationIds: number[],
@@ -73,6 +75,7 @@ export interface IUserCommandRepository {
 
 export interface IUserQueryRepository {
   // Customer
+  listCustomers(paging: PagingDto): Promise<Paginated<Customer>>
   findCustomerByUserId(userId: number): Promise<Customer | null>;
   findCustomerById(id: number): Promise<Customer | null>;
 
@@ -90,4 +93,5 @@ export interface IUserQueryRepository {
   // Notification
   findNotificationsByIds(ids: number[]): Promise<Notification[]>;
   findNotificationsByUserId(userId: number): Promise<Notification[]>;
+  findUnreadNotificationsByUserId(userId: number): Promise<Notification[]>;
 }

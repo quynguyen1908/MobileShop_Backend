@@ -1,7 +1,8 @@
 import { AUTH_SERVICE } from '@app/contracts';
 import type { ReqWithRequester, TokenResponse } from '@app/contracts';
-import { AUTH_PATTERN, AUTH_SERVICE_NAME } from '@app/contracts/auth';
+import { AUTH_PATTERN, AUTH_SERVICE_NAME, User } from '@app/contracts/auth';
 import type {
+  AdminCreateDto,
   GoogleResponseDto,
   LoginDto,
   RegisterDto,
@@ -12,13 +13,15 @@ import {
   Get,
   HttpStatus,
   Inject,
+  Param,
   Post,
+  Put,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ApiResponseDto } from '../dto/response.dto';
 import type { ServiceError, FallbackResponse } from '../dto/error.dto';
@@ -29,7 +32,7 @@ import * as AuthInterface from './auth.interface';
 import { CircuitBreakerService } from '../circuit-breaker/circuit-breaker.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
+import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 
 @ApiTags('Authentication')
 @Controller('v1/auth')
@@ -37,7 +40,6 @@ export class AuthController {
   constructor(
     @Inject(AUTH_SERVICE) private readonly authServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
-    private readonly configService: ConfigService,
   ) {}
 
   @Post('register')
@@ -104,7 +106,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
@@ -193,7 +195,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
@@ -279,7 +281,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
@@ -368,7 +370,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
@@ -483,7 +485,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
@@ -587,7 +589,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
@@ -626,6 +628,317 @@ export class AuthController {
     }
   }
 
+  @Get('user/me')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Get current admin user info (Admin only)' })
+  async getCurrentUser(@Req() req: ReqWithRequester, @Res() res: Response) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        Omit<User, 'password'> | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.GET_USER,
+        requester.sub,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Current user retrieved successfully',
+          result,
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Get current user failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('user')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Create a new admin user (Admin only)' })
+  @ApiBody({
+    description: 'New user data',
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string', example: 'newuser' },
+        password: { type: 'string', example: 'userPassword123' },
+        phone: { type: 'string', example: '0123456789' },
+        email: { type: 'string', example: 'newuser@example.com' },
+      },
+      required: ['username', 'password', 'phone', 'email'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 201,
+          message: 'User created successfully',
+          data: { userId: 2 },
+          errors: null,
+        },
+      },
+    },
+  })
+  async createUser(@Body() userData: AdminCreateDto, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.CREATE_ADMIN,
+        userData,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.CREATED,
+          'User created successfully',
+          { userId: result },
+        );
+
+        return res.status(HttpStatus.CREATED).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Create user failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Put('user/me')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Update current admin user profile (Admin only)' })
+  @ApiBody({
+    description: 'User profile data to update',
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string', example: 'updatedUsername' },
+      },
+      required: ['username'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'User profile updated successfully',
+          data: { success: true },
+          errors: null,
+        },
+      },
+    },
+  })
+  async updateProfile(@Req() req: ReqWithRequester, @Body() data: { username: string }, @Res() res: Response) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        void | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.UPDATE_PROFILE,
+        { id: requester.sub, data },
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User profile updated successfully',
+          { success: true },
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Update profile failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('status/:userId')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Update user status (Admin only)' })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID of the user to update status',
+    type: 'number',
+    example: 1,
+  })
+  @ApiBody({
+    description: 'User status data',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'active' },
+      },
+      required: ['status'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User status updated successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'User status updated successfully',
+          data: { success: true },
+          errors: null,
+        },
+      },
+    },
+  })
+  async updateStatus(@Param('userId') id: number, @Body() data: { status: string }, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        void | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.UPDATE_USER,
+        { id, data },
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Auth Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User status updated successfully',
+          result,
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+      const errorMessage = typedError.logMessage || 'Update status failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('test')
   async test(@Res() res: Response) {
     try {
@@ -644,7 +957,7 @@ export class AuthController {
             message: 'Auth service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 5000 },
+        { timeout: 10000 },
       );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));

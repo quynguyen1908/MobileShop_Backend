@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IUserService, IUserRepository } from './user.port';
-import type { IEventPublisher, Requester } from '@app/contracts';
+import type { IEventPublisher, Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   USER_REPOSITORY,
   EVENT_PUBLISHER,
@@ -39,20 +39,63 @@ export class UserService implements IUserService {
 
   // Customer
 
-  async createCustomer(customerCreateDto: CustomerCreateDto): Promise<number> {
-    const data = customerSchema.parse(customerCreateDto);
+  async listCustomers(paging: PagingDto): Promise<Paginated<CustomerDto>> {
+    const paginatedCustomers = await this.userRepository.listCustomers(paging);
 
-    const customer: Customer = {
-      userId: data.userId,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      dateOfBirth: data.dateOfBirth,
-      pointsBalance: 0,
-      isDeleted: false,
+    if (!paginatedCustomers.data || paginatedCustomers.data.length === 0) {
+      return {
+        data: [],
+        paging: paginatedCustomers.paging,
+        total: paginatedCustomers.total,
+      };
+    }
+
+    const users = await firstValueFrom<User[]>(
+      this.authServiceClient.send(
+        AUTH_PATTERN.GET_USERS_BY_IDS,
+        paginatedCustomers.data.map((c) => c.userId),
+      ),
+    );
+
+    const customerDtos: CustomerDto[] = paginatedCustomers.data.map((customer) => {
+      const user = users.find((u) => u.id === customer.userId);
+
+      if (!user) {
+        throw new RpcException(
+          AppError.from(new Error('User not found'))
+            .withLog('User not found for customer id ' + customer.id)
+            .toJson(false),
+        );
+      }
+
+      const customerDto: CustomerDto = {
+        id: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        gender: customer.gender,
+        dateOfBirth: customer.dateOfBirth,
+        pointsBalance: customer.pointsBalance,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone,
+          status: user.status,
+          lastChangePass: user.lastChangePass,
+        },
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+        isDeleted: customer.isDeleted,
+      };
+
+      return customerDto;
+    });
+
+    return {
+      data: customerDtos,
+      paging: paginatedCustomers.paging,
+      total: paginatedCustomers.total,
     };
-
-    const createdCustomer = await this.userRepository.insertCustomer(customer);
-    return createdCustomer.id!;
   }
 
   async getCustomerById(id: number): Promise<Customer> {
@@ -81,6 +124,22 @@ export class UserService implements IUserService {
     }
 
     return this.toCustomerDto(customer);
+  }
+
+  async createCustomer(customerCreateDto: CustomerCreateDto): Promise<number> {
+    const data = customerSchema.parse(customerCreateDto);
+
+    const customer: Customer = {
+      userId: data.userId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      dateOfBirth: data.dateOfBirth,
+      pointsBalance: 0,
+      isDeleted: false,
+    };
+
+    const createdCustomer = await this.userRepository.insertCustomer(customer);
+    return createdCustomer.id!;
   }
 
   async updateCustomer(id: number, data: CustomerUpdateDto): Promise<void> {
@@ -331,25 +390,41 @@ export class UserService implements IUserService {
     return this.userRepository.findNotificationsByUserId(request.sub);
   }
 
+  async getUnreadNotifications(request: Requester): Promise<Notification[]> {
+    return this.userRepository.findUnreadNotificationsByUserId(request.sub);
+  }
+
   async createNotifications(data: Notification[]): Promise<void> {
     await this.userRepository.insertNotifications(data);
   }
 
   async readNotifications(request: Requester, notificationIds: number[]): Promise<void> {
     const notifications = await this.userRepository.findNotificationsByIds(notificationIds);
-    if (!notifications || notifications.length === 0 || notifications.some(n => n.isDeleted)) {
+    if (!notifications || notifications.length === 0) {
       throw new RpcException(
         AppError.from(new Error('Notification not found'))
           .withLog('Notification not found')
           .toJson(false),
       );
     }
-    
+
+    const unauthorized = notifications.filter((n) => n.userId !== request.sub);
+    if (unauthorized.length > 0) {
+      throw new RpcException(
+        AppError.from(new Error('Forbidden'))
+          .withLog(
+            'User not authorized to read notifications: ' +
+              unauthorized.map((n) => n.id).join(', '),
+          )
+          .toJson(false),
+      );
+    }
+
     const data: NotificationUpdateDto = {
       isRead: true,
       readAt: new Date(),
       updatedAt: new Date(),
-    }
+    };
     await this.userRepository.updateNotifications(notificationIds, data);
   }
 
