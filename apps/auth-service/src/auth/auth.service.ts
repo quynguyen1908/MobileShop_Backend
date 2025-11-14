@@ -491,7 +491,7 @@ export class AuthService implements IAuthService {
 
     const user: User = {
       username: adminCreateDto.username,
-      password: adminCreateDto.password,
+      password: await this.hashPassword(adminCreateDto.password),
       phone: adminCreateDto.phone,
       email: adminCreateDto.email,
       roleId: adminRole.id!,
