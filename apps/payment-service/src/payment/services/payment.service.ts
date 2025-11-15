@@ -118,7 +118,7 @@ export class PaymentService implements IPaymentService {
     const payments = await this.paymentRepository.findPaymentsByOrderId(orderId);
     
     for (const payment of payments) {
-      if (payment.status === 'completed') {
+      if ((payment.status as PaymentStatus) === PaymentStatus.COMPLETED) {
         throw new RpcException(
           AppError.from(new Error('Payment already completed'))
             .withLog('Attempted to create COD payment for an order that is already paid')
@@ -127,9 +127,10 @@ export class PaymentService implements IPaymentService {
       }
     }
 
-    const paymentMethods = await this.paymentRepository.findAllPaymentMethods();
+    const paymentMethods =
+      await this.paymentRepository.findAllPaymentMethods();
     const codMethod = paymentMethods.find(
-      (method) => method.code === PayMethod.COD,
+      (method) => method.code === PayMethod.COD.toString(),
     );
 
     const transactionId = `${order.orderCode}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -139,9 +140,7 @@ export class PaymentService implements IPaymentService {
       transactionId: transactionId,
       status: PaymentStatus.PENDING,
       amount: order.finalAmount,
-      paymentMethodId: codMethod?.id ?? 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      paymentMethodId: codMethod?.id ?? 2,
       isDeleted: false,
     };
 

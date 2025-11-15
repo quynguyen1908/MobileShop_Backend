@@ -120,10 +120,12 @@ export class OrderRepository implements IOrderRepository {
   async findAllOrders(): Promise<Order[]> {
     const prismaService = this.prisma as unknown as {
       order: {
-        findMany: (param: {}) => Promise<PrismaOrder[]>;
+        findMany: (param: any) => Promise<PrismaOrder[]>;
       };
     };
-    const orders = await prismaService.order.findMany({});
+    const orders = await prismaService.order.findMany({
+      where: { isDeleted: false },
+    });
     return orders.map((order) => this._toOrderModel(order));
   }
 
