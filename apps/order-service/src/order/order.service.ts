@@ -1397,7 +1397,7 @@ export class OrderService implements IOrderService {
     };
   }
 
-  private async calculateRevenueByPeriod(orders: Order[]): Promise<RevenueByPeriodDto> {
+  private calculateRevenueByPeriod(orders: Order[]): RevenueByPeriodDto {
     const now = new Date();
 
     // Last 7 days (daily)

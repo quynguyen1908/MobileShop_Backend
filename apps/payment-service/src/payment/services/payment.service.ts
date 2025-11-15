@@ -118,7 +118,7 @@ export class PaymentService implements IPaymentService {
     const payments = await this.paymentRepository.findPaymentsByOrderId(orderId);
     
     for (const payment of payments) {
-      if (payment.status === PaymentStatus.COMPLETED) {
+      if (payment.status === PaymentStatus.COMPLETED.toString()) {
         throw new RpcException(
           AppError.from(new Error('Payment already completed'))
             .withLog('Attempted to create COD payment for an order that is already paid')
