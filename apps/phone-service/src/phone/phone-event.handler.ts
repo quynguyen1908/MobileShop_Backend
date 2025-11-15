@@ -1,5 +1,13 @@
-import { EVENT_PUBLISHER, EVENT_SUBSCRIBER, PHONE_SERVICE } from '@app/contracts';
-import type { EventJson, IEventPublisher, IEventSubscriber } from '@app/contracts';
+import {
+  EVENT_PUBLISHER,
+  EVENT_SUBSCRIBER,
+  PHONE_SERVICE,
+} from '@app/contracts';
+import type {
+  EventJson,
+  IEventPublisher,
+  IEventSubscriber,
+} from '@app/contracts';
 import {
   EVT_ORDER_CREATED,
   EVT_ORDER_UPDATED,
@@ -108,7 +116,7 @@ export class PhoneEventHandler {
             this.logger.warn(
               `Inventory low for variant ID: ${variantId}, color ID: ${colorId}, stock left: ${newStock}. Emitting InventoryLowEvent.`,
             );
-          } 
+          }
         } else {
           this.logger.warn(
             `No inventory found for variant ID: ${variantId} and color ID: ${colorId}`,

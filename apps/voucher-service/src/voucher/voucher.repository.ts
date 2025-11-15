@@ -265,7 +265,9 @@ export class VoucherRepository implements IVoucherRepository {
     return vouchers.map((v) => this._toVoucherModel(v));
   }
 
-  async insertVoucherCategories(voucherCategories: VoucherCategory[]): Promise<void> {
+  async insertVoucherCategories(
+    voucherCategories: VoucherCategory[],
+  ): Promise<void> {
     const prismaService = this.prisma as unknown as {
       voucherCategory: {
         createMany: (param: { data: any[] }) => Promise<void>;
@@ -297,7 +299,9 @@ export class VoucherRepository implements IVoucherRepository {
     return paymentMethods.map((pm) => this._toVoucherPaymentMethodModel(pm));
   }
 
-  async insertVoucherPaymentMethods(voucherPaymentMethods: VoucherPaymentMethod[]): Promise<void> {
+  async insertVoucherPaymentMethods(
+    voucherPaymentMethods: VoucherPaymentMethod[],
+  ): Promise<void> {
     const prismaService = this.prisma as unknown as {
       voucherPaymentMethod: {
         createMany: (param: { data: any[] }) => Promise<void>;

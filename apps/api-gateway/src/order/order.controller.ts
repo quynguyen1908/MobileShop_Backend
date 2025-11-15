@@ -29,6 +29,7 @@ import { RemoteAuthGuard } from '@app/contracts/auth';
 import type { Response } from 'express';
 import {
   CartDto,
+  DashboardStatsDto,
   Order,
   ORDER_PATTERN,
   ORDER_SERVICE_NAME,
@@ -121,7 +122,8 @@ export class OrderController {
                       color: 'Tím',
                       colorId: 7,
                       name: 'OPPO Reno13',
-                      imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                      imageUrl:
+                        'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
                     },
                   },
                 ],
@@ -168,13 +170,13 @@ export class OrderController {
                     payDate: '2025-11-05T10:54:46.000Z',
                     createdAt: '2025-11-05T03:55:42.337Z',
                     updatedAt: '2025-11-05T03:55:42.337Z',
-                    isDeleted: false
-                  }
+                    isDeleted: false,
+                  },
                 ],
                 createdAt: '2025-10-04T07:32:50.835Z',
                 updatedAt: '2025-10-04T07:34:19.625Z',
                 isDeleted: false,
-              }
+              },
             ],
             paging: {
               page: 1,
@@ -385,7 +387,9 @@ export class OrderController {
 
   @Get('me/list')
   @UseGuards(RemoteAuthGuard)
-  @ApiOperation({ summary: "List customer's orders with pagination (requires authentication)" })
+  @ApiOperation({
+    summary: "List customer's orders with pagination (requires authentication)",
+  })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -454,7 +458,8 @@ export class OrderController {
                       color: 'Tím',
                       colorId: 7,
                       name: 'OPPO Reno13',
-                      imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                      imageUrl:
+                        'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
                     },
                   },
                 ],
@@ -501,13 +506,13 @@ export class OrderController {
                     payDate: '2025-11-05T10:54:46.000Z',
                     createdAt: '2025-11-05T03:55:42.337Z',
                     updatedAt: '2025-11-05T03:55:42.337Z',
-                    isDeleted: false
-                  }
+                    isDeleted: false,
+                  },
                 ],
                 createdAt: '2025-10-04T07:32:50.835Z',
                 updatedAt: '2025-10-04T07:34:19.625Z',
                 isDeleted: false,
-              }
+              },
             ],
             paging: {
               page: 1,
@@ -520,7 +525,11 @@ export class OrderController {
       },
     },
   })
-  async listMyOrders(@Req() req: ReqWithRequester, @Query() pagingDto: PagingDto, @Res() res: Response) {
+  async listMyOrders(
+    @Req() req: ReqWithRequester,
+    @Query() pagingDto: PagingDto,
+    @Res() res: Response,
+  ) {
     try {
       const paging = pagingDtoSchema.parse(pagingDto);
       const requester = req.requester;
@@ -561,7 +570,8 @@ export class OrderController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage = typedError.logMessage || 'Listing customer orders failed';
+      const errorMessage =
+        typedError.logMessage || 'Listing customer orders failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -727,7 +737,8 @@ export class OrderController {
                   color: 'Tím',
                   colorId: 7,
                   name: 'OPPO Reno13',
-                  imageUrl: 'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                  imageUrl:
+                    'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
                 },
               },
             ],
@@ -774,8 +785,8 @@ export class OrderController {
                 payDate: '2025-11-05T10:54:46.000Z',
                 createdAt: '2025-11-05T03:55:42.337Z',
                 updatedAt: '2025-11-05T03:55:42.337Z',
-                isDeleted: false
-              }
+                isDeleted: false,
+              },
             ],
             createdAt: '2025-10-04T07:32:50.835Z',
             updatedAt: '2025-10-04T07:34:19.625Z',
@@ -785,7 +796,10 @@ export class OrderController {
       },
     },
   })
-  async getOrderDetails(@Param('orderId') orderId: number, @Res() res: Response) {
+  async getOrderDetails(
+    @Param('orderId') orderId: number,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.circuitBreakerService.sendRequest<
         OrderDto | FallbackResponse
@@ -810,7 +824,9 @@ export class OrderController {
           HttpStatus.SERVICE_UNAVAILABLE,
           result.message,
         );
-        return res.status(HttpStatus.SERVICE_UNAVAILABLE).json(fallbackResponse);
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
       } else {
         const response = new ApiResponseDto(
           HttpStatus.OK,
@@ -822,7 +838,8 @@ export class OrderController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage = typedError.logMessage || 'Getting order details failed';
+      const errorMessage =
+        typedError.logMessage || 'Getting order details failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -1275,6 +1292,7 @@ export class CartController {
                   colorId: 3,
                   name: 'Xiaomi 14T',
                   imageUrl: 'https://example.com/xiaomi-14t.jpg',
+                  stockQuantity: 100,
                 },
               },
             ],
@@ -1583,6 +1601,431 @@ export class CartController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Deleting cart items failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Dashboard Analytics')
+@Controller('v1/dashboard')
+export class DashboardController {
+  constructor(
+    @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get()
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Get dashboard analytics (requires admin role)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard analytics retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Dashboard analytics retrieved successfully',
+          data: {
+            totalProducts: 8,
+            totalCustomers: 1,
+            totalOrders: 6,
+            thisMonthOrders: 5,
+            totalRevenue: 43234000,
+            thisMonthRevenue: 0,
+            revenueByPeriod: {
+              last7Days: {
+                total: 0,
+                data: [
+                  {
+                    label: '09/11',
+                    value: 0,
+                    date: '2025-11-09',
+                  },
+                  {
+                    label: '10/11',
+                    value: 0,
+                    date: '2025-11-10',
+                  },
+                  {
+                    label: '11/11',
+                    value: 0,
+                    date: '2025-11-11',
+                  },
+                  {
+                    label: '12/11',
+                    value: 0,
+                    date: '2025-11-12',
+                  },
+                  {
+                    label: '13/11',
+                    value: 0,
+                    date: '2025-11-13',
+                  },
+                  {
+                    label: '14/11',
+                    value: 0,
+                    date: '2025-11-14',
+                  },
+                  {
+                    label: '15/11',
+                    value: 0,
+                    date: '2025-11-15',
+                  },
+                ],
+                period: 'daily',
+              },
+              last30Days: {
+                total: 43234000,
+                data: [
+                  {
+                    label: '17/10',
+                    value: 0,
+                    date: '2025-10-17',
+                  },
+                  {
+                    label: '18/10',
+                    value: 0,
+                    date: '2025-10-18',
+                  },
+                  {
+                    label: '19/10',
+                    value: 0,
+                    date: '2025-10-19',
+                  },
+                  {
+                    label: '20/10',
+                    value: 0,
+                    date: '2025-10-20',
+                  },
+                  {
+                    label: '21/10',
+                    value: 0,
+                    date: '2025-10-21',
+                  },
+                  {
+                    label: '22/10',
+                    value: 0,
+                    date: '2025-10-22',
+                  },
+                  {
+                    label: '23/10',
+                    value: 0,
+                    date: '2025-10-23',
+                  },
+                  {
+                    label: '24/10',
+                    value: 0,
+                    date: '2025-10-24',
+                  },
+                  {
+                    label: '25/10',
+                    value: 0,
+                    date: '2025-10-25',
+                  },
+                  {
+                    label: '26/10',
+                    value: 0,
+                    date: '2025-10-26',
+                  },
+                  {
+                    label: '27/10',
+                    value: 0,
+                    date: '2025-10-27',
+                  },
+                  {
+                    label: '28/10',
+                    value: 0,
+                    date: '2025-10-28',
+                  },
+                  {
+                    label: '29/10',
+                    value: 0,
+                    date: '2025-10-29',
+                  },
+                  {
+                    label: '30/10',
+                    value: 43234000,
+                    date: '2025-10-30',
+                  },
+                  {
+                    label: '31/10',
+                    value: 0,
+                    date: '2025-10-31',
+                  },
+                  {
+                    label: '01/11',
+                    value: 0,
+                    date: '2025-11-01',
+                  },
+                  {
+                    label: '02/11',
+                    value: 0,
+                    date: '2025-11-02',
+                  },
+                  {
+                    label: '03/11',
+                    value: 0,
+                    date: '2025-11-03',
+                  },
+                  {
+                    label: '04/11',
+                    value: 0,
+                    date: '2025-11-04',
+                  },
+                  {
+                    label: '05/11',
+                    value: 0,
+                    date: '2025-11-05',
+                  },
+                  {
+                    label: '06/11',
+                    value: 0,
+                    date: '2025-11-06',
+                  },
+                  {
+                    label: '07/11',
+                    value: 0,
+                    date: '2025-11-07',
+                  },
+                  {
+                    label: '08/11',
+                    value: 0,
+                    date: '2025-11-08',
+                  },
+                  {
+                    label: '09/11',
+                    value: 0,
+                    date: '2025-11-09',
+                  },
+                  {
+                    label: '10/11',
+                    value: 0,
+                    date: '2025-11-10',
+                  },
+                  {
+                    label: '11/11',
+                    value: 0,
+                    date: '2025-11-11',
+                  },
+                  {
+                    label: '12/11',
+                    value: 0,
+                    date: '2025-11-12',
+                  },
+                  {
+                    label: '13/11',
+                    value: 0,
+                    date: '2025-11-13',
+                  },
+                  {
+                    label: '14/11',
+                    value: 0,
+                    date: '2025-11-14',
+                  },
+                  {
+                    label: '15/11',
+                    value: 0,
+                    date: '2025-11-15',
+                  },
+                ],
+                period: 'daily',
+              },
+              last3Months: {
+                total: 43234000,
+                data: [
+                  {
+                    label: '09/25',
+                    value: 0,
+                    date: '2025-08-31',
+                  },
+                  {
+                    label: '10/25',
+                    value: 43234000,
+                    date: '2025-09-30',
+                  },
+                  {
+                    label: '11/25',
+                    value: 0,
+                    date: '2025-10-31',
+                  },
+                ],
+                period: 'monthly',
+              },
+              last6Months: {
+                total: 43234000,
+                data: [
+                  {
+                    label: '06/25',
+                    value: 0,
+                    date: '2025-05-31',
+                  },
+                  {
+                    label: '07/25',
+                    value: 0,
+                    date: '2025-06-30',
+                  },
+                  {
+                    label: '08/25',
+                    value: 0,
+                    date: '2025-07-31',
+                  },
+                  {
+                    label: '09/25',
+                    value: 0,
+                    date: '2025-08-31',
+                  },
+                  {
+                    label: '10/25',
+                    value: 43234000,
+                    date: '2025-09-30',
+                  },
+                  {
+                    label: '11/25',
+                    value: 0,
+                    date: '2025-10-31',
+                  },
+                ],
+                period: 'monthly',
+              },
+              lastYear: {
+                total: 43234000,
+                data: [
+                  {
+                    label: '12/24',
+                    value: 0,
+                    date: '2024-11-30',
+                  },
+                  {
+                    label: '01/25',
+                    value: 0,
+                    date: '2024-12-31',
+                  },
+                  {
+                    label: '02/25',
+                    value: 0,
+                    date: '2025-01-31',
+                  },
+                  {
+                    label: '03/25',
+                    value: 0,
+                    date: '2025-02-28',
+                  },
+                  {
+                    label: '04/25',
+                    value: 0,
+                    date: '2025-03-31',
+                  },
+                  {
+                    label: '05/25',
+                    value: 0,
+                    date: '2025-04-30',
+                  },
+                  {
+                    label: '06/25',
+                    value: 0,
+                    date: '2025-05-31',
+                  },
+                  {
+                    label: '07/25',
+                    value: 0,
+                    date: '2025-06-30',
+                  },
+                  {
+                    label: '08/25',
+                    value: 0,
+                    date: '2025-07-31',
+                  },
+                  {
+                    label: '09/25',
+                    value: 0,
+                    date: '2025-08-31',
+                  },
+                  {
+                    label: '10/25',
+                    value: 43234000,
+                    date: '2025-09-30',
+                  },
+                  {
+                    label: '11/25',
+                    value: 0,
+                    date: '2025-10-31',
+                  },
+                ],
+                period: 'monthly',
+              },
+            },
+            paymentMethods: {
+              VNPAY: 2,
+              COD: 2,
+              NONE: 2,
+            },
+            orderStatuses: {
+              paid: 1,
+              pending: 4,
+              delivered: 1,
+            },
+            top10BestSellingProducts: [
+              {
+                variantName: 'iPhone 16 Pro Max 1TB - Titan Sa Mạc',
+                totalSoldQuantity: 1,
+                revenue: 43200000,
+              },
+            ],
+          },
+          errors: null,
+        },
+      },
+    },
+  })
+  async getDashboardAnalytics(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        DashboardStatsDto | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.GET_DASHBOARD_STATS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Order service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Dashboard analytics retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting dashboard analytics failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

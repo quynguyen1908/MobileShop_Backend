@@ -45,4 +45,16 @@ export class PaymentController {
   getAllPaymentMethods(): Promise<PaymentMethod[]> {
     return this.paymentService.getAllPaymentMethods();
   }
+
+  @MessagePattern(PAYMENT_PATTERN.CREATE_COD_PAYMENT)
+  createCODPayment(
+    @Payload()
+    payload: {
+      requester: Requester;
+      orderId: number;
+    },
+  ): Promise<number> {
+    const { requester, orderId } = payload;
+    return this.paymentService.createCODPayment(requester, orderId);
+  }
 }

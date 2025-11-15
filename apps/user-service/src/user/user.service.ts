@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IUserService, IUserRepository } from './user.port';
-import type { IEventPublisher, Paginated, PagingDto, Requester } from '@app/contracts';
+import type {
+  IEventPublisher,
+  Paginated,
+  PagingDto,
+  Requester,
+} from '@app/contracts';
 import {
   USER_REPOSITORY,
   EVENT_PUBLISHER,
@@ -57,39 +62,41 @@ export class UserService implements IUserService {
       ),
     );
 
-    const customerDtos: CustomerDto[] = paginatedCustomers.data.map((customer) => {
-      const user = users.find((u) => u.id === customer.userId);
+    const customerDtos: CustomerDto[] = paginatedCustomers.data.map(
+      (customer) => {
+        const user = users.find((u) => u.id === customer.userId);
 
-      if (!user) {
-        throw new RpcException(
-          AppError.from(new Error('User not found'))
-            .withLog('User not found for customer id ' + customer.id)
-            .toJson(false),
-        );
-      }
+        if (!user) {
+          throw new RpcException(
+            AppError.from(new Error('User not found'))
+              .withLog('User not found for customer id ' + customer.id)
+              .toJson(false),
+          );
+        }
 
-      const customerDto: CustomerDto = {
-        id: customer.id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        gender: customer.gender,
-        dateOfBirth: customer.dateOfBirth,
-        pointsBalance: customer.pointsBalance,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          phone: user.phone,
-          status: user.status,
-          lastChangePass: user.lastChangePass,
-        },
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-        isDeleted: customer.isDeleted,
-      };
+        const customerDto: CustomerDto = {
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          gender: customer.gender,
+          dateOfBirth: customer.dateOfBirth,
+          pointsBalance: customer.pointsBalance,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
+            status: user.status,
+            lastChangePass: user.lastChangePass,
+          },
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+          isDeleted: customer.isDeleted,
+        };
 
-      return customerDto;
-    });
+        return customerDto;
+      },
+    );
 
     return {
       data: customerDtos,
@@ -398,8 +405,12 @@ export class UserService implements IUserService {
     await this.userRepository.insertNotifications(data);
   }
 
-  async readNotifications(request: Requester, notificationIds: number[]): Promise<void> {
-    const notifications = await this.userRepository.findNotificationsByIds(notificationIds);
+  async readNotifications(
+    request: Requester,
+    notificationIds: number[],
+  ): Promise<void> {
+    const notifications =
+      await this.userRepository.findNotificationsByIds(notificationIds);
     if (!notifications || notifications.length === 0) {
       throw new RpcException(
         AppError.from(new Error('Notification not found'))

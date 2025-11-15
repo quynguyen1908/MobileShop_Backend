@@ -41,9 +41,7 @@ export interface IVoucherCommandRepository {
   insertVoucherUsage(voucherUsage: VoucherUsage): Promise<VoucherUsage>;
 
   // Voucher Category
-  insertVoucherCategories(
-    voucherCategories: VoucherCategory[],
-  ): Promise<void>;
+  insertVoucherCategories(voucherCategories: VoucherCategory[]): Promise<void>;
 
   // Voucher Payment Method
   insertVoucherPaymentMethods(

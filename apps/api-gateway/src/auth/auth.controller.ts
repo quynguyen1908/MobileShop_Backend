@@ -21,7 +21,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ApiResponseDto } from '../dto/response.dto';
 import type { ServiceError, FallbackResponse } from '../dto/error.dto';
@@ -798,24 +804,27 @@ export class AuthController {
       },
     },
   })
-  async updateProfile(@Req() req: ReqWithRequester, @Body() data: { username: string }, @Res() res: Response) {
+  async updateProfile(
+    @Req() req: ReqWithRequester,
+    @Body() data: { username: string },
+    @Res() res: Response,
+  ) {
     try {
       const requester = req.requester;
-      const result = await this.circuitBreakerService.sendRequest<
-        void | FallbackResponse
-      >(
-        this.authServiceClient,
-        AUTH_SERVICE_NAME,
-        AUTH_PATTERN.UPDATE_PROFILE,
-        { id: requester.sub, data },
-        () => {
-          return {
-            fallback: true,
-            message: 'Auth service is temporarily unavailable',
-          } as FallbackResponse;
-        },
-        { timeout: 10000 },
-      );
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.authServiceClient,
+          AUTH_SERVICE_NAME,
+          AUTH_PATTERN.UPDATE_PROFILE,
+          { id: requester.sub, data },
+          () => {
+            return {
+              fallback: true,
+              message: 'Auth service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
 
@@ -886,23 +895,26 @@ export class AuthController {
       },
     },
   })
-  async updateStatus(@Param('userId') id: number, @Body() data: { status: string }, @Res() res: Response) {
+  async updateStatus(
+    @Param('userId') id: number,
+    @Body() data: { status: string },
+    @Res() res: Response,
+  ) {
     try {
-      const result = await this.circuitBreakerService.sendRequest<
-        void | FallbackResponse
-      >(
-        this.authServiceClient,
-        AUTH_SERVICE_NAME,
-        AUTH_PATTERN.UPDATE_USER,
-        { id, data },
-        () => {
-          return {
-            fallback: true,
-            message: 'Auth service is temporarily unavailable',
-          } as FallbackResponse;
-        },
-        { timeout: 10000 },
-      );
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.authServiceClient,
+          AUTH_SERVICE_NAME,
+          AUTH_PATTERN.UPDATE_USER,
+          { id, data },
+          () => {
+            return {
+              fallback: true,
+              message: 'Auth service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
 
       console.log('Auth Service response:', JSON.stringify(result, null, 2));
 

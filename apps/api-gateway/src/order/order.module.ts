@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   CartController,
+  DashboardController,
   OrderController,
   ShipmentController,
 } from './order.controller';
@@ -12,7 +13,7 @@ import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-fa
 
 @Module({
   imports: [RabbitMQModule.register(), CircuitBreakerModule],
-  controllers: [OrderController, ShipmentController, CartController],
+  controllers: [OrderController, ShipmentController, CartController, DashboardController],
   providers: [
     {
       provide: ORDER_SERVICE,

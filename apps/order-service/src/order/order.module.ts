@@ -4,6 +4,7 @@ import { OrderService } from './order.service';
 import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
 import { OrderRepository } from './order.repository';
 import {
+  AUTH_SERVICE,
   ORDER_REPOSITORY,
   ORDER_SERVICE,
   PAYMENT_SERVICE,
@@ -62,6 +63,14 @@ import { OrderEventHandler } from './order-event.handler';
       provide: VOUCHER_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
         const serverOptions = rmqConfigService.voucherServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: AUTH_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.authServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
       inject: [RabbitMQService],

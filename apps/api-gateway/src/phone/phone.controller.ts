@@ -28,6 +28,7 @@ import type {
   CategoryCreateDto,
   CategoryUpdateDto,
   Color,
+  InventoryCreateDto,
   PhoneCreateDto,
   PhoneFilterDto,
   PhoneUpdateDto,
@@ -518,6 +519,138 @@ export class PhoneController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Deleting phone failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('variants')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Get all phone variants (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone variants retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Phone variants retrieved successfully',
+          data: {
+            id: 1,
+            variantName: 'Ultra 1TB',
+            description: 'Latest model with advanced features',
+            phone: {
+              id: 1,
+              name: 'Samsung Galaxy S25',
+              brand: {
+                id: 1,
+                name: 'Samsung',
+                image: {
+                  id: 1,
+                  imageUrl: 'https://example.com/brands/samsung.png',
+                },
+              },
+              category: { id: 9, name: 'Galaxy S25 Series', parentId: 5 },
+            },
+            colors: [
+              {
+                variantId: 1,
+                imageId: 1,
+                color: {
+                  id: 1,
+                  name: 'Đen',
+                },
+              },
+            ],
+            price: {
+              id: 1,
+              variantId: 1,
+              price: 44000000,
+              startDate: '2024-10-01T00:00:00.000Z',
+              endDate: null,
+            },
+            discount: {
+              id: 1,
+              variantId: 1,
+              discountPercent: 20,
+              startDate: '2024-10-01T00:00:00.000Z',
+              endDate: null,
+            },
+            images: [
+              {
+                id: 1,
+                variantId: 1,
+                image: {
+                  id: 1,
+                  imageUrl: 'https://example.com/samsung-galaxy-s25.jpg',
+                },
+              },
+            ],
+            specifications: [
+              {
+                info: '6.9 inches',
+                specification: { name: 'Kích thước màn hình' },
+              },
+              {
+                info: 'Dynamic AMOLED 2X',
+                specification: { name: 'Công nghệ màn hình' },
+              },
+            ],
+            reviews: [],
+            averageRating: 0,
+          },
+        },
+      },
+    },
+  })
+  async getAllVariants(@Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        PhoneVariantDto[] | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_ALL_VARIANTS,
+        {},
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Phone variants retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting phone variants failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -1836,7 +1969,7 @@ export class PhoneController {
           result,
         );
         return res.status(HttpStatus.OK).json(response);
-      } 
+      }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
@@ -2616,6 +2749,91 @@ export class InventoryController {
       return res.status(statusCode).json(errorResponse);
     }
   }
+
+  @Post('upsert')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Upsert inventory information (Admin only)' })
+  @ApiBody({
+    description: 'Inventory upsert payload',
+    schema: {
+      type: 'object',
+      properties: {
+        variantId: { type: 'number', example: 1 },
+        colorId: { type: 'number', example: 1 },
+        sku: { type: 'string', example: 'IP14PM-1TB-BLK' },
+        stockQuantity: { type: 'number', example: 100 },
+      },
+      required: ['variantId', 'colorId', 'sku', 'stockQuantity'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory upserted successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Inventory upserted successfully',
+          data: { inventoryId: 1 },
+        },
+      },
+    },
+  })
+  async upsertInventory(
+    @Body() inventoryCreateDto: InventoryCreateDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        number | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.ADD_INVENTORY,
+        inventoryCreateDto,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Inventory upserted successfully',
+          { inventoryId: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Upserting inventory failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
 }
 
 @ApiTags('Reviews')
@@ -2636,7 +2854,10 @@ export class ReviewController {
       properties: {
         variantId: { type: 'number', example: 1 },
         rating: { type: 'number', example: 5 },
-        comment: { type: 'string', example: 'Great phone with excellent features!' },
+        comment: {
+          type: 'string',
+          example: 'Great phone with excellent features!',
+        },
       },
       required: ['variantId', 'rating'],
     },
@@ -2673,8 +2894,8 @@ export class ReviewController {
             fallback: true,
             message: 'Phone service is temporarily unavailable',
           } as FallbackResponse;
-        }
-        , { timeout: 10000 },
+        },
+        { timeout: 10000 },
       );
 
       console.log('Phone Service response:', JSON.stringify(result, null, 2));

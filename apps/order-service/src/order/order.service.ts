@@ -1,5 +1,6 @@
 import {
   AppError,
+  AUTH_SERVICE,
   EVENT_PUBLISHER,
   GHNOrderResponse,
   ORDER_REPOSITORY,
@@ -24,10 +25,12 @@ import {
 } from '@nestjs/common';
 import type { IOrderRepository, IOrderService } from './order.port';
 import {
+  BestSellingProductDto,
   CartDto,
   CartItem,
   CartItemCreateDto,
   CartItemDto,
+  DashboardStatsDto,
   ErrCartNotFound,
   ErrLocationNotFound,
   ErrOrderNotFound,
@@ -44,6 +47,8 @@ import {
   PointHistoryDto,
   PointTransaction,
   PointType,
+  RevenueByPeriodDto,
+  RevenuePointDto,
   Shipment,
   ShipmentStatus,
 } from '@app/contracts/order';
@@ -88,6 +93,7 @@ import {
   VOUCHER_PATTERN,
   VoucherDto,
 } from '@app/contracts/voucher';
+import { AUTH_PATTERN } from '@app/contracts/auth';
 
 interface LocationResult {
   wardCode: string;
@@ -106,6 +112,7 @@ export class OrderService implements IOrderService {
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: IOrderRepository,
+    @Inject(AUTH_SERVICE) private readonly authServiceClient: ClientProxy,
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
@@ -195,7 +202,10 @@ export class OrderService implements IOrderService {
     };
   }
 
-  async listCustomerOrders(requester: Requester, paging: PagingDto): Promise<Paginated<OrderDto>> {
+  async listCustomerOrders(
+    requester: Requester,
+    paging: PagingDto,
+  ): Promise<Paginated<OrderDto>> {
     const customer = await this.validateRequester(requester);
 
     const paginatedOrders = await this.orderRepository.listOrdersByCustomerId(
@@ -978,8 +988,12 @@ export class OrderService implements IOrderService {
     await this.eventPublisher.publish(event);
   }
 
-  async hasCustomerOrderedVariant(customerId: number, variantId: number): Promise<number> {
-    const orders = await this.orderRepository.findOrdersByCustomerId(customerId);
+  async hasCustomerOrderedVariant(
+    customerId: number,
+    variantId: number,
+  ): Promise<number> {
+    const orders =
+      await this.orderRepository.findOrdersByCustomerId(customerId);
     if (!orders || orders.length === 0) {
       return 0;
     }
@@ -988,7 +1002,8 @@ export class OrderService implements IOrderService {
       .map((order) => order.id)
       .filter((id): id is number => typeof id === 'number');
 
-    const orderItems = await this.orderRepository.findOrderItemsByOrderIds(orderIds);
+    const orderItems =
+      await this.orderRepository.findOrderItemsByOrderIds(orderIds);
 
     if (!orderItems || orderItems.length === 0) {
       return 0;
@@ -1259,6 +1274,257 @@ export class OrderService implements IOrderService {
     }
 
     await this.orderRepository.deleteCartItems(itemIds);
+  }
+
+  // Dashboard Analytics
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    const customerIds = await firstValueFrom<number[]>(
+      this.authServiceClient.send(
+        AUTH_PATTERN.GET_CUSTOMER_USER_IDS,
+        {},
+      ),
+    );
+    const totalCustomers = customerIds.length;
+
+    const variantIds = await firstValueFrom<number[]>(
+      this.phoneServiceClient.send(
+        PHONE_PATTERN.GET_PHONE_VARIANT_IDS,
+        {},
+      ),
+    );
+    const totalProducts = variantIds.length;
+
+    const orders = await this.orderRepository.findAllOrders();
+    const totalOrders = orders.length;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthOrders = orders.filter(order => 
+      order.orderDate >= startOfMonth
+    ).length;
+
+    const deliveredOrders = orders.filter(order => order.status === OrderStatus.DELIVERED);
+    const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+    const thisMonthRevenue = deliveredOrders
+      .filter(order => order.orderDate >= startOfMonth)
+      .reduce((sum, order) => sum + order.finalAmount, 0);
+
+    const orderIds = orders.map(order => order.id).filter((id): id is number => typeof id === 'number');
+    const payments = await firstValueFrom<PaymentDto[]>(
+      this.paymentServiceClient.send(
+        PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS,
+        orderIds,
+      ),
+    );
+
+    // Add NONE payments for orders without payment records
+    const ordersWithPayments = new Set(payments.map(p => p.orderId));
+    const nonePayments: PaymentDto[] = orderIds
+      .filter(orderId => !ordersWithPayments.has(orderId))
+      .map(orderId => ({
+        id: 0,
+        orderId,
+        amount: 0,
+        status: PaymentStatus.PENDING,
+        paymentMethod: {
+          id: 0,
+          code: 'NONE',
+          name: 'Không có thanh toán',
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as PaymentDto));
+
+    const allPayments = [...payments, ...nonePayments];
+
+    const paymentMethods: Record<string, number> = {};
+    allPayments.forEach(payment => {
+      const methodName = payment.paymentMethod.code;
+      paymentMethods[methodName] = (paymentMethods[methodName] || 0) + 1;
+    });
+
+    const orderStatuses: Record<string, number> = {};
+    orders.forEach(order => {
+      const status = order.status.toString();
+      orderStatuses[status] = (orderStatuses[status] || 0) + 1;
+    });
+
+    const deliveredOrderIds = deliveredOrders.map(order => order.id).filter((id): id is number => typeof id === 'number');
+    const orderItems = await this.orderRepository.findOrderItemsByOrderIds(deliveredOrderIds);
+    const itemsDto = await this.toOrderItemsDto(orderItems);
+    
+    const variantSales: Record<number, { 
+      name: string; 
+      quantity: number; 
+      revenue: number;
+    }> = {};
+
+    itemsDto.forEach(item => {
+      const variantId = item.variant.id;
+      if (!variantSales[variantId]) {
+        variantSales[variantId] = {
+          name: `${item.variant.name} ${item.variant.variantName} - ${item.variant.color}`,
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+      variantSales[variantId].quantity += item.quantity;
+      variantSales[variantId].revenue += (item.discount || item.price) * item.quantity;
+    });
+
+    const bestSellingProducts: BestSellingProductDto[] = Object.values(variantSales)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10)
+      .map(variant => ({
+        variantName: variant.name,
+        totalSoldQuantity: variant.quantity,
+        revenue: variant.revenue,
+      }));
+
+    const revenueByPeriod = this.calculateRevenueByPeriod(deliveredOrders);
+
+    return {
+      totalProducts,
+      totalCustomers,
+      totalOrders,
+      thisMonthOrders,
+      totalRevenue,
+      thisMonthRevenue,
+      revenueByPeriod,
+      paymentMethods,
+      orderStatuses,
+      top10BestSellingProducts: bestSellingProducts,
+    };
+  }
+
+  private calculateRevenueByPeriod(orders: Order[]): RevenueByPeriodDto {
+    const now = new Date();
+
+    // Last 7 days (daily)
+    const last7DaysData: RevenuePointDto[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = orders.filter(order => 
+        order.orderDate.toISOString().split('T')[0] === dateStr
+      );
+      const dayRevenue = dayOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      
+      last7DaysData.push({
+        label: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`,
+        value: dayRevenue,
+        date: dateStr,
+      });
+    }
+
+    // Last 30 days (daily)
+    const last30DaysData: RevenuePointDto[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = orders.filter(order => 
+        order.orderDate.toISOString().split('T')[0] === dateStr
+      );
+      const dayRevenue = dayOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      
+      last30DaysData.push({
+        label: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`,
+        value: dayRevenue,
+        date: dateStr,
+      });
+    }
+
+    // Last 3 months (monthly)
+    const last3MonthsData: RevenuePointDto[] = [];
+    for (let i = 2; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthOrders = orders.filter(order => 
+        order.orderDate >= monthStart && order.orderDate <= monthEnd
+      );
+      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      
+      last3MonthsData.push({
+        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
+        value: monthRevenue,
+        date: monthStart.toISOString().split('T')[0],
+      });
+    }
+
+    // Last 6 months (monthly)
+    const last6MonthsData: RevenuePointDto[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthOrders = orders.filter(order => 
+        order.orderDate >= monthStart && order.orderDate <= monthEnd
+      );
+      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      
+      last6MonthsData.push({
+        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
+        value: monthRevenue,
+        date: monthStart.toISOString().split('T')[0],
+      });
+    }
+
+    // Last year (monthly)
+    const lastYearData: RevenuePointDto[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthOrders = orders.filter(order => 
+        order.orderDate >= monthStart && order.orderDate <= monthEnd
+      );
+      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      
+      lastYearData.push({
+        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
+        value: monthRevenue,
+        date: monthStart.toISOString().split('T')[0],
+      });
+    }
+
+    return {
+      last7Days: {
+        total: last7DaysData.reduce((sum, point) => sum + point.value, 0),
+        data: last7DaysData,
+        period: 'daily',
+      },
+      last30Days: {
+        total: last30DaysData.reduce((sum, point) => sum + point.value, 0),
+        data: last30DaysData,
+        period: 'daily',
+      },
+      last3Months: {
+        total: last3MonthsData.reduce((sum, point) => sum + point.value, 0),
+        data: last3MonthsData,
+        period: 'monthly',
+      },
+      last6Months: {
+        total: last6MonthsData.reduce((sum, point) => sum + point.value, 0),
+        data: last6MonthsData,
+        period: 'monthly',
+      },
+      lastYear: {
+        total: lastYearData.reduce((sum, point) => sum + point.value, 0),
+        data: lastYearData,
+        period: 'monthly',
+      },
+    };
   }
 
   private async validateRequester(requester: Requester): Promise<CustomerDto> {

@@ -32,7 +32,10 @@ import {
   VOUCHER_SERVICE_NAME,
   VoucherDto,
 } from '@app/contracts/voucher';
-import type { VoucherCreateDto, VoucherUpdateRequest } from '@app/contracts/voucher';
+import type {
+  VoucherCreateDto,
+  VoucherUpdateRequest,
+} from '@app/contracts/voucher';
 import { isFallbackResponse } from '../utils/fallback';
 import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 import { RemoteAuthGuard } from '@app/contracts/auth';
@@ -298,20 +301,47 @@ export class VoucherController {
       properties: {
         code: { type: 'string', example: 'NEWYEAR2025' },
         title: { type: 'string', example: 'New Year 2025 Discount' },
-        description: { type: 'string', example: 'Get 15% off on all orders for New Year 2025' },
+        description: {
+          type: 'string',
+          example: 'Get 15% off on all orders for New Year 2025',
+        },
         discountType: { type: 'string', example: 'percent' },
         discountValue: { type: 'number', example: 15 },
         minOrderValue: { type: 'number', example: 5000000 },
         maxDiscountValue: { type: 'number', example: 1000000 },
-        startDate: { type: 'string', format: 'date-time', example: '2025-01-01T00:00:00.000Z' },
-        endDate: { type: 'string', format: 'date-time', example: '2025-01-31T23:59:59.000Z' },
+        startDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-01-01T00:00:00.000Z',
+        },
+        endDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2025-01-31T23:59:59.000Z',
+        },
         usageLimit: { type: 'number', example: 500 },
         usageLimitPerUser: { type: 'number', example: 1 },
         appliesTo: { type: 'string', example: 'category' },
-        categories: { type: 'array', items: { type: 'number' }, example: [1, 2 ] },
+        categories: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 2],
+        },
         paymentMethods: { type: 'number', example: 1 },
       },
-      required: ['code', 'title', 'description', 'discountType', 'discountValue', 'minOrderValue', 'maxDiscountValue', 'startDate', 'usageLimit', 'usageLimitPerUser', 'appliesTo'],
+      required: [
+        'code',
+        'title',
+        'description',
+        'discountType',
+        'discountValue',
+        'minOrderValue',
+        'maxDiscountValue',
+        'startDate',
+        'usageLimit',
+        'usageLimitPerUser',
+        'appliesTo',
+      ],
     },
   })
   @ApiResponse({
@@ -397,8 +427,15 @@ export class VoucherController {
       type: 'object',
       properties: {
         title: { type: 'string', example: 'Updated Voucher Title' },
-        description: { type: 'string', example: 'Updated description of the voucher' },
-        endDate: { type: 'string', format: 'date-time', example: '2026-12-31T23:59:59.000Z' },
+        description: {
+          type: 'string',
+          example: 'Updated description of the voucher',
+        },
+        endDate: {
+          type: 'string',
+          format: 'date-time',
+          example: '2026-12-31T23:59:59.000Z',
+        },
       },
     },
   })
@@ -421,21 +458,20 @@ export class VoucherController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.circuitBreakerService.sendRequest<
-        void | FallbackResponse
-      >(
-        this.voucherServiceClient,
-        VOUCHER_SERVICE_NAME,
-        VOUCHER_PATTERN.UPDATE_VOUCHER,
-        { id: voucherId, voucherUpdateDto },
-        () => {
-          return {
-            fallback: true,
-            message: 'Voucher service is temporarily unavailable',
-          } as FallbackResponse;
-        },
-        { timeout: 10000 },
-      );
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.voucherServiceClient,
+          VOUCHER_SERVICE_NAME,
+          VOUCHER_PATTERN.UPDATE_VOUCHER,
+          { id: voucherId, voucherUpdateDto },
+          () => {
+            return {
+              fallback: true,
+              message: 'Voucher service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 10000 },
+        );
 
       console.log('Voucher Service response:', JSON.stringify(result, null, 2));
 

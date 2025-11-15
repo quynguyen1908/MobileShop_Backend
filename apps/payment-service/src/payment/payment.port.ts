@@ -13,6 +13,7 @@ export interface IPaymentService {
   // Payment
   getPaymentsByOrderIds(orderIds: number[]): Promise<PaymentDto[]>;
   createPayment(payment: Payment): Promise<number>;
+  createCODPayment(requester: Requester, orderId: number): Promise<number>;
   updatePayment(id: number, data: PaymentUpdateDto): Promise<void>;
 
   // Payment methods

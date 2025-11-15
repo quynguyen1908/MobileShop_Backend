@@ -70,12 +70,15 @@ export interface IUserCommandRepository {
 
   // Notification
   insertNotifications(data: Notification[]): Promise<void>;
-  updateNotifications(ids: number[], data: NotificationUpdateDto): Promise<void>;
+  updateNotifications(
+    ids: number[],
+    data: NotificationUpdateDto,
+  ): Promise<void>;
 }
 
 export interface IUserQueryRepository {
   // Customer
-  listCustomers(paging: PagingDto): Promise<Paginated<Customer>>
+  listCustomers(paging: PagingDto): Promise<Paginated<Customer>>;
   findCustomerByUserId(userId: number): Promise<Customer | null>;
   findCustomerById(id: number): Promise<Customer | null>;
 

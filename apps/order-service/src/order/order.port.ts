@@ -4,6 +4,7 @@ import {
   CartDto,
   CartItem,
   CartItemCreateDto,
+  DashboardStatsDto,
   Order,
   OrderCreateDto,
   OrderDto,
@@ -23,7 +24,10 @@ export interface IOrderService {
   getOrderById(orderId: number): Promise<Order>;
   getOrderDetail(orderId: number): Promise<OrderDto>;
   listOrders(paging: PagingDto): Promise<Paginated<OrderDto>>;
-  listCustomerOrders(requester: Requester, paging: PagingDto): Promise<Paginated<OrderDto>>;
+  listCustomerOrders(
+    requester: Requester,
+    paging: PagingDto,
+  ): Promise<Paginated<OrderDto>>;
   createOrder(
     requester: Requester,
     orderCreateDto: OrderCreateDto,
@@ -34,7 +38,10 @@ export interface IOrderService {
     note?: string,
   ): Promise<void>;
   cancelOrder(requester: Requester, orderCode: string): Promise<void>;
-  hasCustomerOrderedVariant(customerId: number, variantId: number): Promise<number>;
+  hasCustomerOrderedVariant(
+    customerId: number,
+    variantId: number,
+  ): Promise<number>;
 
   // Point Config
   getPointConfig(): Promise<PointConfig | null>;
@@ -59,6 +66,9 @@ export interface IOrderService {
     quantity: number,
   ): Promise<void>;
   deleteCartItems(requester: Requester, itemIds: number[]): Promise<void>;
+
+  // Dashboard
+  getDashboardStats(): Promise<DashboardStatsDto>;
 }
 
 export interface IOrderRepository
@@ -67,6 +77,7 @@ export interface IOrderRepository
 
 export interface IOrderQueryRepository {
   // Order
+  findAllOrders(): Promise<Order[]>;
   findOrdersByCustomerId(customerId: number): Promise<Order[]>;
   findOrderByOrderCode(orderCode: string): Promise<Order | null>;
   findOrderById(orderId: number): Promise<Order | null>;

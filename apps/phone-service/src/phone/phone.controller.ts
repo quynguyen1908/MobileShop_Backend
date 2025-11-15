@@ -5,6 +5,7 @@ import type {
   BrandCreateDto,
   CategoryCreateDto,
   CategoryUpdateDto,
+  InventoryCreateDto,
   PhoneCreateDto,
   PhoneFilterDto,
   PhoneUpdateDto,
@@ -122,6 +123,16 @@ export class PhoneController {
     return this.phoneService.createColor(name);
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_ALL_VARIANTS)
+  async getAllVariants() {
+    return this.phoneService.getAllVariants();
+  }
+
+  @MessagePattern(PHONE_PATTERN.GET_PHONE_VARIANT_IDS)
+  async getPhoneVariantIds() {
+    return this.phoneService.getPhoneVariantIds();
+  }
+
   @MessagePattern(PHONE_PATTERN.GET_VARIANT_BY_ID)
   async getVariantById(@Payload() variantId: number) {
     return this.phoneService.getVariantById(variantId);
@@ -213,12 +224,18 @@ export class PhoneController {
     );
   }
 
+  @MessagePattern(PHONE_PATTERN.ADD_INVENTORY)
+  async addInventory(@Payload() inventoryCreateDto: InventoryCreateDto) {
+    return this.phoneService.addInventory(inventoryCreateDto);
+  }
+
   @MessagePattern(PHONE_PATTERN.CREATE_REVIEW)
   async createReview(
-    @Payload() payload: {
+    @Payload()
+    payload: {
       requester: Requester;
       reviewCreateDto: ReviewCreateDto;
-    }
+    },
   ) {
     const { requester, reviewCreateDto } = payload;
     return this.phoneService.createReview(requester, reviewCreateDto);

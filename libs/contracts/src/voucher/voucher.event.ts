@@ -97,10 +97,11 @@ function validateVoucherCreatedPayload(
     categories: Array.isArray(payload.categories)
       ? payload.categories.map((cat) => Number(cat))
       : undefined,
-    paymentMethods: typeof payload.paymentMethods === 'number'
-      ? payload.paymentMethods
-      : undefined
-  }
+    paymentMethods:
+      typeof payload.paymentMethods === 'number'
+        ? payload.paymentMethods
+        : undefined,
+  };
 }
 
 export class VoucherCreatedEvent extends VoucherEvent<VoucherCreatedPayload> {

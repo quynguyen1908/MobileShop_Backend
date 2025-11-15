@@ -22,6 +22,8 @@ export const ORDER_PATTERN = {
   ADD_TO_CART: 'order.addToCart',
   UPDATE_QUANTITY: 'order.updateQuantity',
   DELETE_CART_ITEMS: 'order.deleteCartItems',
+
+  GET_DASHBOARD_STATS: 'order.getDashboardStats',
 };
 
 export const ORDER_SERVICE_NAME = 'order-service';

@@ -172,3 +172,67 @@ export const cartItemCreateDtoSchema = cartItemSchema.pick({
 });
 
 export type CartItemCreateDto = z.infer<typeof cartItemCreateDtoSchema>;
+
+// Dashboard Stats
+
+export const revenuePointDtoSchema = z.object({
+  label: z.string(),
+  value: z.number().min(0),
+  date: z.string(),
+});
+
+export type RevenuePointDto = z.infer<typeof revenuePointDtoSchema>;
+
+export const revenueByPeriodDtoSchema = z.object({
+  last7Days: z.object({
+    total: z.number().min(0),
+    data: revenuePointDtoSchema.array().length(7),
+    period: z.literal("daily"),
+  }),
+  last30Days: z.object({
+    total: z.number().min(0),
+    data: revenuePointDtoSchema.array().length(30),
+    period: z.literal("daily"),
+  }),
+  last3Months: z.object({
+    total: z.number().min(0),
+    data: revenuePointDtoSchema.array().length(3),
+    period: z.literal("monthly"),
+  }),
+  last6Months: z.object({
+    total: z.number().min(0),
+    data: revenuePointDtoSchema.array().length(6),
+    period: z.literal("monthly"),
+  }),
+  lastYear: z.object({
+    total: z.number().min(0),
+    data: revenuePointDtoSchema.array().length(12),
+    period: z.literal("monthly"),
+  }),
+});
+
+export type RevenueByPeriodDto = z.infer<typeof revenueByPeriodDtoSchema>;
+
+export const bestSellingProductDtoSchema = z.object({
+  variantName: z.string(),
+  totalSoldQuantity: z.number().int().min(0),
+  revenue: z.number().min(0),
+});
+
+export type BestSellingProductDto = z.infer<typeof bestSellingProductDtoSchema>;
+
+export const dashboardStatsDtoSchema = z.object({
+  totalProducts: z.number().int().min(0),
+  totalCustomers: z.number().int().min(0),
+  totalOrders: z.number().int().min(0),
+  thisMonthOrders: z.number().int().min(0),
+  totalRevenue: z.number().min(0),
+  thisMonthRevenue: z.number().min(0),
+  revenueByPeriod: revenueByPeriodDtoSchema,
+  paymentMethods: z.record(z.string(), z.number()),
+  orderStatuses: z.record(z.string(), z.number()),
+  top10BestSellingProducts: bestSellingProductDtoSchema.array(),
+});
+
+export type DashboardStatsDto = z.infer<typeof dashboardStatsDtoSchema>;
+  

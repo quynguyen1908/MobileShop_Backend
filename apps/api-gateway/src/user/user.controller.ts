@@ -917,10 +917,7 @@ export class NotificationController {
       },
     },
   })
-  async getNotifications(
-    @Req() req: ReqWithRequester,
-    @Res() res: Response,
-  ) {
+  async getNotifications(@Req() req: ReqWithRequester, @Res() res: Response) {
     try {
       const requester = req.requester;
       const result = await this.circuitBreakerService.sendRequest<
@@ -962,7 +959,7 @@ export class NotificationController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Getting notifications failed';
-        
+
       const errorResponse = new ApiResponseDto(
         statusCode,
         errorMessage,
@@ -1048,7 +1045,7 @@ export class NotificationController {
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage =
         typedError.logMessage || 'Getting unread notifications failed';
-        
+
       const errorResponse = new ApiResponseDto(
         statusCode,
         errorMessage,

@@ -85,10 +85,7 @@ export class OrderController {
     @Payload() payload: { customerId: number; variantId: number },
   ) {
     const { customerId, variantId } = payload;
-    return this.orderService.hasCustomerOrderedVariant(
-      customerId,
-      variantId,
-    );
+    return this.orderService.hasCustomerOrderedVariant(customerId, variantId);
   }
 
   @MessagePattern(ORDER_PATTERN.UPDATE_ORDER_STATUS)
@@ -143,5 +140,10 @@ export class OrderController {
   @MessagePattern(ORDER_PATTERN.GET_POINT_TRANSACTIONS_BY_CUSTOMER_ID)
   async getPointTransactionsByCustomerId(@Payload() customerId: number) {
     return this.orderService.getPointTransactionsByCustomerId(customerId);
+  }
+
+  @MessagePattern(ORDER_PATTERN.GET_DASHBOARD_STATS)
+  async getDashboardStats() {
+    return this.orderService.getDashboardStats();
   }
 }

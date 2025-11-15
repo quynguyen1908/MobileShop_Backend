@@ -1,4 +1,11 @@
-import { AUTH_SERVICE, EVENT_SUBSCRIBER, ORDER_SERVICE, PAYMENT_SERVICE, PHONE_SERVICE, USER_SERVICE } from '@app/contracts';
+import {
+  AUTH_SERVICE,
+  EVENT_SUBSCRIBER,
+  ORDER_SERVICE,
+  PAYMENT_SERVICE,
+  PHONE_SERVICE,
+  USER_SERVICE,
+} from '@app/contracts';
 import type { IEventSubscriber } from '@app/contracts';
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import type { IUserService } from './user.port';
@@ -11,7 +18,11 @@ import {
 } from '@app/contracts/auth';
 import { EventJson } from '@app/contracts';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Notification, NotificationType, USER_SERVICE_NAME } from '@app/contracts/user';
+import {
+  Notification,
+  NotificationType,
+  USER_SERVICE_NAME,
+} from '@app/contracts/user';
 import {
   EVT_ORDER_CREATED,
   EVT_ORDER_UPDATED,
@@ -34,10 +45,18 @@ import {
 } from '@app/contracts/payment';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { EVT_VOUCHER_CREATED, VoucherCreatedEvent } from '@app/contracts/voucher/voucher.event';
+import {
+  EVT_VOUCHER_CREATED,
+  VoucherCreatedEvent,
+} from '@app/contracts/voucher/voucher.event';
 import { ApplyTo, DiscountType } from '@app/contracts/voucher';
 import { formatCurrency } from '@app/contracts/utils';
-import { Category, EVT_INVENTORY_LOW, InventoryLowEvent, PHONE_PATTERN } from '@app/contracts/phone';
+import {
+  Category,
+  EVT_INVENTORY_LOW,
+  InventoryLowEvent,
+  PHONE_PATTERN,
+} from '@app/contracts/phone';
 
 interface TypedError {
   message: string;
@@ -132,7 +151,8 @@ export class UserEventHandler {
       const customerNotification: Notification = {
         userId: customer.userId,
         title: `Đơn hàng #${event.payload.orderCode} đã được tạo thành công!`,
-        message: 'Nếu bạn chọn thanh toán online, vui lòng hoàn tất thanh toán.', 
+        message:
+          'Nếu bạn chọn thanh toán online, vui lòng hoàn tất thanh toán.',
         isRead: false,
         type: NotificationType.ORDER,
         createdAt: new Date(),
@@ -142,10 +162,7 @@ export class UserEventHandler {
 
       // Admin notifications
       const adminIds = await firstValueFrom<number[]>(
-        this.authServiceClient.send(
-          AUTH_PATTERN.GET_ADMIN_USER_IDS,
-          {},
-        ),
+        this.authServiceClient.send(AUTH_PATTERN.GET_ADMIN_USER_IDS, {}),
       );
 
       for (const adminId of adminIds) {
@@ -206,7 +223,7 @@ export class UserEventHandler {
         );
         return;
       }
-      
+
       const customer = await this.userService.getCustomerById(customerId);
       if (!customer) {
         this.logger.log(
@@ -250,7 +267,8 @@ export class UserEventHandler {
           }
 
           title = `Đơn hàng #${event.payload.orderCode} đã được hủy.`;
-          message = 'Số điểm được hoàn lại đã được cập nhật vào tài khoản của bạn.';
+          message =
+            'Số điểm được hoàn lại đã được cập nhật vào tài khoản của bạn.';
 
           break;
         }
@@ -261,7 +279,8 @@ export class UserEventHandler {
         }
         case OrderStatus.SHIPPED.toString(): {
           title = `Đơn hàng #${event.payload.orderCode} đang được vận chuyển.`;
-          message = 'Bạn có thể theo dõi trạng thái vận chuyển trong mục đơn hàng của mình.';
+          message =
+            'Bạn có thể theo dõi trạng thái vận chuyển trong mục đơn hàng của mình.';
           break;
         }
         case OrderStatus.DELIVERED.toString(): {
@@ -285,7 +304,8 @@ export class UserEventHandler {
           }
 
           title = `Đơn hàng #${event.payload.orderCode} đã được giao thành công!`;
-          message = 'Cảm ơn bạn đã mua hàng tại cửa hàng PHONEHUB của chúng tôi.';
+          message =
+            'Cảm ơn bạn đã mua hàng tại cửa hàng PHONEHUB của chúng tôi.';
           break;
         }
         default: {
@@ -300,7 +320,7 @@ export class UserEventHandler {
       const customerNotification: Notification = {
         userId: customer.userId,
         title: title,
-        message: message, 
+        message: message,
         isRead: false,
         type: NotificationType.ORDER,
         createdAt: new Date(),
@@ -392,10 +412,7 @@ export class UserEventHandler {
     );
     try {
       const customerIds = await firstValueFrom<number[]>(
-        this.authServiceClient.send(
-          AUTH_PATTERN.GET_CUSTOMER_USER_IDS,
-          {},
-        ),
+        this.authServiceClient.send(AUTH_PATTERN.GET_CUSTOMER_USER_IDS, {}),
       );
 
       const notifications: Notification[] = [];
@@ -425,9 +442,9 @@ export class UserEventHandler {
         let message = '';
 
         if (event.payload.discountType === DiscountType.PERCENT.toString()) {
-          message = `Giảm đến ${event.payload.discountValue}% tối đa ${formatCurrency(event.payload.maxDiscountValue)}`
+          message = `Giảm đến ${event.payload.discountValue}% tối đa ${formatCurrency(event.payload.maxDiscountValue)}`;
         } else {
-          message = `Giảm đến ${formatCurrency(event.payload.discountValue)}`
+          message = `Giảm đến ${formatCurrency(event.payload.discountValue)}`;
         }
 
         switch (event.payload.appliesTo) {
@@ -436,7 +453,10 @@ export class UserEventHandler {
             break;
           }
           case ApplyTo.CATEGORY.toString(): {
-            if (event.payload.categories && event.payload.categories.length > 0) {
+            if (
+              event.payload.categories &&
+              event.payload.categories.length > 0
+            ) {
               message += ` cho các đơn hàng có sản phẩm thuộc danh mục: ${categories
                 .map((cat) => cat.name)
                 .join(', ')}.`;
@@ -445,7 +465,9 @@ export class UserEventHandler {
           }
           case ApplyTo.PAYMENT_METHOD.toString(): {
             if (event.payload.paymentMethods) {
-              const method = methods.find(m => m.id === event.payload.paymentMethods);
+              const method = methods.find(
+                (m) => m.id === event.payload.paymentMethods,
+              );
               if (method) {
                 message += ` cho các đơn hàng thanh toán qua ${method.name}.`;
               }
@@ -484,10 +506,7 @@ export class UserEventHandler {
 
       // Admin notifications
       const adminIds = await firstValueFrom<number[]>(
-        this.authServiceClient.send(
-          AUTH_PATTERN.GET_ADMIN_USER_IDS,
-          {},
-        ),
+        this.authServiceClient.send(AUTH_PATTERN.GET_ADMIN_USER_IDS, {}),
       );
 
       for (const adminId of adminIds) {
