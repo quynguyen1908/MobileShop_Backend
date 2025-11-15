@@ -1381,7 +1381,7 @@ export class OrderService implements IOrderService {
         revenue: variant.revenue,
       }));
 
-    const revenueByPeriod = await this.calculateRevenueByPeriod(deliveredOrders);
+    const revenueByPeriod = this.calculateRevenueByPeriod(deliveredOrders);
 
     return {
       totalProducts,
