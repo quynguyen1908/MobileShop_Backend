@@ -159,6 +159,17 @@ export const inventoryDtoSchema = inventorySchema.omit({
 
 export type InventoryDto = z.infer<typeof inventoryDtoSchema>;
 
+export const inventoryCreateDtoSchema = inventorySchema
+  .pick({
+    variantId: true,
+    colorId: true,
+    sku: true,
+    stockQuantity: true,
+  })
+  .required();
+
+export type InventoryCreateDto = z.infer<typeof inventoryCreateDtoSchema>;
+
 // Variant Image
 
 const variantImageDtoSchema = variantImageSchema

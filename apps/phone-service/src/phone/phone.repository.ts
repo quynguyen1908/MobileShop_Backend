@@ -338,6 +338,18 @@ export class PhoneRepository implements IPhoneRepository {
 
   // Phone Variant
 
+  async findAllVariants(): Promise<PhoneVariant[]> {
+    const prismaService = this.prisma as unknown as {
+      phoneVariant: {
+        findMany: (params: { where: any }) => Promise<PrismaPhoneVariant[]>;
+      };
+    };
+    const variants = await prismaService.phoneVariant.findMany({
+      where: { isDeleted: false },
+    });
+    return variants.map((variant) => this._toPhoneVariantModel(variant));
+  }
+
   async findVariantsById(id: number): Promise<PhoneVariant | null> {
     const prismaService = this.prisma as unknown as {
       phoneVariant: {
@@ -609,7 +621,10 @@ export class PhoneRepository implements IPhoneRepository {
     return reviews.map((review) => this._toReviewModel(review));
   }
 
-  async findReviewsByCustomerIdAndVariantId(customerId: number, variantId: number): Promise<Review[]> {
+  async findReviewsByCustomerIdAndVariantId(
+    customerId: number,
+    variantId: number,
+  ): Promise<Review[]> {
     const prismaService = this.prisma as unknown as {
       review: {
         findMany: (params: { where: any }) => Promise<PrismaReview[]>;
@@ -1363,6 +1378,18 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
     return this._toInventoryModel(inventory);
+  }
+
+  async insertInventory(inventory: Inventory): Promise<Inventory> {
+    const prismaService = this.prisma as unknown as {
+      inventory: {
+        create: (params: { data: any }) => Promise<PrismaInventory>;
+      };
+    };
+    const createdInventory = await prismaService.inventory.create({
+      data: inventory,
+    });
+    return this._toInventoryModel(createdInventory);
   }
 
   async updateInventory(id: number, data: InventoryUpdateDto): Promise<void> {

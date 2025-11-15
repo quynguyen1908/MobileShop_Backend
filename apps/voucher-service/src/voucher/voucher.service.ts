@@ -165,7 +165,11 @@ export class VoucherService implements IVoucherService {
     if (data.discountType === DiscountType.PERCENT) {
       if (data.discountValue < 0 || data.discountValue > 100) {
         throw new RpcException(
-          AppError.from(new Error('Discount value must be between 0 and 100 for percentage discount'))
+          AppError.from(
+            new Error(
+              'Discount value must be between 0 and 100 for percentage discount',
+            ),
+          )
             .withLog('Invalid discount value for percentage type')
             .toJson(false),
         );
@@ -181,9 +185,16 @@ export class VoucherService implements IVoucherService {
     }
 
     // Validate maxDiscountValue <= minOrderValue
-    if (data.maxDiscountValue > 0 && data.maxDiscountValue > data.minOrderValue) {
+    if (
+      data.maxDiscountValue > 0 &&
+      data.maxDiscountValue > data.minOrderValue
+    ) {
       throw new RpcException(
-        AppError.from(new Error('Max discount value cannot be greater than minimum order value'))
+        AppError.from(
+          new Error(
+            'Max discount value cannot be greater than minimum order value',
+          ),
+        )
           .withLog('Invalid max discount value')
           .toJson(false),
       );
@@ -191,7 +202,19 @@ export class VoucherService implements IVoucherService {
 
     // Validate date ranges
     const now = new Date();
-    if (data.startDate < now) {
+    const start = new Date(data.startDate);
+    const startDateOnly = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
+    );
+    const todayOnly = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+
+    if (startDateOnly < todayOnly) {
       throw new RpcException(
         AppError.from(new Error('Start date cannot be in the past'))
           .withLog('Invalid start date')
@@ -210,14 +233,18 @@ export class VoucherService implements IVoucherService {
     // Validate usage limits
     if (data.usageLimitPerUser >= data.usageLimit) {
       throw new RpcException(
-        AppError.from(new Error('Usage limit per user must be less than total usage limit'))
+        AppError.from(
+          new Error('Usage limit per user must be less than total usage limit'),
+        )
           .withLog('Invalid usage limits')
           .toJson(false),
       );
     }
 
     // Check if voucher code already exists
-    const existingVouchers = await this.voucherRepository.findVouchersByCode(data.code);
+    const existingVouchers = await this.voucherRepository.findVouchersByCode(
+      data.code,
+    );
     if (existingVouchers.length > 0) {
       throw new RpcException(
         AppError.from(new Error('Voucher code already exists'))
@@ -247,11 +274,17 @@ export class VoucherService implements IVoucherService {
     const createdVoucher = await this.voucherRepository.insertVoucher(voucher);
 
     // Handle category assignments if voucher applies to categories
-    if (data.appliesTo === ApplyTo.CATEGORY && data.categories && data.categories.length > 0) {
-      const voucherCategories: VoucherCategory[] = data.categories.map(categoryId => ({
-        voucherId: createdVoucher.id!,
-        categoryId,
-      }));
+    if (
+      data.appliesTo === ApplyTo.CATEGORY &&
+      data.categories &&
+      data.categories.length > 0
+    ) {
+      const voucherCategories: VoucherCategory[] = data.categories.map(
+        (categoryId) => ({
+          voucherId: createdVoucher.id!,
+          categoryId,
+        }),
+      );
       await this.voucherRepository.insertVoucherCategories(voucherCategories);
     }
 
@@ -261,7 +294,9 @@ export class VoucherService implements IVoucherService {
         voucherId: createdVoucher.id!,
         paymentMethodId: data.paymentMethods,
       };
-      await this.voucherRepository.insertVoucherPaymentMethods([voucherPaymentMethod]);
+      await this.voucherRepository.insertVoucherPaymentMethods([
+        voucherPaymentMethod,
+      ]);
     }
 
     const event = VoucherCreatedEvent.create(
@@ -283,7 +318,10 @@ export class VoucherService implements IVoucherService {
     return createdVoucher.id!;
   }
 
-  async updateVoucher(id: number, voucherUpdateDto: VoucherUpdateRequest): Promise<void> {
+  async updateVoucher(
+    id: number,
+    voucherUpdateDto: VoucherUpdateRequest,
+  ): Promise<void> {
     const voucher = await this.voucherRepository.findVouchersByIds([id]);
 
     if (voucher.length === 0) {
@@ -297,7 +335,7 @@ export class VoucherService implements IVoucherService {
     const data: VoucherUpdateDto = {
       ...voucherUpdateDto,
       updatedAt: new Date(),
-    }
+    };
 
     await this.voucherRepository.updateVoucher(id, data);
   }

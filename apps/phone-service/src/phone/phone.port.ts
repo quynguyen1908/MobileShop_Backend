@@ -5,6 +5,7 @@ import {
   BrandUpdateDto,
   CategoryCreateDto,
   CategoryUpdateDto,
+  InventoryCreateDto,
   InventoryUpdateDto,
   PhoneCreateDto,
   PhoneUpdateDto,
@@ -66,6 +67,8 @@ export interface IPhoneService {
   createColor(name: string): Promise<number>;
 
   // Phone Variant
+  getAllVariants(): Promise<PhoneVariantDto[]>;
+  getPhoneVariantIds(): Promise<number[]>;
   getVariantById(id: number): Promise<PhoneVariantDto>;
   getVariantsByIds(ids: number[]): Promise<PhoneVariantDto[]>;
   listPhoneVariants(
@@ -98,10 +101,14 @@ export interface IPhoneService {
     colorId: number,
     requiredQuantity: number,
   ): Promise<boolean>;
+  addInventory(inventoryCreateDto: InventoryCreateDto): Promise<number>;
   updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
 
   // Review
-  createReview(requester: Requester, reviewCreateDto: ReviewCreateDto): Promise<number>;
+  createReview(
+    requester: Requester,
+    reviewCreateDto: ReviewCreateDto,
+  ): Promise<number>;
 }
 
 export interface IPhoneRepository
@@ -132,6 +139,7 @@ export interface IPhoneQueryRepository {
     filter: PhoneFilterDto,
     paging: PagingDto,
   ): Promise<Paginated<PhoneVariant>>;
+  findAllVariants(): Promise<PhoneVariant[]>;
   findVariantsById(id: number): Promise<PhoneVariant | null>;
   findVariantsByIds(ids: number[]): Promise<PhoneVariant[]>;
   findVariantsByPhoneId(phoneId: number): Promise<PhoneVariant[]>;
@@ -139,7 +147,10 @@ export interface IPhoneQueryRepository {
 
   // Review
   findReviewsByVariantIds(variantIds: number[]): Promise<Review[]>;
-  findReviewsByCustomerIdAndVariantId(customerId: number, variantId: number): Promise<Review[]>;
+  findReviewsByCustomerIdAndVariantId(
+    customerId: number,
+    variantId: number,
+  ): Promise<Review[]>;
 
   // Color
   findColorsByIds(ids: number[]): Promise<Color[]>;
@@ -265,6 +276,7 @@ export interface IPhoneCommandRepository {
   ): Promise<void>;
 
   // Inventory
+  insertInventory(inventory: Inventory): Promise<Inventory>;
   updateInventory(id: number, data: InventoryUpdateDto): Promise<void>;
 
   // Review

@@ -336,26 +336,34 @@ export class AuthService implements IAuthService {
 
   async getAdminUserIds(): Promise<number[]> {
     const roles = await this.roleRepository.findAll();
-    const adminRole = roles.find((role) => role.name === RoleType.ADMIN.toString());
+    const adminRole = roles.find(
+      (role) => role.name === RoleType.ADMIN.toString(),
+    );
 
     if (!adminRole) {
       return [];
     }
 
-    const adminUsers = await this.authRepository.findByFilter({ roleId: adminRole.id });
+    const adminUsers = await this.authRepository.findByFilter({
+      roleId: adminRole.id,
+    });
 
     return adminUsers ? [adminUsers.id!] : [];
   }
 
   async getCustomerUserIds(): Promise<number[]> {
     const roles = await this.roleRepository.findAll();
-    const customerRole = roles.find((role) => role.name === RoleType.CUSTOMER.toString());
+    const customerRole = roles.find(
+      (role) => role.name === RoleType.CUSTOMER.toString(),
+    );
 
     if (!customerRole) {
       return [];
     }
 
-    const customerUsers = await this.authRepository.findByFilter({ roleId: customerRole.id });
+    const customerUsers = await this.authRepository.findByFilter({
+      roleId: customerRole.id,
+    });
 
     return customerUsers ? [customerUsers.id!] : [];
   }
@@ -521,7 +529,6 @@ export class AuthService implements IAuthService {
           .toJson(false),
       );
     }
-
 
     await this.authRepository.update(id, {
       ...data,

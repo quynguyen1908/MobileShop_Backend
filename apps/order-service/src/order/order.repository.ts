@@ -117,6 +117,16 @@ export class OrderRepository implements IOrderRepository {
 
   // Order
 
+  async findAllOrders(): Promise<Order[]> {
+    const prismaService = this.prisma as unknown as {
+      order: {
+        findMany: (param: {}) => Promise<PrismaOrder[]>;
+      };
+    };
+    const orders = await prismaService.order.findMany({});
+    return orders.map((order) => this._toOrderModel(order));
+  }
+
   async findOrdersByCustomerId(customerId: number): Promise<Order[]> {
     const prismaService = this.prisma as unknown as {
       order: {
@@ -208,10 +218,13 @@ export class OrderRepository implements IOrderRepository {
       data: orders.map((order) => this._toOrderModel(order)),
       paging,
       total,
-    }
+    };
   }
 
-  async listOrdersByCustomerId(customerId: number, paging: PagingDto): Promise<Paginated<Order>> {
+  async listOrdersByCustomerId(
+    customerId: number,
+    paging: PagingDto,
+  ): Promise<Paginated<Order>> {
     const skip = (paging.page - 1) * paging.limit;
     const prismaService = this.prisma as unknown as {
       order: {
@@ -240,7 +253,7 @@ export class OrderRepository implements IOrderRepository {
       data: orders.map((order) => this._toOrderModel(order)),
       paging,
       total,
-    }
+    };
   }
 
   async insertOrder(data: Omit<Order, 'id'>): Promise<Order> {

@@ -70,20 +70,25 @@ export const voucherCreateDtoSchema = voucherSchema
   })
   .required()
   .extend({
-    startDate: z.string()
+    startDate: z
+      .string()
       .refine((date) => !isNaN(Date.parse(date)), {
         message: 'Invalid start date format',
       })
       .transform((date) => new Date(date)),
-    endDate: z.string()
+    endDate: z
+      .string()
       .optional()
       .nullable()
-      .refine((date) => {
-        if (date == null || date === '') return true;
-        return !isNaN(Date.parse(date));
-      }, {
-        message: 'Invalid end date format',
-      })
+      .refine(
+        (date) => {
+          if (date == null || date === '') return true;
+          return !isNaN(Date.parse(date));
+        },
+        {
+          message: 'Invalid end date format',
+        },
+      )
       .transform((date) => {
         if (date == null || date === '') return null;
         return new Date(date);

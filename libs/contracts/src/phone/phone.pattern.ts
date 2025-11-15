@@ -22,6 +22,8 @@ export const PHONE_PATTERN = {
   GET_ALL_COLORS: 'phone.getAllColors',
   CREATE_COLOR: 'phone.createColor',
 
+  GET_ALL_VARIANTS: 'phone.getAllVariants',
+  GET_PHONE_VARIANT_IDS: 'phone.getPhoneVariantIds',
   GET_VARIANTS_BY_IDS: 'phone.getVariantsByIds',
   GET_VARIANT_BY_ID: 'phone.getVariantById',
   LIST_PHONE_VARIANTS: 'phone.listPhoneVariants',
@@ -37,6 +39,7 @@ export const PHONE_PATTERN = {
 
   GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
   CHECK_INVENTORY_AVAILABILITY: 'phone.checkInventoryAvailability',
+  ADD_INVENTORY: 'phone.addInventory',
 
   CREATE_REVIEW: 'phone.createReview',
 };

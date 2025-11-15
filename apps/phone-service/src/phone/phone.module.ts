@@ -2,7 +2,12 @@ import { Module } from '@nestjs/common';
 import { PhoneController } from './phone.controller';
 import { PhoneService } from './phone.service';
 import { PhoneRepository } from './phone.repository';
-import { ORDER_SERVICE, PHONE_REPOSITORY, PHONE_SERVICE, USER_SERVICE } from '@app/contracts';
+import {
+  ORDER_SERVICE,
+  PHONE_REPOSITORY,
+  PHONE_SERVICE,
+  USER_SERVICE,
+} from '@app/contracts';
 import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
 import { PhoneEventHandler } from './phone-event.handler';
 import { HttpModule } from '@nestjs/axios';

@@ -62,10 +62,16 @@ import {
   PhoneWithVariantsDto,
   ReviewCreateDto,
   reviewCreateDtoSchema,
+  InventoryCreateDto,
+  inventoryCreateDtoSchema,
 } from '@app/contracts/phone';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
-import { CustomerDto, ErrCustomerNotFound, USER_PATTERN } from '@app/contracts/user';
+import {
+  CustomerDto,
+  ErrCustomerNotFound,
+  USER_PATTERN,
+} from '@app/contracts/user';
 import { firstValueFrom } from 'rxjs';
 import { ORDER_PATTERN } from '@app/contracts/order';
 
@@ -99,7 +105,7 @@ export class PhoneService implements IPhoneService {
     }
 
     const phoneDtos: PhoneWithVariantsDto[] = await this.toPhoneDto(
-      paginatedPhones.data
+      paginatedPhones.data,
     );
 
     return {
@@ -119,7 +125,9 @@ export class PhoneService implements IPhoneService {
       );
     }
 
-    const phoneDtoArray: PhoneWithVariantsDto[] = await this.toPhoneDto([phone]);
+    const phoneDtoArray: PhoneWithVariantsDto[] = await this.toPhoneDto([
+      phone,
+    ]);
     return phoneDtoArray[0];
   }
 
@@ -487,6 +495,17 @@ export class PhoneService implements IPhoneService {
   }
 
   // Phone Variant
+
+  async getAllVariants(): Promise<PhoneVariantDto[]> {
+    const variants = await this.phoneRepository.findAllVariants();
+    const variantDtos = await this.toPhoneVariantDto(variants);
+    return variantDtos;
+  }
+
+  async getPhoneVariantIds(): Promise<number[]> {
+    const variants = await this.phoneRepository.findAllVariants();
+    return variants.map((variant) => variant.id!);
+  }
 
   async getVariantById(id: number): Promise<PhoneVariantDto> {
     const variants = await this.phoneRepository.findVariantsById(id);
@@ -1112,6 +1131,56 @@ export class PhoneService implements IPhoneService {
     return inventory.stockQuantity >= requiredQuantity;
   }
 
+  async addInventory(inventoryCreateDto: InventoryCreateDto): Promise<number> {
+    const data = inventoryCreateDtoSchema.parse(inventoryCreateDto);
+
+    const variant = await this.phoneRepository.findVariantsById(data.variantId);
+
+    if (!variant) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given ID')
+          .toJson(false),
+      );
+    }
+
+    const variantDtos = await this.toPhoneVariantDto([variant]);
+
+    for (const colorDto of variantDtos[0].colors) {
+      if (colorDto.color.id !== data.colorId) {
+        throw new RpcException(
+          AppError.from(ErrVariantColorNotFound, 404)
+            .withLog('Color not found for the given variant')
+            .toJson(false),
+        );
+      }
+    }
+
+    const existingInventory =
+      await this.phoneRepository.findInventoryByVariantIdAndColorId(
+        data.variantId,
+        data.colorId,
+      );
+
+    if (!existingInventory) {
+      const newInventory = await this.phoneRepository.insertInventory({
+        variantId: data.variantId,
+        colorId: data.colorId,
+        sku: data.sku,
+        stockQuantity: data.stockQuantity,
+        isDeleted: false,
+      });
+
+      return newInventory.id!;
+    } else {
+      await this.phoneRepository.updateInventory(existingInventory.id!, {
+        stockQuantity: existingInventory.stockQuantity + data.stockQuantity,
+      });
+
+      return existingInventory.id!;
+    }
+  }
+
   async updateInventory(id: number, data: InventoryUpdateDto): Promise<void> {
     const inventory = await this.phoneRepository.findInventoryById(id);
     if (!inventory) {
@@ -1127,7 +1196,10 @@ export class PhoneService implements IPhoneService {
 
   // Review
 
-  async createReview(requester: Requester, reviewCreateDto: ReviewCreateDto): Promise<number> {
+  async createReview(
+    requester: Requester,
+    reviewCreateDto: ReviewCreateDto,
+  ): Promise<number> {
     const customer = await firstValueFrom<CustomerDto>(
       this.userServiceClient.send(
         USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
@@ -1153,7 +1225,11 @@ export class PhoneService implements IPhoneService {
 
     const data = reviewCreateDtoSchema.parse(reviewCreateDto);
 
-    const reviews = await this.phoneRepository.findReviewsByCustomerIdAndVariantId(customer.id, data.variantId);
+    const reviews =
+      await this.phoneRepository.findReviewsByCustomerIdAndVariantId(
+        customer.id,
+        data.variantId,
+      );
 
     if (reviews && reviews.length > 0) {
       throw new RpcException(
@@ -1164,13 +1240,10 @@ export class PhoneService implements IPhoneService {
     }
 
     const hasOrderedId = await firstValueFrom<number>(
-      this.orderServiceClient.send(
-        ORDER_PATTERN.HAS_CUSTOMER_ORDERED_VARIANT,
-        {
-          customerId: customer.id,
-          variantId: data.variantId,
-        }
-      ),
+      this.orderServiceClient.send(ORDER_PATTERN.HAS_CUSTOMER_ORDERED_VARIANT, {
+        customerId: customer.id,
+        variantId: data.variantId,
+      }),
     );
 
     const newReview = await this.phoneRepository.insertReview({
@@ -1186,9 +1259,7 @@ export class PhoneService implements IPhoneService {
     return newReview.id!;
   }
 
-  private async toPhoneDto(
-    phones: Phone[],
-  ): Promise<PhoneWithVariantsDto[]> {
+  private async toPhoneDto(phones: Phone[]): Promise<PhoneWithVariantsDto[]> {
     const brands = await this.phoneRepository.findBrandsByIds(
       phones.map((p) => p.brandId),
     );
@@ -1204,7 +1275,9 @@ export class PhoneService implements IPhoneService {
     const images = await this.phoneRepository.findImagesByIds(imageIds);
 
     const variants = await this.phoneRepository.findVariantsByPhoneIds(
-      phones.map((p) => p.id).filter((id): id is number => typeof id === 'number'),
+      phones
+        .map((p) => p.id)
+        .filter((id): id is number => typeof id === 'number'),
     );
 
     const variantDtos =

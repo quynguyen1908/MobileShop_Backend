@@ -118,7 +118,9 @@ export class AuthController {
   }
 
   @MessagePattern(AUTH_PATTERN.CREATE_ADMIN)
-  async createAdmin(@Payload() adminCreateDto: AdminCreateDto): Promise<number> {
+  async createAdmin(
+    @Payload() adminCreateDto: AdminCreateDto,
+  ): Promise<number> {
     return this.authService.createAdmin(adminCreateDto);
   }
 

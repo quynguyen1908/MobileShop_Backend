@@ -308,7 +308,9 @@ export class UserRepository implements IUserRepository {
     );
   }
 
-  async findUnreadNotificationsByUserId(userId: number): Promise<Notification[]> {
+  async findUnreadNotificationsByUserId(
+    userId: number,
+  ): Promise<Notification[]> {
     const prismaService = this.prisma as unknown as {
       notification: {
         findMany: (params: {
@@ -333,10 +335,16 @@ export class UserRepository implements IUserRepository {
     await prismaService.notification.createMany({ data });
   }
 
-  async updateNotifications(ids: number[], data: NotificationUpdateDto): Promise<void> {
+  async updateNotifications(
+    ids: number[],
+    data: NotificationUpdateDto,
+  ): Promise<void> {
     const prismaService = this.prisma as unknown as {
       notification: {
-        updateMany: (params: { where: { id: { in: number[] } }; data: any }) => Promise<any>;
+        updateMany: (params: {
+          where: { id: { in: number[] } };
+          data: any;
+        }) => Promise<any>;
       };
     };
     await prismaService.notification.updateMany({
@@ -421,7 +429,7 @@ export class UserRepository implements IUserRepository {
         }
       }
     }
-    
+
     return {
       id: data.id,
       userId: data.userId,

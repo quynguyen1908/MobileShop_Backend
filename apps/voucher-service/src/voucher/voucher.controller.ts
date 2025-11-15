@@ -2,7 +2,10 @@ import { Controller } from '@nestjs/common';
 import { VoucherService } from './voucher.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { VOUCHER_PATTERN } from '@app/contracts/voucher';
-import type { VoucherCreateDto, VoucherUpdateRequest } from '@app/contracts/voucher';
+import type {
+  VoucherCreateDto,
+  VoucherUpdateRequest,
+} from '@app/contracts/voucher';
 import type { PagingDto } from '@app/contracts';
 
 @Controller()
@@ -33,10 +36,7 @@ export class VoucherController {
   async updateVoucher(
     @Payload() data: { id: number; voucherUpdateDto: VoucherUpdateRequest },
   ) {
-    await this.voucherService.updateVoucher(
-      data.id,
-      data.voucherUpdateDto,
-    );
+    await this.voucherService.updateVoucher(data.id, data.voucherUpdateDto);
     return { success: true };
   }
 }
