@@ -18,6 +18,8 @@ async function bootstrap() {
   }
 
   await app.startAllMicroservices();
+  const port = process.env.PHONE_SERVICE_PORT || 3003;
+  await app.listen(port);
   console.log('Phone Service is listening...');
 }
 void bootstrap().catch((err) => {

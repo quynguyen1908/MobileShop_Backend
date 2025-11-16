@@ -1,0 +1,18 @@
+# prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'mobile-shop'
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'api-gateway:3000'
+          - 'auth-service:3001'
+          - 'user-service:3002'
+          - 'phone-service:3003'
+          - 'order-service:3004'
+          - 'payment-service:3005'
+          - 'voucher-service:3006'
+          - 'ai-service:4000'

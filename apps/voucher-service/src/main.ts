@@ -18,7 +18,8 @@ async function bootstrap() {
   }
 
   await app.startAllMicroservices();
-
+  const port = process.env.VOUCHER_SERVICE_PORT || 3006;
+  await app.listen(port);
   console.log('Voucher Service is listening...');
 }
 

@@ -28,3 +28,6 @@ export const AGENT_TOOLS = Symbol('AGENT_TOOLS');
 export * from './model';
 export * from './interface';
 export * from './error';
+
+export const API_GATEWAY_NAME = 'api-gateway';
+export const AI_SERVICE_NAME = 'ai-service';

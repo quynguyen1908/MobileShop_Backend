@@ -18,6 +18,8 @@ async function bootstrap() {
   }
 
   await app.startAllMicroservices();
+  const port = process.env.PAYMENT_SERVICE_PORT || 3005;
+  await app.listen(port);
   console.log('Payment Service is listening...');
 }
 void bootstrap().catch((err) => {

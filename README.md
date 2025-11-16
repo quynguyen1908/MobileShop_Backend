@@ -71,16 +71,13 @@
 ---
 
 ## Logging & Monitoring
-- **Logging**: ELK Stack (Elasticsearch, Logstash, Kibana)
+- **Logging**: ELK Stack (Elasticsearch, Kibana)
 - **Monitoring**: Prometheus + Grafana
-- **Tracing**: Zipkin
 
 ---
 
 ## Các tính năng khác:
 - **Circuit Breaker**: Bảo vệ hệ thống khỏi lỗi lan truyền bằng cách ngắt kết nối tạm thời khi phát hiện sự cố giữa các service.
-- **Notification**: Tích hợp gửi thông báo qua Slack để cảnh báo sự kiện quan trọng hoặc lỗi hệ thống.
-- **SMS Service**: Sử dụng Twilio để gửi tin nhắn SMS xác thực hoặc thông báo cho khách hàng.
 
 ## Hướng dẫn cài đặt
 
