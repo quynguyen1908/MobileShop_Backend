@@ -20,7 +20,8 @@ async function bootstrap() {
   }
 
   await app.startAllMicroservices();
-
+  const port = process.env.USER_SERVICE_PORT || 3002;
+  await app.listen(port);
   console.log('User Service is listening...');
 }
 

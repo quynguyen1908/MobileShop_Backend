@@ -27,6 +27,12 @@
       ],
       "@app/contracts/*": [
         "libs/contracts/src/*"
+      ],
+      "@app/monitoring": [
+        "libs/monitoring/src"
+      ],
+      "@app/monitoring/*": [
+        "libs/monitoring/src/*"
       ]
     }
   }

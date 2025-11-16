@@ -18,6 +18,8 @@ async function bootstrap() {
   }
 
   await app.startAllMicroservices();
+  const port = process.env.ORDER_SERVICE_PORT || 3004;
+  await app.listen(port);
   console.log('Order Service is listening...');
 }
 void bootstrap().catch((err) => {

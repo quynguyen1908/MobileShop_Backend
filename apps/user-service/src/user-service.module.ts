@@ -3,6 +3,8 @@ import { UserModule } from './user/user.module';
 import { PrismaModule } from '@app/contracts/prisma';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MetricsController, PrometheusModule } from '@app/monitoring';
+import { USER_SERVICE_NAME } from '@app/contracts/user';
 
 @Module({
   imports: [
@@ -12,8 +14,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     EventEmitterModule.forRoot(),
     UserModule,
     PrismaModule,
+    PrometheusModule.register(USER_SERVICE_NAME),
   ],
-  controllers: [],
+  controllers: [MetricsController],
   providers: [],
 })
 export class UserServiceModule {}

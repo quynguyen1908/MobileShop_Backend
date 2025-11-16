@@ -39,6 +39,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "monitoring": {
+      "type": "library",
+      "root": "libs/monitoring",
+      "entryFile": "index",
+      "sourceRoot": "libs/monitoring/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/monitoring/tsconfig.lib.json"
+      }
+    },
     "order-service": {
       "type": "application",
       "root": "apps/order-service",
@@ -84,5 +93,8 @@
         "tsConfigPath": "apps/voucher-service/tsconfig.app.json"
       }
     }
+  },
+  "compilerOptions": {
+    "webpack": true
   }
 }

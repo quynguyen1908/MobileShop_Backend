@@ -10,6 +10,8 @@ async function bootstrap() {
   app.connectMicroservice(rmqService.authServiceOptions);
 
   await app.startAllMicroservices();
+  const port = process.env.AUTH_SERVICE_PORT || 3001;
+  await app.listen(port);
   console.log('Auth Service is listening...');
 }
 void bootstrap().catch((err) => {

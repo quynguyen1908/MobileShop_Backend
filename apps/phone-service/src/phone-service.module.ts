@@ -3,6 +3,8 @@ import { PhoneModule } from './phone/phone.module';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
 import { PrismaModule } from '@app/contracts/prisma';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MetricsController, PrometheusModule } from '@app/monitoring';
+import { PHONE_SERVICE_NAME } from '@app/contracts/phone';
 
 @Module({
   imports: [
@@ -12,8 +14,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     EventEmitterModule.forRoot(),
     PhoneModule,
     PrismaModule,
+    PrometheusModule.register(PHONE_SERVICE_NAME),
   ],
-  controllers: [],
+  controllers: [MetricsController],
   providers: [],
 })
 export class PhoneServiceModule {}

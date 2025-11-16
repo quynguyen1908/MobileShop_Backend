@@ -42,7 +42,6 @@ model User {
   
   role        Role        @relation(fields: [roleId], references: [id])
   customer    Customer?
-  employee    Employee?
   oauths      UserOauth[]
   notifications Notification[]
   refreshTokens RefreshToken[]
@@ -69,26 +68,6 @@ model Customer {
 
   @@index([userId])
   @@map("customers")
-}
-
-model Employee {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @unique @map("user_id")
-  firstName   String?   @map("first_name") @db.VarChar(50)
-  lastName    String?   @map("last_name") @db.VarChar(50)
-  gender      String?   @db.VarChar(50)
-  dateOfBirth DateTime? @map("date_of_birth") @db.Date
-  hireDate    DateTime? @map("hire_date") @db.Date
-  position    String?   @db.VarChar(50)
-  salary      Int       @default(0)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz()
-  isDeleted   Boolean   @default(false) @map("is_deleted")
-  
-  user        User      @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@map("employees")
 }
 
 model UserOauth {

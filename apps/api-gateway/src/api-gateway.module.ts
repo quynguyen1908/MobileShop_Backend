@@ -11,6 +11,8 @@ import { AiModule } from './ai/ai.module';
 import { PaymentModule } from './payment/payment.module';
 import { VoucherModule } from './voucher/voucher.module';
 import paymentConfig from '@app/contracts/payment/payment.config';
+import { MetricsController, PrometheusModule } from '@app/monitoring';
+import { API_GATEWAY_NAME } from '@app/contracts';
 
 @Module({
   imports: [
@@ -27,8 +29,12 @@ import paymentConfig from '@app/contracts/payment/payment.config';
     AiModule,
     PaymentModule,
     VoucherModule,
+    PrometheusModule.register(API_GATEWAY_NAME),
   ],
-  controllers: [HealthController],
+  controllers: [
+    HealthController,
+    MetricsController,
+  ],
   providers: [],
 })
 export class ApiGatewayModule {}
