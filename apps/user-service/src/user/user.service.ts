@@ -8,11 +8,11 @@ import type {
 } from '@app/contracts';
 import {
   USER_REPOSITORY,
-  EVENT_PUBLISHER,
   AppError,
   AUTH_SERVICE,
   ORDER_SERVICE,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import {
   Address,
   AddressCreateDto,

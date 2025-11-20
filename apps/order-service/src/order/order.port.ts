@@ -68,7 +68,10 @@ export interface IOrderService {
   deleteCartItems(requester: Requester, itemIds: number[]): Promise<void>;
 
   // Dashboard
-  getDashboardStats(): Promise<DashboardStatsDto>;
+  getDashboardStats(
+    startDate: string,
+    endDate: string,
+  ): Promise<DashboardStatsDto>;
 }
 
 export interface IOrderRepository

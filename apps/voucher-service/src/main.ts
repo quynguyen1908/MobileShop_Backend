@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { VoucherServiceModule } from './voucher-service.module';
-import { RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQService } from '@app/rabbitmq';
 import { VoucherEventHandler } from './voucher/voucher-event.handler';
 
 async function bootstrap() {

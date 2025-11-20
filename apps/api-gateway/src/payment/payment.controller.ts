@@ -112,8 +112,7 @@ export class PaymentController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage =
-        typedError.logMessage || 'Create COD payment failed';
+      const errorMessage = typedError.logMessage || 'Create COD payment failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

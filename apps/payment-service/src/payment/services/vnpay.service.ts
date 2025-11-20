@@ -1,11 +1,11 @@
 import {
   AppError,
-  EVENT_PUBLISHER,
   ORDER_SERVICE,
   PAYMENT_REPOSITORY,
   USER_SERVICE,
   VNPayConfig,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import type { IEventPublisher, Requester } from '@app/contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

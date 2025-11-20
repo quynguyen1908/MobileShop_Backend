@@ -38,6 +38,7 @@ export const PHONE_PATTERN = {
   CREATE_SPECIFICATION: 'phone.createSpecification',
 
   GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
+  GET_INVENTORIES_BY_NAME: 'phone.getInventoriesByName',
   CHECK_INVENTORY_AVAILABILITY: 'phone.checkInventoryAvailability',
   ADD_INVENTORY: 'phone.addInventory',
 

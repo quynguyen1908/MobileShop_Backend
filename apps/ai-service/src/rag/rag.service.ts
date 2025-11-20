@@ -28,7 +28,7 @@ export class RagService implements IRagService {
     private readonly configService: ConfigService,
   ) {
     this.maxContextTokens = Number(
-      this.configService.get<string>('MAX_CONTEXT_TOKENS') || 2000,
+      this.configService.get<string>('MAX_CONTEXT_TOKENS') || 3000,
     );
   }
 

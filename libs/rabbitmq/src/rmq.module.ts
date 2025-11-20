@@ -1,7 +1,7 @@
 import { Module, DynamicModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RabbitMQService } from './rmq.service';
-import { EVENT_PUBLISHER, EVENT_SUBSCRIBER } from '..';
+import { EVENT_PUBLISHER, EVENT_SUBSCRIBER } from './index';
 import { RabbitMQClient } from './rmq-client';
 
 @Module({})

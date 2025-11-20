@@ -2,13 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IPhoneRepository, IPhoneService } from './phone.port';
 import {
   AppError,
-  EVENT_PUBLISHER,
   ORDER_SERVICE,
   Paginated,
   PagingDto,
   PHONE_REPOSITORY,
   USER_SERVICE,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import type { IEventPublisher, Requester } from '@app/contracts';
 import {
   BrandDto,
@@ -64,6 +64,7 @@ import {
   reviewCreateDtoSchema,
   InventoryCreateDto,
   inventoryCreateDtoSchema,
+  InventoryDto,
 } from '@app/contracts/phone';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -1089,6 +1090,76 @@ export class PhoneService implements IPhoneService {
     }
 
     return inventory;
+  }
+
+  async getInventoriesByName(name: string): Promise<InventoryDto[]> {
+    const phone = await this.phoneRepository.findPhoneByName(name);
+
+    if (!phone) {
+      throw new RpcException(
+        AppError.from(ErrPhoneNotFound, 404)
+          .withLog('Phone not found for the given name')
+          .toJson(false),
+      );
+    }
+
+    console.log('Found phone:', phone);
+
+    const variants = await this.phoneRepository.findVariantsByName(name);
+
+    if (!variants || variants.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given name')
+          .toJson(false),
+      );
+    }
+
+    console.log('Found variants:', variants);
+
+    let foundVariant: PhoneVariant | null = null;
+
+    for (const variant of variants) {
+      if (variant.phoneId === phone.id) {
+        const fullName = `${phone.name} ${variant.variantName}`;
+        if (fullName === name) {
+          foundVariant = variant;
+          break;
+        }
+      }
+    }
+
+    if (!foundVariant) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('No matching phone variant found for the given name')
+          .toJson(false),
+      );
+    }
+
+    const inventories = await this.phoneRepository.findInventoriesByVariantIds([
+      foundVariant.id!,
+    ]);
+
+    const colors = await this.phoneRepository.findAllColors();
+
+    const inventoryDtos: InventoryDto[] = inventories.map((inventory) => {
+      const color = colors.find((c) => c.id === inventory.colorId);
+
+      return {
+        id: inventory.id!,
+        variantId: inventory.variantId,
+        colorId: inventory.colorId,
+        sku: inventory.sku,
+        stockQuantity: inventory.stockQuantity,
+        color: {
+          name: color ? color.name : 'Unknown',
+          id: color ? color.id! : 0,
+        },
+      };
+    });
+
+    return inventoryDtos;
   }
 
   async getInventoryByVariantIdAndColorId(

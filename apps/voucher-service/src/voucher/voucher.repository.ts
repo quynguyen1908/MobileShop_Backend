@@ -11,7 +11,7 @@ import {
   VoucherUsageFilter,
 } from '@app/contracts/voucher';
 import { PagingDto, Paginated } from '@app/contracts';
-import { VoucherPrismaService } from '@app/contracts/prisma';
+import { VoucherPrismaService } from '@app/prisma';
 
 interface PrismaVoucher {
   id: number;

@@ -8,10 +8,20 @@ import {
   PaymentUpdateDto,
   PayMethod,
 } from '@app/contracts/payment';
-import { AppError, ORDER_SERVICE, PAYMENT_REPOSITORY, Requester, USER_SERVICE } from '@app/contracts';
+import {
+  AppError,
+  ORDER_SERVICE,
+  PAYMENT_REPOSITORY,
+  Requester,
+  USER_SERVICE,
+} from '@app/contracts';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { CustomerDto, ErrCustomerNotFound, USER_PATTERN } from '@app/contracts/user';
+import {
+  CustomerDto,
+  ErrCustomerNotFound,
+  USER_PATTERN,
+} from '@app/contracts/user';
 import { ErrOrderNotFound, Order, ORDER_PATTERN } from '@app/contracts/order';
 
 @Injectable()
@@ -60,7 +70,10 @@ export class PaymentService implements IPaymentService {
     return newPayment.id!;
   }
 
-  async createCODPayment(requester: Requester, orderId: number): Promise<number> {
+  async createCODPayment(
+    requester: Requester,
+    orderId: number,
+  ): Promise<number> {
     const customer = await firstValueFrom<CustomerDto>(
       this.userServiceClient.send(
         USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
@@ -85,10 +98,7 @@ export class PaymentService implements IPaymentService {
     }
 
     const order = await firstValueFrom<Order>(
-      this.orderServiceClient.send(
-        ORDER_PATTERN.GET_ORDER_BY_ID,
-        orderId,
-      ),
+      this.orderServiceClient.send(ORDER_PATTERN.GET_ORDER_BY_ID, orderId),
     );
 
     if (!order) {
@@ -114,21 +124,23 @@ export class PaymentService implements IPaymentService {
           .toJson(false),
       );
     }
-    
-    const payments = await this.paymentRepository.findPaymentsByOrderId(orderId);
-    
+
+    const payments =
+      await this.paymentRepository.findPaymentsByOrderId(orderId);
+
     for (const payment of payments) {
       if ((payment.status as PaymentStatus) === PaymentStatus.COMPLETED) {
         throw new RpcException(
           AppError.from(new Error('Payment already completed'))
-            .withLog('Attempted to create COD payment for an order that is already paid')
+            .withLog(
+              'Attempted to create COD payment for an order that is already paid',
+            )
             .toJson(false),
         );
       }
     }
 
-    const paymentMethods =
-      await this.paymentRepository.findAllPaymentMethods();
+    const paymentMethods = await this.paymentRepository.findAllPaymentMethods();
     const codMethod = paymentMethods.find(
       (method) => method.code === PayMethod.COD.toString(),
     );

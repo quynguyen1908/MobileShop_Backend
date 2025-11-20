@@ -8,10 +8,10 @@ import {
   PHONE_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
-import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { PhoneEventHandler } from './phone-event.handler';
 import { HttpModule } from '@nestjs/axios';
-import { RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQService } from '@app/rabbitmq';
 import { ClientProxyFactory } from '@nestjs/microservices';
 
 @Module({

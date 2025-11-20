@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
-import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { OrderRepository } from './order.repository';
 import {
   AUTH_SERVICE,
@@ -12,7 +12,7 @@ import {
   USER_SERVICE,
   VOUCHER_SERVICE,
 } from '@app/contracts';
-import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
+import { RabbitMQService } from '@app/rabbitmq';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 import { HttpModule } from '@nestjs/axios';
 import { OrderEventHandler } from './order-event.handler';

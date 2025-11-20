@@ -207,6 +207,11 @@ export class PhoneController {
     return this.phoneService.getInventoryBySku(sku);
   }
 
+  @MessagePattern(PHONE_PATTERN.GET_INVENTORIES_BY_NAME)
+  async getInventoriesByName(@Payload() name: string) {
+    return this.phoneService.getInventoriesByName(name);
+  }
+
   @MessagePattern(PHONE_PATTERN.CHECK_INVENTORY_AVAILABILITY)
   async checkInventoryAvailability(
     @Payload()

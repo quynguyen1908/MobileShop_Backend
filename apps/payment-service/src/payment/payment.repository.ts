@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IPaymentRepository } from './payment.port';
-import { PaymentPrismaService } from '@app/contracts/prisma';
+import { PaymentPrismaService } from '@app/prisma';
 import {
   Payment,
   PaymentMethod,

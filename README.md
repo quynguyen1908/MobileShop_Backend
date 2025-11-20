@@ -26,7 +26,7 @@
 ---
 
 ## Yêu cầu chức năng
-- **Quản lý người dùng**: Quản lý thông tin khách hàng, nhân viên, hệ thống tích điểm.
+- **Quản lý người dùng**: Quản lý thông tin khách hàng, hệ thống tích điểm.
 - **Quản lý sản phẩm**: Quản lý thông tin sản phẩm, danh mục, mẫu mã.
 - **Quản lý đơn hàng**: Quản lý danh sách đơn hàng, trạng thái thanh toán, giao hàng.
 - **Quản lý voucher**: Quản lý thông tin voucher, phạm vi áp dụng.
@@ -35,9 +35,9 @@
 ---
 
 ## Thiết kế cơ sở dữ liệu
-![ERD](https://github.com/user-attachments/assets/aecf8e42-a67c-4a1d-8f81-923a10bbc5b6)
-[Chi tiết sơ đồ ERD trên dbdiagram.io](https://dbdiagram.io/d/Mobile_Shop-68c9605f1ff9c616bdefc30b)
-- **Thiết kế bảng**: Các bảng chính gồm `phone`, `order`, `customer`, `voucher`, `user`, ...
+![ERD](https://github.com/user-attachments/assets/5b674f58-9790-4261-bf43-6d15d0c64a1d)
+[Chi tiết sơ đồ ERD trên dbdiagram.io](https://dbdiagram.io/d/MobileShop-68fd875f357668b7329e6aac)
+- **Thiết kế bảng**: Các bảng chính gồm `phones`, `orders`, `customers`, `vouchers`, `users`, ...
 - **Migration & Quản lý schema**: Sử dụng Prisma để quản lý migration và schema tự động.
 
 ---
@@ -48,12 +48,10 @@
 
 [![Docker Build](https://github.com/quynguyen1908/MobileShop_Backend/actions/workflows/docker-build.yml/badge.svg)](https://github.com/quynguyen1908/MobileShop_Backend/actions/workflows/docker-build.yml)
 
-[![Deploy](https://github.com/quynguyen1908/MobileShop_Backend/actions/workflows/deploy.yml/badge.svg)](https://github.com/quynguyen1908/MobileShop_Backend/actions/workflows/deploy.yml)
-
 ---
 
 ## Containerize with Docker
-- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, payment-service, voucher-service, ai-service, postgres, rabbitmq, qdrant
+- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, payment-service, voucher-service, ai-service, postgres, rabbitmq, qdrant, prometheus, grafana
 
 ---
 

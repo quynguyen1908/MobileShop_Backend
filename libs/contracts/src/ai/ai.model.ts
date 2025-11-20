@@ -6,7 +6,9 @@ export enum SourceType {
 }
 
 export const checkInventorySchema = z.object({
-  sku: z.string().describe('The SKU of the product to check inventory for'),
+  variantName: z
+    .string()
+    .describe('The name of the product variant to check inventory for'),
 });
 
 export type CheckInventoryInput = z.infer<typeof checkInventorySchema>;

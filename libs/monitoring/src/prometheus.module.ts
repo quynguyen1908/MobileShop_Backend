@@ -16,8 +16,8 @@ export class PrometheusModule {
             enabled: true,
             config: {
               prefix: `nestjs_${safeServiceName}_`,
-              labels: { service: safeServiceName }
-            }
+              labels: { service: safeServiceName },
+            },
           },
           path: '/metrics',
         }),

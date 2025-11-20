@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { VoucherController } from './voucher.controller';
 import { VoucherService } from './voucher.service';
-import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
 import { VoucherRepository } from './voucher.repository';
 import {
   PAYMENT_SERVICE,

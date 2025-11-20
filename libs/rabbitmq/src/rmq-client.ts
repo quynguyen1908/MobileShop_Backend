@@ -4,10 +4,14 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { EventHandler, IEventPublisher, IEventSubscriber } from '../interface';
+import {
+  EventHandler,
+  IEventPublisher,
+  IEventSubscriber,
+} from '@app/contracts/interface';
 import * as amqp from 'amqplib';
 import { ConfigService } from '@nestjs/config/dist/config.service';
-import { AppEvent } from '../model';
+import { AppEvent } from '@app/contracts/model';
 
 @Injectable()
 export class RabbitMQClient

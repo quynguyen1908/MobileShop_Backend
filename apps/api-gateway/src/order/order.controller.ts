@@ -1621,10 +1621,21 @@ export class DashboardController {
     private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
-  @Get()
+  @Post()
   @UseGuards(RemoteAuthGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Get dashboard analytics (requires admin role)' })
+  @ApiBody({
+    description: 'Dashboard analytics request payload',
+    schema: {
+      type: 'object',
+      properties: {
+        startDate: { type: 'string', format: 'date', example: '2025-01-01' },
+        endDate: { type: 'string', format: 'date', example: '2025-12-31' },
+      },
+      required: ['startDate', 'endDate'],
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Dashboard analytics retrieved successfully',
@@ -1641,326 +1652,26 @@ export class DashboardController {
             totalRevenue: 43234000,
             thisMonthRevenue: 0,
             revenueByPeriod: {
-              last7Days: {
-                total: 0,
-                data: [
-                  {
-                    label: '09/11',
-                    value: 0,
-                    date: '2025-11-09',
-                  },
-                  {
-                    label: '10/11',
-                    value: 0,
-                    date: '2025-11-10',
-                  },
-                  {
-                    label: '11/11',
-                    value: 0,
-                    date: '2025-11-11',
-                  },
-                  {
-                    label: '12/11',
-                    value: 0,
-                    date: '2025-11-12',
-                  },
-                  {
-                    label: '13/11',
-                    value: 0,
-                    date: '2025-11-13',
-                  },
-                  {
-                    label: '14/11',
-                    value: 0,
-                    date: '2025-11-14',
-                  },
-                  {
-                    label: '15/11',
-                    value: 0,
-                    date: '2025-11-15',
-                  },
-                ],
-                period: 'daily',
-              },
-              last30Days: {
-                total: 43234000,
-                data: [
-                  {
-                    label: '17/10',
-                    value: 0,
-                    date: '2025-10-17',
-                  },
-                  {
-                    label: '18/10',
-                    value: 0,
-                    date: '2025-10-18',
-                  },
-                  {
-                    label: '19/10',
-                    value: 0,
-                    date: '2025-10-19',
-                  },
-                  {
-                    label: '20/10',
-                    value: 0,
-                    date: '2025-10-20',
-                  },
-                  {
-                    label: '21/10',
-                    value: 0,
-                    date: '2025-10-21',
-                  },
-                  {
-                    label: '22/10',
-                    value: 0,
-                    date: '2025-10-22',
-                  },
-                  {
-                    label: '23/10',
-                    value: 0,
-                    date: '2025-10-23',
-                  },
-                  {
-                    label: '24/10',
-                    value: 0,
-                    date: '2025-10-24',
-                  },
-                  {
-                    label: '25/10',
-                    value: 0,
-                    date: '2025-10-25',
-                  },
-                  {
-                    label: '26/10',
-                    value: 0,
-                    date: '2025-10-26',
-                  },
-                  {
-                    label: '27/10',
-                    value: 0,
-                    date: '2025-10-27',
-                  },
-                  {
-                    label: '28/10',
-                    value: 0,
-                    date: '2025-10-28',
-                  },
-                  {
-                    label: '29/10',
-                    value: 0,
-                    date: '2025-10-29',
-                  },
-                  {
-                    label: '30/10',
-                    value: 43234000,
-                    date: '2025-10-30',
-                  },
-                  {
-                    label: '31/10',
-                    value: 0,
-                    date: '2025-10-31',
-                  },
-                  {
-                    label: '01/11',
-                    value: 0,
-                    date: '2025-11-01',
-                  },
-                  {
-                    label: '02/11',
-                    value: 0,
-                    date: '2025-11-02',
-                  },
-                  {
-                    label: '03/11',
-                    value: 0,
-                    date: '2025-11-03',
-                  },
-                  {
-                    label: '04/11',
-                    value: 0,
-                    date: '2025-11-04',
-                  },
-                  {
-                    label: '05/11',
-                    value: 0,
-                    date: '2025-11-05',
-                  },
-                  {
-                    label: '06/11',
-                    value: 0,
-                    date: '2025-11-06',
-                  },
-                  {
-                    label: '07/11',
-                    value: 0,
-                    date: '2025-11-07',
-                  },
-                  {
-                    label: '08/11',
-                    value: 0,
-                    date: '2025-11-08',
-                  },
-                  {
-                    label: '09/11',
-                    value: 0,
-                    date: '2025-11-09',
-                  },
-                  {
-                    label: '10/11',
-                    value: 0,
-                    date: '2025-11-10',
-                  },
-                  {
-                    label: '11/11',
-                    value: 0,
-                    date: '2025-11-11',
-                  },
-                  {
-                    label: '12/11',
-                    value: 0,
-                    date: '2025-11-12',
-                  },
-                  {
-                    label: '13/11',
-                    value: 0,
-                    date: '2025-11-13',
-                  },
-                  {
-                    label: '14/11',
-                    value: 0,
-                    date: '2025-11-14',
-                  },
-                  {
-                    label: '15/11',
-                    value: 0,
-                    date: '2025-11-15',
-                  },
-                ],
-                period: 'daily',
-              },
-              last3Months: {
-                total: 43234000,
-                data: [
-                  {
-                    label: '09/25',
-                    value: 0,
-                    date: '2025-08-31',
-                  },
-                  {
-                    label: '10/25',
-                    value: 43234000,
-                    date: '2025-09-30',
-                  },
-                  {
-                    label: '11/25',
-                    value: 0,
-                    date: '2025-10-31',
-                  },
-                ],
-                period: 'monthly',
-              },
-              last6Months: {
-                total: 43234000,
-                data: [
-                  {
-                    label: '06/25',
-                    value: 0,
-                    date: '2025-05-31',
-                  },
-                  {
-                    label: '07/25',
-                    value: 0,
-                    date: '2025-06-30',
-                  },
-                  {
-                    label: '08/25',
-                    value: 0,
-                    date: '2025-07-31',
-                  },
-                  {
-                    label: '09/25',
-                    value: 0,
-                    date: '2025-08-31',
-                  },
-                  {
-                    label: '10/25',
-                    value: 43234000,
-                    date: '2025-09-30',
-                  },
-                  {
-                    label: '11/25',
-                    value: 0,
-                    date: '2025-10-31',
-                  },
-                ],
-                period: 'monthly',
-              },
-              lastYear: {
-                total: 43234000,
-                data: [
-                  {
-                    label: '12/24',
-                    value: 0,
-                    date: '2024-11-30',
-                  },
-                  {
-                    label: '01/25',
-                    value: 0,
-                    date: '2024-12-31',
-                  },
-                  {
-                    label: '02/25',
-                    value: 0,
-                    date: '2025-01-31',
-                  },
-                  {
-                    label: '03/25',
-                    value: 0,
-                    date: '2025-02-28',
-                  },
-                  {
-                    label: '04/25',
-                    value: 0,
-                    date: '2025-03-31',
-                  },
-                  {
-                    label: '05/25',
-                    value: 0,
-                    date: '2025-04-30',
-                  },
-                  {
-                    label: '06/25',
-                    value: 0,
-                    date: '2025-05-31',
-                  },
-                  {
-                    label: '07/25',
-                    value: 0,
-                    date: '2025-06-30',
-                  },
-                  {
-                    label: '08/25',
-                    value: 0,
-                    date: '2025-07-31',
-                  },
-                  {
-                    label: '09/25',
-                    value: 0,
-                    date: '2025-08-31',
-                  },
-                  {
-                    label: '10/25',
-                    value: 43234000,
-                    date: '2025-09-30',
-                  },
-                  {
-                    label: '11/25',
-                    value: 0,
-                    date: '2025-10-31',
-                  },
-                ],
-                period: 'monthly',
-              },
+              total: 43234000,
+              data: [
+                { label: '01/25', value: 0, date: '2025-01-31T17:00:00.000Z' },
+                { label: '02/25', value: 0, date: '2025-02-28T17:00:00.000Z' },
+                { label: '03/25', value: 0, date: '2025-03-31T17:00:00.000Z' },
+                { label: '04/25', value: 0, date: '2025-04-30T17:00:00.000Z' },
+                { label: '05/25', value: 0, date: '2025-05-31T17:00:00.000Z' },
+                { label: '06/25', value: 0, date: '2025-06-30T17:00:00.000Z' },
+                { label: '07/25', value: 0, date: '2025-07-31T17:00:00.000Z' },
+                { label: '08/25', value: 0, date: '2025-08-31T17:00:00.000Z' },
+                { label: '09/25', value: 0, date: '2025-09-30T17:00:00.000Z' },
+                {
+                  label: '10/25',
+                  value: 43234000,
+                  date: '2025-10-31T17:00:00.000Z',
+                },
+                { label: '11/25', value: 0, date: '2025-11-30T17:00:00.000Z' },
+                { label: '12/25', value: 0, date: '2025-12-31T17:00:00.000Z' },
+              ],
+              period: 'monthly',
             },
             paymentMethods: {
               VNPAY: 2,
@@ -1985,15 +1696,19 @@ export class DashboardController {
       },
     },
   })
-  async getDashboardAnalytics(@Res() res: Response) {
+  async getDashboardAnalytics(
+    @Body() body: { startDate: string; endDate: string },
+    @Res() res: Response,
+  ) {
     try {
+      const { startDate, endDate } = body;
       const result = await this.circuitBreakerService.sendRequest<
         DashboardStatsDto | FallbackResponse
       >(
         this.orderServiceClient,
         ORDER_SERVICE_NAME,
         ORDER_PATTERN.GET_DASHBOARD_STATS,
-        {},
+        { startDate, endDate },
         () => {
           return {
             fallback: true,

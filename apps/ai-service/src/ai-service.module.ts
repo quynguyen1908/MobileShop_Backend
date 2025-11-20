@@ -19,9 +19,6 @@ import { AI_SERVICE_NAME } from '@app/contracts';
     ToolsModule,
     PrometheusModule.register(AI_SERVICE_NAME),
   ],
-  controllers: [
-    AiServiceHealthController,
-    MetricsController,
-  ],
+  controllers: [AiServiceHealthController, MetricsController],
 })
 export class AiServiceModule {}

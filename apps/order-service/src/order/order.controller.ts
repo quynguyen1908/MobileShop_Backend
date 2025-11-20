@@ -143,7 +143,10 @@ export class OrderController {
   }
 
   @MessagePattern(ORDER_PATTERN.GET_DASHBOARD_STATS)
-  async getDashboardStats() {
-    return this.orderService.getDashboardStats();
+  async getDashboardStats(
+    @Payload() payload: { startDate: string; endDate: string },
+  ) {
+    const { startDate, endDate } = payload;
+    return this.orderService.getDashboardStats(startDate, endDate);
   }
 }

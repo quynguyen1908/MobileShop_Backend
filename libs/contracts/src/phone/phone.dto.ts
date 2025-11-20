@@ -151,11 +151,21 @@ export type InventoryUpdateDto = z.infer<typeof inventoryUpdateDtoSchema>;
 
 // Inventory
 
-export const inventoryDtoSchema = inventorySchema.omit({
-  createdAt: true,
-  updatedAt: true,
-  isDeleted: true,
-});
+export const inventoryDtoSchema = inventorySchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    color: colorSchema
+      .omit({
+        createdAt: true,
+        updatedAt: true,
+        isDeleted: true,
+      })
+      .optional(),
+  });
 
 export type InventoryDto = z.infer<typeof inventoryDtoSchema>;
 

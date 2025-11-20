@@ -6,6 +6,7 @@ import {
   CategoryCreateDto,
   CategoryUpdateDto,
   InventoryCreateDto,
+  InventoryDto,
   InventoryUpdateDto,
   PhoneCreateDto,
   PhoneUpdateDto,
@@ -92,6 +93,7 @@ export interface IPhoneService {
 
   // Inventory
   getInventoryBySku(sku: string): Promise<Inventory>;
+  getInventoriesByName(name: string): Promise<InventoryDto[]>;
   getInventoryByVariantIdAndColorId(
     variantId: number,
     colorId: number,
@@ -123,6 +125,7 @@ export interface IPhoneQueryRepository {
   findPhonesByCategoryId(categoryId: number): Promise<Phone[]>;
   findPhonesByCategoryIds(categoryIds: number[]): Promise<Phone[]>;
   findPhoneById(id: number): Promise<Phone | null>;
+  findPhoneByName(name: string): Promise<Phone | null>;
 
   // Brand
   findBrandsByIds(ids: number[]): Promise<Brand[]>;
@@ -144,6 +147,7 @@ export interface IPhoneQueryRepository {
   findVariantsByIds(ids: number[]): Promise<PhoneVariant[]>;
   findVariantsByPhoneId(phoneId: number): Promise<PhoneVariant[]>;
   findVariantsByPhoneIds(phoneIds: number[]): Promise<PhoneVariant[]>;
+  findVariantsByName(name: string): Promise<PhoneVariant[]>;
 
   // Review
   findReviewsByVariantIds(variantIds: number[]): Promise<Review[]>;

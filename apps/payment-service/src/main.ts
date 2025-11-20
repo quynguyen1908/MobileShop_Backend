@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { PaymentServiceModule } from './payment-service.module';
-import { RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQService } from '@app/rabbitmq';
 import { PaymentEventHandler } from './payment/payment-event.handler';
 
 async function bootstrap() {

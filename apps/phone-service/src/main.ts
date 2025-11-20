@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { PhoneServiceModule } from './phone-service.module';
-import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
+import { RabbitMQService } from '@app/rabbitmq';
 import { PhoneEventHandler } from './phone/phone-event.handler';
 
 async function bootstrap() {

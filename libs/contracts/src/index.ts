@@ -17,8 +17,6 @@ export const RETRIEVAL_REPOSITORY = Symbol('RETRIEVAL_REPOSITORY');
 
 export const TOKEN_PROVIDER = Symbol('TOKEN_PROVIDER');
 export const TOKEN_VALIDATOR = Symbol('TOKEN_VALIDATOR');
-export const EVENT_PUBLISHER = Symbol('EVENT_PUBLISHER');
-export const EVENT_SUBSCRIBER = Symbol('EVENT_SUBSCRIBER');
 
 export const OPENAI_EMBEDDINGS = Symbol('OPENAI_EMBEDDINGS');
 export const OPENAI_CHAT_MODEL = Symbol('OPENAI_CHAT_MODEL');

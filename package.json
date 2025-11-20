@@ -153,7 +153,9 @@
     ],
     "moduleNameMapper": {
       "^@app/contracts(|/.*)$": "<rootDir>/libs/contracts/src/$1",
-      "^@app/monitoring(|/.*)$": "<rootDir>/libs/monitoring/src/$1"
+      "^@app/monitoring(|/.*)$": "<rootDir>/libs/monitoring/src/$1",
+      "^@app/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
+      "^@app/rabbitmq(|/.*)$": "<rootDir>/libs/rabbitmq/src/$1"
     },
     "transformIgnorePatterns": [
       "node_modules/(?!(uuid)/)"

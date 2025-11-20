@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { IPhoneRepository } from './phone.port';
-import { PhonePrismaService } from '@app/contracts/prisma';
+import { PhonePrismaService } from '@app/prisma';
 import {
   Brand,
   BrandUpdateDto,
@@ -368,6 +368,48 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
     return this._toPhoneVariantModel(variant);
+  }
+
+  async findVariantsByName(name: string): Promise<PhoneVariant[]> {
+    interface RawVariantRow {
+      id: number;
+      phone_id: number;
+      variant_name: string;
+      description: string | null;
+      created_at: Date;
+      updated_at: Date;
+      is_deleted: boolean;
+    }
+
+    const rawQuery = `
+      SELECT id, phone_id, variant_name, description, created_at, updated_at, is_deleted
+      FROM phone_variants  
+      WHERE $1 ILIKE CONCAT('%', variant_name, '%')
+        AND is_deleted = false
+      ORDER BY LENGTH(variant_name) DESC
+    `;
+
+    const result = await this.prisma.$queryRawUnsafe<RawVariantRow[]>(
+      rawQuery,
+      name,
+    );
+
+    if (!Array.isArray(result) || result.length === 0) {
+      return [];
+    }
+
+    const variants: PhoneVariant[] = result.map((row) => {
+      return {
+        id: row.id,
+        phoneId: row.phone_id,
+        variantName: row.variant_name,
+        description: row.description,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        isDeleted: row.is_deleted,
+      };
+    });
+    return variants;
   }
 
   async findVariantsByIds(ids: number[]): Promise<PhoneVariant[]> {
@@ -1191,6 +1233,47 @@ export class PhoneRepository implements IPhoneRepository {
       },
     });
     return phones.map((phone) => this._toPhoneModel(phone));
+  }
+
+  async findPhoneByName(name: string): Promise<Phone | null> {
+    interface RawPhoneRow {
+      id: number;
+      name: string;
+      brand_id: number;
+      category_id: number;
+      created_at: Date;
+      updated_at: Date;
+      is_deleted: boolean;
+    }
+
+    const rawQuery = `
+      SELECT id, name, brand_id, category_id, created_at, updated_at, is_deleted 
+      FROM phones 
+      WHERE $1 ILIKE CONCAT('%', name, '%')
+        AND is_deleted = false
+      ORDER BY LENGTH(name) DESC
+      LIMIT 1
+    `;
+
+    const result = await this.prisma.$queryRawUnsafe<RawPhoneRow[]>(
+      rawQuery,
+      name,
+    );
+
+    if (!Array.isArray(result) || result.length === 0) {
+      return null;
+    }
+
+    const model: Phone = {
+      id: result[0].id,
+      name: result[0].name,
+      brandId: result[0].brand_id,
+      categoryId: result[0].category_id,
+      createdAt: result[0].created_at,
+      updatedAt: result[0].updated_at,
+      isDeleted: result[0].is_deleted,
+    };
+    return model;
   }
 
   async listPhones(paging: PagingDto): Promise<Paginated<Phone>> {

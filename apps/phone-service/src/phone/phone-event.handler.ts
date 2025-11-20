@@ -1,8 +1,5 @@
-import {
-  EVENT_PUBLISHER,
-  EVENT_SUBSCRIBER,
-  PHONE_SERVICE,
-} from '@app/contracts';
+import { PHONE_SERVICE } from '@app/contracts';
+import { EVENT_PUBLISHER, EVENT_SUBSCRIBER } from '@app/rabbitmq';
 import type {
   EventJson,
   IEventPublisher,

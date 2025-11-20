@@ -29,6 +29,7 @@ import type {
   CategoryUpdateDto,
   Color,
   InventoryCreateDto,
+  InventoryDto,
   PhoneCreateDto,
   PhoneFilterDto,
   PhoneUpdateDto,
@@ -2708,6 +2709,89 @@ export class InventoryController {
         PHONE_SERVICE_NAME,
         PHONE_PATTERN.GET_INVENTORY_BY_SKU,
         sku,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Inventory retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Getting inventory failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('variant/:variantName')
+  @ApiOperation({ summary: 'Get inventory information by variant name' })
+  @ApiParam({
+    name: 'variantName',
+    type: String,
+    description: 'Product variant name',
+    example: 'iPhone 14 Pro Max',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Inventory retrieved successfully',
+          data: [
+            {
+              id: 1,
+              variantId: 1,
+              sku: 'IP14PM-1TB-BLK',
+              stockQuantity: 50,
+            },
+          ],
+        },
+      },
+    },
+  })
+  async getInventoriesByName(
+    @Param('variantName') variantName: string,
+    @Res() res: Response,
+  ) {
+    try {
+      console.log('Fetching inventory for variant:', variantName);
+      const result = await this.circuitBreakerService.sendRequest<
+        InventoryDto[] | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.GET_INVENTORIES_BY_NAME,
+        variantName,
         () => {
           return {
             fallback: true,

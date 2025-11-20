@@ -1,4 +1,5 @@
-import { EVENT_SUBSCRIBER, PAYMENT_SERVICE } from '@app/contracts';
+import { PAYMENT_SERVICE } from '@app/contracts';
+import { EVENT_SUBSCRIBER } from '@app/rabbitmq';
 import type { EventJson, IEventSubscriber } from '@app/contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IPaymentService } from './payment.port';

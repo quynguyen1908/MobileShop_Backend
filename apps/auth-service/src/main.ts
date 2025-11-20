@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AuthServiceModule } from './auth-service.module';
-import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
+import { RabbitMQService } from '@app/rabbitmq';
 
 async function bootstrap() {
   const app = await NestFactory.create(AuthServiceModule);

@@ -14,7 +14,7 @@ import {
   OAuthProvider,
 } from '@app/contracts/auth';
 import { PagingDto, Paginated } from '@app/contracts';
-import { UserPrismaService } from '@app/contracts/prisma';
+import { UserPrismaService } from '@app/prisma';
 
 interface PrismaUser {
   id: number;

@@ -5,15 +5,20 @@ import {
   OrderController,
   ShipmentController,
 } from './order.controller';
-import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
-import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
+import { RabbitMQService } from '@app/rabbitmq';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 import { ORDER_SERVICE } from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
 
 @Module({
   imports: [RabbitMQModule.register(), CircuitBreakerModule],
-  controllers: [OrderController, ShipmentController, CartController, DashboardController],
+  controllers: [
+    OrderController,
+    ShipmentController,
+    CartController,
+    DashboardController,
+  ],
   providers: [
     {
       provide: ORDER_SERVICE,

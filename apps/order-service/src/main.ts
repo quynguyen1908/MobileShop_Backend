@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { OrderServiceModule } from './order-service.module';
-import { RabbitMQService } from '@app/contracts/rmq/rmq.service';
+import { RabbitMQService } from '@app/rabbitmq';
 import { OrderEventHandler } from './order/order-event.handler';
 
 async function bootstrap() {

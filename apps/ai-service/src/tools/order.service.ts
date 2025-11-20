@@ -131,11 +131,24 @@ export class OrderToolService {
         this.trackOrder(input.orderCode),
       {
         name: 'trackOrder',
-        description: `Gọi API để theo dõi trạng thái của đơn hàng theo mã đơn hàng.
-        Bất cứ câu hỏi nào liên quan đến việc theo dõi đơn hàng, bạn nên sử dụng công cụ này.
-        Ví dụ: "Theo dõi đơn hàng với mã đơn hàng ORD12345".
-        Nếu bạn không chắc chắn về mã đơn hàng, hãy hỏi người dùng để lấy mã chính xác trước khi gọi công cụ này.
-        Nếu bạn không biết câu trả lời, hãy trả lời rằng bạn không biết thay vì đoán.`,
+        description: `Công cụ theo dõi trạng thái đơn hàng trong hệ thống PHONEHUB.
+        
+        Sử dụng công cụ này khi khách hàng hỏi về:
+        - Trạng thái hiện tại của đơn hàng
+        - Tiến độ xử lý đơn hàng (đang chuẩn bị, đang giao, đã giao)
+        
+        Ví dụ câu hỏi từ khách hàng:
+        - "Theo dõi đơn hàng PH0211259191"
+        - "Đơn hàng PH1211255447 đến đâu rồi?"
+        - "Xem tình trạng đơn hàng PH3010257917"
+        
+        Lưu ý:
+        - Tool sẽ hiển thị đầy đủ thông tin trạng thái đơn hàng
+        - Luôn hiển thị: Trạng thái hiện tại, ngày đặt hàng, thông tin người nhận
+        - Không được hiển thị thông tin kỹ thuật nội bộ như ID hệ thống, ngày cập nhật, v.v.
+        - Nếu bạn không chắc chắn về mã đơn hàng, hãy hỏi người dùng để lấy mã chính xác trước khi gọi công cụ này
+        - Nếu không tìm thấy đơn hàng, hãy trả lời rằng không tìm thấy thay vì đoán
+        - Mã đơn hàng thường có format: PH + số`,
         schema: trackOrderSchema,
       },
     );

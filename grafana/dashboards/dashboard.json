@@ -1,6 +1,6 @@
 {
   "id": null,
-  "uid": "mobile-shop-microservices",
+  "uid": "mobile-shop-microservices", 
   "title": "Mobile Shop - NestJS Microservices Dashboard",
   "description": "Comprehensive monitoring dashboard for Mobile Shop microservices architecture",
   "tags": ["nestjs", "microservices", "prometheus", "mobile-shop"],
@@ -29,8 +29,8 @@
       "targets": [
         {
           "expr": "sum(up{job=~\"$service\"})",
-          "refId": "A",
-          "legendFormat": "Healthy"
+          "refId": "healthy_services",
+          "legendFormat": "Healthy Services"
         }
       ],
       "fieldConfig": {
@@ -63,8 +63,8 @@
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=~\"$service\"}[5m]))",
-          "refId": "A",
-          "legendFormat": "req/s"
+          "refId": "total_request_rate",
+          "legendFormat": "Total Requests/sec"
         }
       ],
       "fieldConfig": {
@@ -92,8 +92,8 @@
       "targets": [
         {
           "expr": "avg(rate(http_request_duration_seconds_sum{job=~\"$service\"}[5m]) / rate(http_request_duration_seconds_count{job=~\"$service\"}[5m]))",
-          "refId": "A",
-          "legendFormat": "avg"
+          "refId": "avg_response_time",
+          "legendFormat": "Average Response Time"
         }
       ],
       "fieldConfig": {
@@ -121,8 +121,8 @@
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=~\"$service\",status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=~\"$service\"}[5m])) * 100",
-          "refId": "A",
-          "legendFormat": "errors"
+          "refId": "error_rate",
+          "legendFormat": "Error Rate %"
         }
       ],
       "fieldConfig": {
@@ -150,7 +150,7 @@
       "targets": [
         {
           "expr": "up{job=~\"$service\"}",
-          "refId": "A",
+          "refId": "service_health",
           "legendFormat": "{{instance}} - {{job}}"
         }
       ],
@@ -189,8 +189,8 @@
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=~\"$service\"}[5m])) by (job)",
-          "refId": "A",
-          "legendFormat": "{{job}}"
+          "refId": "request_rate_by_service",
+          "legendFormat": "{{job}} Requests/sec"
         }
       ],
       "fieldConfig": {
@@ -219,18 +219,18 @@
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (le))",
-          "refId": "A",
-          "legendFormat": "95th percentile"
+          "refId": "p95_response_time",
+          "legendFormat": "95th Percentile (P95)"
         },
         {
           "expr": "histogram_quantile(0.75, sum(rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (le))",
-          "refId": "B",
-          "legendFormat": "75th percentile"
+          "refId": "p75_response_time",
+          "legendFormat": "75th Percentile (P75)"
         },
         {
           "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (le))",
-          "refId": "C",
-          "legendFormat": "50th percentile"
+          "refId": "median_response_time",
+          "legendFormat": "Median (P50)"
         }
       ],
       "fieldConfig": {
@@ -260,7 +260,7 @@
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=\"api-gateway\"}[5m])) by (route, method)",
-          "refId": "A",
+          "refId": "api_gateway_endpoints",
           "legendFormat": "{{method}} {{route}}"
         }
       ],
@@ -287,7 +287,8 @@
       "targets": [
         {
           "expr": "sum by (job) (rate(http_request_duration_seconds_count{job=~\"$service\", status=~\"5..\"}[5m])) / sum by (job) (rate(http_request_duration_seconds_count{job=~\"$service\"}[5m])) * 100",
-          "legendFormat": "{{job}}"
+          "refId": "service_error_rates",
+          "legendFormat": "{{job}} Error Rate"
         }
       ],
       "fieldConfig": {
@@ -319,8 +320,8 @@
       "targets": [
         {
           "expr": "rate(process_cpu_seconds_total{job=~\"$service\"}[5m]) * 100",
-          "refId": "A",
-          "legendFormat": "{{job}} - {{instance}}"
+          "refId": "cpu_usage_by_service",
+          "legendFormat": "{{job}} CPU Usage"
         }
       ],
       "fieldConfig": {
@@ -342,8 +343,8 @@
       "targets": [
         {
           "expr": "process_resident_memory_bytes{job=~\"$service\"} / 1024 / 1024",
-          "refId": "A",
-          "legendFormat": "{{job}} - {{instance}}"
+          "refId": "memory_usage_by_service",
+          "legendFormat": "{{job}} Memory (MB)"
         }
       ],
       "fieldConfig": {
@@ -365,8 +366,8 @@
       "targets": [
         {
           "expr": "sum(rabbitmq_queue_messages)",
-          "refId": "A",
-          "legendFormat": "Messages"
+          "refId": "rabbitmq_messages",
+          "legendFormat": "Total Messages"
         }
       ],
       "fieldConfig": {
@@ -392,8 +393,8 @@
       "targets": [
         {
           "expr": "pg_stat_database_numbackends{datname!=\"template0\",datname!=\"template1\",datname!=\"postgres\"}",
-          "refId": "A",
-          "legendFormat": "{{datname}}"
+          "refId": "postgres_connections",
+          "legendFormat": "{{datname}} Connections"
         }
       ],
       "fieldConfig": {
@@ -419,8 +420,8 @@
       "targets": [
         {
           "expr": "prometheus_tsdb_size_bytes / 1024 / 1024",
-          "refId": "A",
-          "legendFormat": "TSDB (MB)"
+          "refId": "prometheus_tsdb_size",
+          "legendFormat": "TSDB Size (MB)"
         }
       ],
       "fieldConfig": {
@@ -453,8 +454,8 @@
       "targets": [
         {
           "expr": "prometheus_tsdb_head_series",
-          "refId": "A",
-          "legendFormat": "Series"
+          "refId": "prometheus_active_series",
+          "legendFormat": "Active Time Series"
         }
       ],
       "fieldConfig": {
@@ -493,8 +494,8 @@
       "targets": [
         {
           "expr": "rate(orders_created_total[5m]) * 60",
-          "refId": "A",
-          "legendFormat": "Orders/min"
+          "refId": "orders_per_minute",
+          "legendFormat": "Orders Created/min"
         }
       ],
       "fieldConfig": {
@@ -519,8 +520,8 @@
       "targets": [
         {
           "expr": "sum(rate(payments_completed_total[5m])) / sum(rate(payments_total[5m])) * 100",
-          "refId": "A",
-          "legendFormat": "Success %"
+          "refId": "payment_success_rate",
+          "legendFormat": "Payment Success %"
         }
       ],
       "fieldConfig": {
@@ -547,8 +548,8 @@
       "targets": [
         {
           "expr": "circuit_breaker_state",
-          "refId": "A",
-          "legendFormat": "{{service}} - {{state}}"
+          "refId": "circuit_breaker_status",
+          "legendFormat": "{{service}} → {{target_service}}"
         }
       ],
       "fieldConfig": {
@@ -583,13 +584,13 @@
       "targets": [
         {
           "expr": "rate(ai_requests_total[5m])",
-          "refId": "A",
-          "legendFormat": "Request Rate"
+          "refId": "ai_request_rate",
+          "legendFormat": "AI Request Rate"
         },
         {
           "expr": "histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m]))",
-          "refId": "B",
-          "legendFormat": "95th Response Time"
+          "refId": "ai_response_time_p95",
+          "legendFormat": "AI Response Time (P95)"
         }
       ],
       "fieldConfig": {
@@ -601,11 +602,11 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Request Rate" },
+            "matcher": { "id": "byName", "options": "AI Request Rate" },
             "properties": [{ "id": "unit", "value": "reqps" }]
           },
           {
-            "matcher": { "id": "byName", "options": "95th Response Time" },
+            "matcher": { "id": "byName", "options": "AI Response Time (P95)" },
             "properties": [{ "id": "unit", "value": "s" }]
           }
         ]
@@ -620,8 +621,8 @@
       "targets": [
         {
           "expr": "qdrant_collections_total",
-          "refId": "A",
-          "legendFormat": "Collections"
+          "refId": "qdrant_collections",
+          "legendFormat": "Vector Collections"
         }
       ],
       "fieldConfig": {
@@ -646,7 +647,7 @@
       "targets": [
         {
           "expr": "topk(10, sum(rate(http_requests_total{job=\"api-gateway\"}[5m])) by (route, method))",
-          "refId": "A",
+          "refId": "top_api_endpoints",
           "format": "table"
         }
       ],
