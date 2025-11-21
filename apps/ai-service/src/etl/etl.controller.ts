@@ -1,8 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { ETLService } from './services/etl.service';
 
 @Controller('v1/ai/etl')
 export class EtlController {
+  private readonly logger = new Logger(EtlController.name);
+
   constructor(private readonly etlService: ETLService) {}
 
   @Get('ingest')
@@ -14,7 +16,7 @@ export class EtlController {
         timestamp: new Date().toISOString(),
       };
     } catch (error: unknown) {
-      console.error('ETL Ingestion Error:', error);
+      this.logger.error('ETL Ingestion Error:', error);
       throw error;
     }
   }

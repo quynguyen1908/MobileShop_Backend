@@ -1,6 +1,6 @@
 import { CheckInventoryInput, checkInventorySchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -13,6 +13,7 @@ import { AppError } from '@app/contracts';
 @Injectable()
 export class InventoryToolService {
   private readonly inventoryServiceUrl: string;
+  private readonly logger = new Logger(InventoryToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -33,7 +34,7 @@ export class InventoryToolService {
           >(`${this.inventoryServiceUrl}/variant/${encodeURIComponent(variantName)}`)
           .pipe(
             catchError((error: unknown) => {
-              console.error(
+              this.logger.error(
                 `Error checking inventory for variant name ${variantName}:`,
                 error,
               );
@@ -112,7 +113,7 @@ export class InventoryToolService {
         ? `❌ Không thể lấy thông tin tồn kho: ${errorDetail}`
         : `❌ Không tìm thấy thông tin tồn kho cho sản phẩm "${variantName}". Vui lòng kiểm tra lại tên sản phẩm.`;
     } catch (error: unknown) {
-      console.error(
+      this.logger.error(
         `Failed to check inventory for variant ${variantName}:`,
         error,
       );

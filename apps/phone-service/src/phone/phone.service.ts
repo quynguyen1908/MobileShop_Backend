@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IPhoneRepository, IPhoneService } from './phone.port';
 import {
   AppError,
@@ -78,6 +78,8 @@ import { ORDER_PATTERN } from '@app/contracts/order';
 
 @Injectable()
 export class PhoneService implements IPhoneService {
+  private readonly logger = new Logger(PhoneService.name);
+
   constructor(
     @Inject(PHONE_REPOSITORY)
     private readonly phoneRepository: IPhoneRepository,
@@ -1103,7 +1105,7 @@ export class PhoneService implements IPhoneService {
       );
     }
 
-    console.log('Found phone:', phone);
+    this.logger.log('Found phone:', phone);
 
     const variants = await this.phoneRepository.findVariantsByName(name);
 
@@ -1115,7 +1117,7 @@ export class PhoneService implements IPhoneService {
       );
     }
 
-    console.log('Found variants:', variants);
+    this.logger.log('Found variants:', variants);
 
     let foundVariant: PhoneVariant | null = null;
 

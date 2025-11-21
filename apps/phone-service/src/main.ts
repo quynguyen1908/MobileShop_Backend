@@ -2,12 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { PhoneServiceModule } from './phone-service.module';
 import { RabbitMQService } from '@app/rabbitmq';
 import { PhoneEventHandler } from './phone/phone-event.handler';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(PhoneServiceModule);
+  const app = await NestFactory.create(PhoneServiceModule, { bufferLogs: true });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const phoneEventHandler = app.get(PhoneEventHandler);
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.connectMicroservice(rmqService.phoneServiceOptions);
 
   try {

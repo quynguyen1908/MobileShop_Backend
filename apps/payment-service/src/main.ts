@@ -2,12 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { PaymentServiceModule } from './payment-service.module';
 import { RabbitMQService } from '@app/rabbitmq';
 import { PaymentEventHandler } from './payment/payment-event.handler';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(PaymentServiceModule);
+  const app = await NestFactory.create(PaymentServiceModule, { bufferLogs: true });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const paymentEventHandler = app.get(PaymentEventHandler);
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.connectMicroservice(rmqService.paymentServiceOptions);
 
   try {

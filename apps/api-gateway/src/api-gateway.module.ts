@@ -13,6 +13,7 @@ import { VoucherModule } from './voucher/voucher.module';
 import paymentConfig from '@app/contracts/payment/payment.config';
 import { MetricsController, PrometheusModule } from '@app/monitoring';
 import { API_GATEWAY_NAME } from '@app/contracts';
+import { LoggingModule } from '@app/logging';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { API_GATEWAY_NAME } from '@app/contracts';
     PaymentModule,
     VoucherModule,
     PrometheusModule.register(API_GATEWAY_NAME),
+    LoggingModule.register({ serviceName: API_GATEWAY_NAME }),
   ],
   controllers: [HealthController, MetricsController],
   providers: [],

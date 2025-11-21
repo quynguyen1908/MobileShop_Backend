@@ -2,12 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { OrderServiceModule } from './order-service.module';
 import { RabbitMQService } from '@app/rabbitmq';
 import { OrderEventHandler } from './order/order-event.handler';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(OrderServiceModule);
+  const app = await NestFactory.create(OrderServiceModule, { bufferLogs: true });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const orderEventHandler = app.get(OrderEventHandler);
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.connectMicroservice(rmqService.orderServiceOptions);
 
   try {

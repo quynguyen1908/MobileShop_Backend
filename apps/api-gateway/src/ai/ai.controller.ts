@@ -6,6 +6,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   Post,
   Req,
   Res,
@@ -30,6 +31,8 @@ interface IngestResponse {
 @ApiTags('AI Agents')
 @Controller('v1/ai')
 export class AiController {
+  private readonly logger = new Logger(AiController.name);
+  
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
@@ -175,7 +178,7 @@ export class AiController {
       (response.data as Readable).pipe(res);
 
       req.on('close', () => {
-        console.log('Client disconnected, closing stream');
+        this.logger.log('Client disconnected, closing stream');
       });
     } catch (error: unknown) {
       const typedError = error as ServiceError;

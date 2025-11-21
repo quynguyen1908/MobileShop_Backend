@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Inject,
+  Logger,
   Param,
   Post,
   Put,
@@ -59,6 +60,8 @@ import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 @ApiTags('Phones')
 @Controller('v1/phones')
 export class PhoneController {
+  private readonly logger = new Logger(PhoneController.name);
+  
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -191,7 +194,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -333,7 +336,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -422,7 +425,7 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -498,7 +501,7 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -629,7 +632,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -874,7 +877,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1013,7 +1016,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1154,7 +1157,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1291,7 +1294,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1427,7 +1430,7 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1505,7 +1508,7 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1577,7 +1580,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1656,7 +1659,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1727,7 +1730,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1810,7 +1813,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1953,7 +1956,7 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1990,6 +1993,8 @@ export class PhoneController {
 @ApiTags('Brands')
 @Controller('v1/brands')
 export class BrandController {
+  private readonly logger = new Logger(BrandController.name);
+
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -2045,7 +2050,7 @@ export class BrandController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2130,7 +2135,7 @@ export class BrandController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2222,7 +2227,7 @@ export class BrandController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2296,7 +2301,7 @@ export class BrandController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2333,6 +2338,8 @@ export class BrandController {
 @ApiTags('Categories')
 @Controller('v1/categories')
 export class CategoryController {
+  private readonly logger = new Logger(CategoryController.name);
+
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -2385,7 +2392,7 @@ export class CategoryController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2467,7 +2474,7 @@ export class CategoryController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2555,7 +2562,7 @@ export class CategoryController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2632,7 +2639,7 @@ export class CategoryController {
           { timeout: 10000 },
         );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2669,6 +2676,8 @@ export class CategoryController {
 @ApiTags('Inventory')
 @Controller('v1/inventory')
 export class InventoryController {
+  private readonly logger = new Logger(InventoryController.name);
+
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -2718,7 +2727,7 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2784,7 +2793,7 @@ export class InventoryController {
     @Res() res: Response,
   ) {
     try {
-      console.log('Fetching inventory for variant:', variantName);
+      this.logger.log('Fetching inventory for variant:', variantName);
       const result = await this.circuitBreakerService.sendRequest<
         InventoryDto[] | FallbackResponse
       >(
@@ -2801,7 +2810,7 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2885,7 +2894,7 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2923,6 +2932,8 @@ export class InventoryController {
 @ApiTags('Reviews')
 @Controller('v1/reviews')
 export class ReviewController {
+  private readonly logger = new Logger(ReviewController.name);
+  
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -2982,7 +2993,7 @@ export class ReviewController {
         { timeout: 10000 },
       );
 
-      console.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

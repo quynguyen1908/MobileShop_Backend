@@ -421,6 +421,69 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.18.8
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=es01
+      - cluster.name=mobile-shop-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - monitoring.collection.enabled=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock: -1
+      nofile: 65536
+    ports:
+      - '9200:9200'
+    env_file:
+      - .env.docker
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "elastic:${ELASTIC_PASSWORD}", "http://localhost:9200/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1.5G
+        reservations:
+          memory: 1G
+        
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.18.8
+    container_name: kibana
+    restart: unless-stopped
+    ports:
+      - '5601:5601'
+    env_file:
+      - .env.docker
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
 volumes:
   postgres_data:
     driver: local
@@ -447,6 +510,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:

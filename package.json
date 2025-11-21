@@ -59,6 +59,7 @@
     "test:e2e": "jest --config ./apps/mobile-shop/test/jest-e2e.json"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^9.2.0",
     "@langchain/core": "^0.3.78",
     "@langchain/openai": "^0.6.14",
     "@nestjs/axios": "^4.0.1",
@@ -87,6 +88,7 @@
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.35",
     "moment": "^2.30.1",
+    "nest-winston": "^1.10.2",
     "opossum": "^9.0.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
@@ -95,6 +97,8 @@
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^8.3.2",
+    "winston": "^3.18.3",
+    "winston-elasticsearch": "^0.19.0",
     "zod": "^4.1.9"
   },
   "devDependencies": {
@@ -153,6 +157,7 @@
     ],
     "moduleNameMapper": {
       "^@app/contracts(|/.*)$": "<rootDir>/libs/contracts/src/$1",
+      "^@app/logging(|/.*)$": "<rootDir>/libs/logging/src/$1",
       "^@app/monitoring(|/.*)$": "<rootDir>/libs/monitoring/src/$1",
       "^@app/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
       "^@app/rabbitmq(|/.*)$": "<rootDir>/libs/rabbitmq/src/$1"

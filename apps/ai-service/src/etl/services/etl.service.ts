@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { IETLService } from '../etl.port';
 import { SourceType } from '@app/contracts/ai';
 import { ConfigService } from '@nestjs/config/dist/config.service';
@@ -15,6 +15,8 @@ interface DocumentContent {
 
 @Injectable()
 export class ETLService implements IETLService {
+  private readonly logger = new Logger(ETLService.name);
+
   constructor(
     private readonly extractService: ExtractService,
     private readonly transformService: TransformService,
@@ -24,34 +26,34 @@ export class ETLService implements IETLService {
 
   async documentIngestion(): Promise<void> {
     try {
-      console.log('Starting document ingestion process...');
+      this.logger.log('Starting document ingestion process...');
       const startTime = Date.now();
 
       // Extraction
-      console.log('Step 1: Extracting data from sources...');
+      this.logger.log('Step 1: Extracting data from sources...');
 
       const dbDocuments = await this.extractService.readFromSource(
         SourceType.DATABASE,
       );
-      console.log(`Extracted ${dbDocuments.length} documents from database`);
+      this.logger.log(`Extracted ${dbDocuments.length} documents from database`);
 
       const fileDocuments = await this.extractService.readFromSource(
         SourceType.FILE,
       );
-      console.log(`Extracted ${fileDocuments.length} documents from files`);
+      this.logger.log(`Extracted ${fileDocuments.length} documents from files`);
 
       const allDocuments = [...dbDocuments, ...fileDocuments];
 
       if (allDocuments.length === 0) {
-        console.warn('No documents extracted, aborting ingestion process');
+        this.logger.warn('No documents extracted, aborting ingestion process');
         return;
       }
 
       // Transformation
-      console.log('Step 2: Transforming documents...');
+      this.logger.log('Step 2: Transforming documents...');
 
       const cleanedDocuments = this.transformService.cleanData(allDocuments);
-      console.log(`Cleaned ${cleanedDocuments.length} documents`);
+      this.logger.log(`Cleaned ${cleanedDocuments.length} documents`);
 
       const chunkSize = this.configService.get<number>('CHUNK_SIZE', 800);
       const overlap = this.configService.get<number>('CHUNK_OVERLAP', 100);
@@ -60,21 +62,21 @@ export class ETLService implements IETLService {
         chunkSize,
         overlap,
       );
-      console.log(`Split into ${chunks.length} chunks`);
+      this.logger.log(`Split into ${chunks.length} chunks`);
 
       const batchSize = this.configService.get<number>(
         'EMBEDDING_BATCH_SIZE',
         20,
       );
-      console.log(`Generating embeddings with batch size ${batchSize}...`);
+      this.logger.log(`Generating embeddings with batch size ${batchSize}...`);
       const embeddings = await this.transformService.generateEmbeddings(
         chunks,
         batchSize,
       );
-      console.log(`Generated ${embeddings.length} embeddings`);
+      this.logger.log(`Generated ${embeddings.length} embeddings`);
 
       // Loading
-      console.log('Step 3: Loading vectors into database...');
+      this.logger.log('Step 3: Loading vectors into database...');
 
       const metadataList: VectorMetadata[] = chunks.map((chunk, index) => {
         try {
@@ -102,7 +104,7 @@ export class ETLService implements IETLService {
 
           return metadata;
         } catch (error: unknown) {
-          console.error('Error parsing chunk for metadata:', error);
+          this.logger.error('Error parsing chunk for metadata:', error);
           return {
             id: `unknown-${index}`,
             source: 'unknown',
@@ -127,19 +129,19 @@ export class ETLService implements IETLService {
 
         for (const type of types) {
           await this.loadService.removeOldVector({ type });
-          console.log(`Removed existing vectors with type: ${type}`);
+          this.logger.log(`Removed existing vectors with type: ${type}`);
         }
       }
 
       await this.loadService.saveToVectorStore(embeddings, metadataList);
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000;
-      console.log(`Document ingestion completed in ${duration}s`);
-      console.log(
+      this.logger.log(`Document ingestion completed in ${duration}s`);
+      this.logger.log(
         `Successfully processed ${chunks.length} chunks and saved ${embeddings.length} vectors`,
       );
     } catch (error: unknown) {
-      console.error('Document ingestion failed:', error);
+      this.logger.error('Document ingestion failed:', error);
       throw AppError.from(new Error('Document ingestion process failed'), 500)
         .withLog(`
               Document ingestion failed: ${error instanceof Error ? error.message : 'Unknown error'}

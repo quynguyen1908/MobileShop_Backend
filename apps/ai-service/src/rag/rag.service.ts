@@ -42,9 +42,9 @@ export class RagService implements IRagService {
       );
 
       if (similarResults.length === 0) {
-        console.warn('No relevant documents found for query:', query);
+        this.logger.warn('No relevant documents found for query:', query);
       } else {
-        console.log(
+        this.logger.log(
           `Found ${similarResults.length} relevant documents for query:`,
           query,
         );
@@ -74,7 +74,7 @@ export class RagService implements IRagService {
         },
       ];
     } catch (error: unknown) {
-      console.error('Error executing RAG service:', error);
+      this.logger.error('Error executing RAG service:', error);
       throw AppError.from(new Error('Failed to process query'), 500).withLog(`
                     Failed to process query: ${error instanceof Error ? error.message : 'Unknown error'}
                 `);
@@ -143,7 +143,7 @@ export class RagService implements IRagService {
 
         (async () => {
           try {
-            console.log('Starting stream with context length:', context.length);
+            this.logger.log('Starting stream with context length:', context.length);
 
             const stream = await this.agentExecutor.stream({
               input: query,
@@ -158,7 +158,7 @@ export class RagService implements IRagService {
               output?: string;
             }>) {
               if (isCancelled) {
-                console.log('Stream cancelled, stopping processing');
+                this.logger.log('Stream cancelled, stopping processing');
                 break;
               }
 
@@ -187,7 +187,7 @@ export class RagService implements IRagService {
 
             await Promise.all(pendingChunks);
 
-            console.log(
+            this.logger.log(
               'Stream complete, total response length:',
               completeResponse.length,
             );
@@ -208,7 +208,7 @@ export class RagService implements IRagService {
               observer.complete();
             }
           } catch (streamError: unknown) {
-            console.error('Error in stream processing:', streamError);
+            this.logger.error('Error in stream processing:', streamError);
             if (!isCancelled) {
               observer.error(
                 new Error(
@@ -224,12 +224,12 @@ export class RagService implements IRagService {
         })();
 
         return () => {
-          console.log('Stream cleanup: marking as cancelled');
+          this.logger.log('Stream cleanup: marking as cancelled');
           isCancelled = true;
         };
       });
     } catch (error: unknown) {
-      console.error('Error setting up RAG streaming:', error);
+      this.logger.error('Error setting up RAG streaming:', error);
       throw AppError.from(new Error('Failed to process streaming query'), 500)
         .withLog(`
                 Failed to process streaming query: ${error instanceof Error ? error.message : 'Unknown error'}

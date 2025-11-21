@@ -1,10 +1,12 @@
-import { Body, Controller, Header, Post, Res } from '@nestjs/common';
+import { Body, Controller, Header, Logger, Post, Res } from '@nestjs/common';
 import { RagService } from './rag.service';
 import { AskDto } from '@app/contracts/ai/ai.dto';
 import type { Response } from 'express';
 
 @Controller('v1/ai/rag')
 export class RagController {
+  private readonly logger = new Logger(RagController.name);
+  
   constructor(private readonly ragService: RagService) {}
 
   @Post('chat')
@@ -22,7 +24,7 @@ export class RagController {
           res.write('data: ' + JSON.stringify(content) + '\n\n');
         },
         error: (err: unknown) => {
-          console.error('Streaming error:', err);
+          this.logger.error('Streaming error:', err);
           const errorMessage =
             typeof err === 'object' && err !== null && 'message' in err
               ? (err as { message: string }).message
@@ -43,7 +45,7 @@ export class RagController {
         },
       });
     } catch (error: unknown) {
-      console.error('Error setting up stream:', error);
+      this.logger.error('Error setting up stream:', error);
       const errorMessage =
         typeof error === 'object' && error !== null && 'message' in error
           ? (error as { message: string }).message

@@ -1,6 +1,6 @@
 import { ShippingQuoteInput, shippingQuoteSchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -27,6 +27,7 @@ export class ShipmentToolService {
   private readonly ghnApiUrl: string;
   private readonly ghnToken: string;
   private readonly ghnShopId: number;
+  private readonly logger = new Logger(ShipmentToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -47,7 +48,7 @@ export class ShipmentToolService {
   ): Promise<LocationResult> {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
-        console.error(`Location CSV file not found at: ${this.csvFilePath}`);
+        this.logger.error(`Location CSV file not found at: ${this.csvFilePath}`);
         resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
@@ -93,14 +94,14 @@ export class ShipmentToolService {
               found: true,
             });
           } else {
-            console.log(
+            this.logger.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
             resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
-          console.error('Error reading CSV file:', error);
+          this.logger.error('Error reading CSV file:', error);
           reject(new Error(`Error reading CSV file: ${String(error)}`));
         });
     });
@@ -145,7 +146,7 @@ export class ShipmentToolService {
 
               const axiosError = error as AxiosErrorResponse;
 
-              console.error(
+              this.logger.error(
                 'GHN API Error:',
                 axiosError?.response?.data ||
                   axiosError?.message ||
@@ -192,7 +193,7 @@ export class ShipmentToolService {
         return `Không thể tính phí vận chuyển. Vui lòng thử lại sau hoặc liên hệ với bộ phận hỗ trợ.`;
       }
     } catch (error: unknown) {
-      console.error('Error fetching shipping quote:', error);
+      this.logger.error('Error fetching shipping quote:', error);
       return 'Đã xảy ra lỗi khi lấy báo giá vận chuyển. Vui lòng thử lại sau.';
     }
   }

@@ -28,6 +28,12 @@
       "@app/contracts/*": [
         "libs/contracts/src/*"
       ],
+      "@app/logging": [
+        "libs/logging/src"
+      ],
+      "@app/logging/*": [
+        "libs/logging/src/*"
+      ],
       "@app/monitoring": [
         "libs/monitoring/src"
       ],

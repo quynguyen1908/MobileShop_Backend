@@ -1,6 +1,6 @@
 import { TrackOrderInput, trackOrderSchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { HttpService } from '@nestjs/axios/dist/http.service';
 import { ConfigService } from '@nestjs/config';
@@ -20,6 +20,7 @@ interface OrderResponse {
 @Injectable()
 export class OrderToolService {
   private readonly orderServiceUrl: string;
+  private readonly logger = new Logger(OrderToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -38,7 +39,7 @@ export class OrderToolService {
           .get<OrderResponse>(`${this.orderServiceUrl}/code/${orderCode}`)
           .pipe(
             catchError((error: unknown) => {
-              console.error(`Error tracking order ${orderCode}:`, error);
+              this.logger.error(`Error tracking order ${orderCode}:`, error);
               const errorMessage = extractErrorMessage(error);
               throw AppError.from(new Error(errorMessage), 400).withLog(
                 `Failed to track order: ${errorMessage}`,
@@ -70,7 +71,7 @@ export class OrderToolService {
             formattedOrderDate = formatDate(orderDate);
           }
         } catch (dateError) {
-          console.error('Error formatting date:', dateError);
+          this.logger.error('Error formatting date:', dateError);
         }
 
         const totalAmount =
@@ -120,7 +121,7 @@ export class OrderToolService {
         return `Không tìm thấy thông tin đơn hàng với mã ${orderCode}. Vui lòng kiểm tra lại mã đơn hàng.`;
       }
     } catch (error: unknown) {
-      console.error(`Failed to track order ${orderCode}:`, error);
+      this.logger.error(`Failed to track order ${orderCode}:`, error);
       return `Không thể tra cứu thông tin đơn hàng ${orderCode}. Vui lòng thử lại sau hoặc liên hệ với bộ phận Chăm sóc Khách hàng.`;
     }
   }

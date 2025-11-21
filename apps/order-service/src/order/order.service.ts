@@ -756,7 +756,7 @@ export class OrderService implements IOrderService {
 
                 const axiosError = error as AxiosErrorResponse;
 
-                console.error(
+                this.logger.error(
                   'GHN API Error:',
                   axiosError?.response?.data ||
                     axiosError?.message ||
@@ -1100,7 +1100,7 @@ export class OrderService implements IOrderService {
 
             const axiosError = error as AxiosErrorResponse;
 
-            console.error(
+            this.logger.error(
               'GHN API Error:',
               axiosError?.response?.data ||
                 axiosError?.message ||
@@ -1658,7 +1658,7 @@ export class OrderService implements IOrderService {
   ): Promise<LocationResult> {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
-        console.error(`Location CSV file not found at: ${this.csvFilePath}`);
+        this.logger.error(`Location CSV file not found at: ${this.csvFilePath}`);
         resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
@@ -1704,14 +1704,14 @@ export class OrderService implements IOrderService {
               found: true,
             });
           } else {
-            console.log(
+            this.logger.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
             resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
-          console.error('Error reading CSV file:', error);
+          this.logger.error('Error reading CSV file:', error);
           reject(new Error(`Error reading CSV file: ${String(error)}`));
         });
     });
