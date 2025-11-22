@@ -51,7 +51,7 @@
 ---
 
 ## Containerize with Docker
-- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, payment-service, voucher-service, ai-service, postgres, rabbitmq, qdrant, prometheus, grafana
+- **Docker Compose**: api-gateway, auth-service, user-service, phone-service, order-service, payment-service, voucher-service, ai-service, postgres, rabbitmq, qdrant, prometheus, grafana, elasticsearch, kibana
 
 ---
 

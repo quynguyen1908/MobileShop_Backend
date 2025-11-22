@@ -399,14 +399,16 @@ export class PhoneRepository implements IPhoneRepository {
     }
 
     const variants: PhoneVariant[] = result.map((row) => {
+      const rawRow = row as RawVariantRow;
+
       return {
-        id: row.id,
-        phoneId: row.phone_id,
-        variantName: row.variant_name,
-        description: row.description,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        isDeleted: row.is_deleted,
+        id: rawRow.id,
+        phoneId: rawRow.phone_id,
+        variantName: rawRow.variant_name,
+        description: rawRow.description,
+        createdAt: rawRow.created_at,
+        updatedAt: rawRow.updated_at,
+        isDeleted: rawRow.is_deleted,
       };
     });
     return variants;
@@ -1264,14 +1266,16 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
 
+    const rawModel = result[0] as RawPhoneRow;
+
     const model: Phone = {
-      id: result[0].id,
-      name: result[0].name,
-      brandId: result[0].brand_id,
-      categoryId: result[0].category_id,
-      createdAt: result[0].created_at,
-      updatedAt: result[0].updated_at,
-      isDeleted: result[0].is_deleted,
+      id: rawModel.id,
+      name: rawModel.name,
+      brandId: rawModel.brand_id,
+      categoryId: rawModel.category_id,
+      createdAt: rawModel.created_at,
+      updatedAt: rawModel.updated_at,
+      isDeleted: rawModel.is_deleted,
     };
     return model;
   }
