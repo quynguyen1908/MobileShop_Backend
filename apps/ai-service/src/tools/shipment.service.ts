@@ -221,6 +221,10 @@ export class ShipmentToolService {
         - Cấp 1: Tỉnh/Thành phố (VD: TP Hồ Chí Minh, Hà Nội, Cần Thơ)
         - Cấp 2: Xã/Phường (VD: Phường Sài Gòn, Xã Long Thành)
 
+        KHÔNG DÙNG ĐỊA CHỈ 3 CẤP (Quận/Huyện):
+        - KHÔNG sử dụng cấp Quận/Huyện trong địa chỉ (VD: Quận 1, Huyện Bình Chánh)
+        - Chỉ lấy thông tin từ Xã/Phường và Tỉnh/Thành phố để đảm bảo tính chính xác của công cụ
+
         Lưu ý:
         - Tool sẽ hiển thị phí vận chuyển chính xác theo địa chỉ 2 cấp
         - Luôn hiển thị đầy đủ: Phí ship, thời gian giao hàng dự kiến

@@ -28,7 +28,7 @@ export class RagService implements IRagService {
     private readonly configService: ConfigService,
   ) {
     this.maxContextTokens = Number(
-      this.configService.get<string>('MAX_CONTEXT_TOKENS') || 3000,
+      this.configService.get<string>('MAX_CONTEXT_TOKENS') || 4000,
     );
   }
 
@@ -51,6 +51,10 @@ export class RagService implements IRagService {
       }
 
       const context = this.buildContext(similarResults);
+
+      this.logger.debug(
+        `Starting RAG execution for query: ${query} with context length: ${context.length}`,
+      );
 
       const { output } = await this.agentExecutor.invoke({
         input: query,
@@ -86,7 +90,7 @@ export class RagService implements IRagService {
       const queryEmbedding = await this.embeddings.embedQuery(query);
       const similarResults = await this.retrievalRepository.querySimilar(
         queryEmbedding,
-        5,
+        10,
       );
       const context = this.buildContext(similarResults);
 
