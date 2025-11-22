@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Inject,
+  Logger,
   Param,
   Post,
   Put,
@@ -48,6 +49,8 @@ import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 @ApiTags('Customers')
 @Controller('v1/customers')
 export class CustomerController {
+  private readonly logger = new Logger(CustomerController.name);
+
   constructor(
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -131,7 +134,10 @@ export class CustomerController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -221,7 +227,10 @@ export class CustomerController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -305,7 +314,10 @@ export class CustomerController {
           { timeout: 10000 },
         );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -394,7 +406,10 @@ export class CustomerController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -491,7 +506,10 @@ export class CustomerController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -595,7 +613,10 @@ export class CustomerController {
           { timeout: 10000 },
         );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -676,7 +697,10 @@ export class CustomerController {
           { timeout: 10000 },
         );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -714,6 +738,8 @@ export class CustomerController {
 @ApiTags('Locations')
 @Controller('v1/locations')
 export class LocationController {
+  private readonly logger = new Logger(LocationController.name);
+
   constructor(
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -761,7 +787,10 @@ export class LocationController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -845,7 +874,10 @@ export class LocationController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -882,6 +914,8 @@ export class LocationController {
 @ApiTags('Notifications')
 @Controller('v1/notifications')
 export class NotificationController {
+  private readonly logger = new Logger(NotificationController.name);
+
   constructor(
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -936,7 +970,10 @@ export class NotificationController {
         { timeout: 10000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1019,10 +1056,13 @@ export class NotificationController {
             message: 'User service is temporary unavailable',
           } as FallbackResponse;
         },
-        { timeout: 10000 },
+        { timeout: 60000 },
       );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1111,7 +1151,10 @@ export class NotificationController {
           { timeout: 10000 },
         );
 
-      console.log('User service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'User service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

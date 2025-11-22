@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PaymentController } from './payment.controller';
-import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 import { PAYMENT_SERVICE } from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices';

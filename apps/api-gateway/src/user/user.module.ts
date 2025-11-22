@@ -6,7 +6,7 @@ import {
   CustomerController,
   NotificationController,
 } from './user.controller';
-import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 
 @Module({

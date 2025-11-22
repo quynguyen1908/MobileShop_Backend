@@ -1,14 +1,14 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IPhoneRepository, IPhoneService } from './phone.port';
 import {
   AppError,
-  EVENT_PUBLISHER,
   ORDER_SERVICE,
   Paginated,
   PagingDto,
   PHONE_REPOSITORY,
   USER_SERVICE,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import type { IEventPublisher, Requester } from '@app/contracts';
 import {
   BrandDto,
@@ -64,6 +64,11 @@ import {
   reviewCreateDtoSchema,
   InventoryCreateDto,
   inventoryCreateDtoSchema,
+  InventoryDto,
+  PhoneDeletedEvent,
+  BrandDeletedEvent,
+  CategoryDeletedEvent,
+  PhoneVariantDeletedEvent,
 } from '@app/contracts/phone';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -74,15 +79,19 @@ import {
 } from '@app/contracts/user';
 import { firstValueFrom } from 'rxjs';
 import { ORDER_PATTERN } from '@app/contracts/order';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class PhoneService implements IPhoneService {
+  private readonly logger = new Logger(PhoneService.name);
+
   constructor(
     @Inject(PHONE_REPOSITORY)
     private readonly phoneRepository: IPhoneRepository,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly searchService: SearchService,
   ) {}
 
   // Phone
@@ -129,6 +138,20 @@ export class PhoneService implements IPhoneService {
       phone,
     ]);
     return phoneDtoArray[0];
+  }
+
+  async getPhonesByCategoryId(
+    categoryId: number,
+  ): Promise<PhoneWithVariantsDto[]> {
+    const phones =
+      await this.phoneRepository.findPhonesByCategoryId(categoryId);
+
+    if (!phones || phones.length === 0) {
+      return [];
+    }
+
+    const phoneDtos: PhoneWithVariantsDto[] = await this.toPhoneDto(phones);
+    return phoneDtos;
   }
 
   async createPhone(phoneCreateDto: PhoneCreateDto): Promise<number> {
@@ -194,11 +217,14 @@ export class PhoneService implements IPhoneService {
       );
     }
 
+    const variants = await this.phoneRepository.findVariantsByPhoneIds(ids);
+
     await this.deletePhones(ids);
 
-    const event = PhoneUpdatedEvent.create(
+    const event = PhoneDeletedEvent.create(
       {
         id: ids[0],
+        variantIds: variants.map((v) => v.id!),
       },
       PHONE_SERVICE_NAME,
     );
@@ -331,16 +357,25 @@ export class PhoneService implements IPhoneService {
     }
 
     const phones = await this.phoneRepository.findPhonesByBrandId(id);
+    let variants: PhoneVariant[] = [];
+
     if (phones && phones.length > 0) {
+      variants = await this.phoneRepository.findVariantsByPhoneIds(
+        phones
+          .map((phone) => phone.id!)
+          .filter((id): id is number => id !== undefined),
+      );
+
       await this.deletePhones(
         phones
           .map((phone) => phone.id)
           .filter((id): id is number => id !== undefined),
       );
 
-      const event = BrandUpdatedEvent.create(
+      const event = BrandDeletedEvent.create(
         {
           id: id,
+          variantIds: variants.map((v) => v.id!),
         },
         PHONE_SERVICE_NAME,
       );
@@ -453,16 +488,25 @@ export class PhoneService implements IPhoneService {
     const phones =
       await this.phoneRepository.findPhonesByCategoryIds(categoryIdsToDelete);
 
+    let variants: PhoneVariant[] = [];
+
     if (phones && phones.length > 0) {
+      variants = await this.phoneRepository.findVariantsByPhoneIds(
+        phones
+          .map((phone) => phone.id!)
+          .filter((id): id is number => id !== undefined),
+      );
+
       await this.deletePhones(
         phones
           .map((phone) => phone.id)
           .filter((id): id is number => id !== undefined),
       );
 
-      const event = CategoryUpdatedEvent.create(
+      const event = CategoryDeletedEvent.create(
         {
           id: id,
+          variantIds: variants.map((v) => v.id!),
         },
         PHONE_SERVICE_NAME,
       );
@@ -1031,9 +1075,10 @@ export class PhoneService implements IPhoneService {
 
     await this.deletePhoneVariants(ids);
 
-    const event = PhoneVariantUpdatedEvent.create(
+    const event = PhoneVariantDeletedEvent.create(
       {
         id: ids[0],
+        variantIds: variants.map((v) => v.id!),
       },
       PHONE_SERVICE_NAME,
     );
@@ -1089,6 +1134,76 @@ export class PhoneService implements IPhoneService {
     }
 
     return inventory;
+  }
+
+  async getInventoriesByName(name: string): Promise<InventoryDto[]> {
+    const phone = await this.phoneRepository.findPhoneByName(name);
+
+    if (!phone) {
+      throw new RpcException(
+        AppError.from(ErrPhoneNotFound, 404)
+          .withLog('Phone not found for the given name')
+          .toJson(false),
+      );
+    }
+
+    this.logger.log('Found phone:', phone);
+
+    const variants = await this.phoneRepository.findVariantsByName(name);
+
+    if (!variants || variants.length === 0) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('Phone variant not found for the given name')
+          .toJson(false),
+      );
+    }
+
+    this.logger.log('Found variants:', variants);
+
+    let foundVariant: PhoneVariant | null = null;
+
+    for (const variant of variants) {
+      if (variant.phoneId === phone.id) {
+        const fullName = `${phone.name} ${variant.variantName}`;
+        if (fullName === name) {
+          foundVariant = variant;
+          break;
+        }
+      }
+    }
+
+    if (!foundVariant) {
+      throw new RpcException(
+        AppError.from(ErrPhoneVariantNotFound, 404)
+          .withLog('No matching phone variant found for the given name')
+          .toJson(false),
+      );
+    }
+
+    const inventories = await this.phoneRepository.findInventoriesByVariantIds([
+      foundVariant.id!,
+    ]);
+
+    const colors = await this.phoneRepository.findAllColors();
+
+    const inventoryDtos: InventoryDto[] = inventories.map((inventory) => {
+      const color = colors.find((c) => c.id === inventory.colorId);
+
+      return {
+        id: inventory.id!,
+        variantId: inventory.variantId,
+        colorId: inventory.colorId,
+        sku: inventory.sku,
+        stockQuantity: inventory.stockQuantity,
+        color: {
+          name: color ? color.name : 'Unknown',
+          id: color ? color.id! : 0,
+        },
+      };
+    });
+
+    return inventoryDtos;
   }
 
   async getInventoryByVariantIdAndColorId(
@@ -1257,6 +1372,12 @@ export class PhoneService implements IPhoneService {
     });
 
     return newReview.id!;
+  }
+
+  async syncAllDocuments(): Promise<void> {
+    const variants = await this.getAllVariants();
+
+    await this.searchService.bulkIndex(variants);
   }
 
   private async toPhoneDto(phones: Phone[]): Promise<PhoneWithVariantsDto[]> {

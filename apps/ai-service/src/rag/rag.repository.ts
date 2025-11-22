@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IRetrievalRepository } from './rag.port';
 import { ConfigService } from '@nestjs/config';
 import { QdrantClient } from '@qdrant/js-client-rest';
@@ -10,6 +10,7 @@ export class RetrievalRepository implements IRetrievalRepository {
   private client: QdrantClient;
   private readonly collectionName: string;
   private readonly vectorSize: number;
+  private readonly logger = new Logger(RetrievalRepository.name);
 
   constructor(private configService: ConfigService) {
     this.client = new QdrantClient({
@@ -48,10 +49,12 @@ export class RetrievalRepository implements IRetrievalRepository {
 
         await this.client.createCollection(this.collectionName, payload);
 
-        console.log(`Collection ${this.collectionName} created successfully`);
+        this.logger.log(
+          `Collection ${this.collectionName} created successfully`,
+        );
       }
     } catch (error: unknown) {
-      console.error('Failed to initialize Qdrant collection:', error);
+      this.logger.error('Failed to initialize Qdrant collection:', error);
       throw new Error(
         `Failed to initialize Qdrant collection: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -85,9 +88,9 @@ export class RetrievalRepository implements IRetrievalRepository {
         ],
       });
 
-      console.log(`Vector with ID ${id} upserted successfully`);
+      this.logger.log(`Vector with ID ${id} upserted successfully`);
     } catch (error: unknown) {
-      console.error('Failed to upsert vector:', error);
+      this.logger.error('Failed to upsert vector:', error);
       throw new Error(
         `Failed to upsert vector: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -112,11 +115,11 @@ export class RetrievalRepository implements IRetrievalRepository {
         },
       });
 
-      console.log(
+      this.logger.log(
         `Vectors matching filter ${JSON.stringify(filter)} deleted successfully`,
       );
     } catch (error: unknown) {
-      console.error('Failed to delete vectors:', error);
+      this.logger.error('Failed to delete vectors:', error);
       throw new Error(
         `Failed to delete vectors: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -136,7 +139,7 @@ export class RetrievalRepository implements IRetrievalRepository {
       });
 
       if (!searchResult || searchResult.length === 0) {
-        console.warn('No similar vectors found for the query');
+        this.logger.warn('No similar vectors found for the query');
         return [];
       }
 
@@ -148,7 +151,7 @@ export class RetrievalRepository implements IRetrievalRepository {
         },
       }));
     } catch (error: unknown) {
-      console.error('Failed to search similar vectors in Qdrant:', error);
+      this.logger.error('Failed to search similar vectors in Qdrant:', error);
       throw new Error(
         `Failed to search similar vectors: ${error instanceof Error ? error.message : String(error)}`,
       );

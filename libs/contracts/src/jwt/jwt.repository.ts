@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UserPrismaService } from '../prisma';
+import { UserPrismaService } from '@app/prisma';
 import * as crypto from 'crypto';
 
 interface RefreshToken {

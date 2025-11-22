@@ -1,7 +1,6 @@
 import {
   AppError,
   AUTH_SERVICE,
-  EVENT_PUBLISHER,
   GHNOrderResponse,
   ORDER_REPOSITORY,
   Paginated,
@@ -11,6 +10,7 @@ import {
   USER_SERVICE,
   VOUCHER_SERVICE,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import type {
   Requester,
   LocationData,
@@ -43,6 +43,8 @@ import {
   orderItemCreateDtoSchema,
   OrderItemDto,
   OrderStatus,
+  PeriodDto,
+  PeriodType,
   PointConfig,
   PointHistoryDto,
   PointTransaction,
@@ -754,7 +756,7 @@ export class OrderService implements IOrderService {
 
                 const axiosError = error as AxiosErrorResponse;
 
-                console.error(
+                this.logger.error(
                   'GHN API Error:',
                   axiosError?.response?.data ||
                     axiosError?.message ||
@@ -1098,7 +1100,7 @@ export class OrderService implements IOrderService {
 
             const axiosError = error as AxiosErrorResponse;
 
-            console.error(
+            this.logger.error(
               'GHN API Error:',
               axiosError?.response?.data ||
                 axiosError?.message ||
@@ -1277,20 +1279,17 @@ export class OrderService implements IOrderService {
   }
 
   // Dashboard Analytics
-  async getDashboardStats(): Promise<DashboardStatsDto> {
+  async getDashboardStats(
+    startDate: string,
+    endDate: string,
+  ): Promise<DashboardStatsDto> {
     const customerIds = await firstValueFrom<number[]>(
-      this.authServiceClient.send(
-        AUTH_PATTERN.GET_CUSTOMER_USER_IDS,
-        {},
-      ),
+      this.authServiceClient.send(AUTH_PATTERN.GET_CUSTOMER_USER_IDS, {}),
     );
     const totalCustomers = customerIds.length;
 
     const variantIds = await firstValueFrom<number[]>(
-      this.phoneServiceClient.send(
-        PHONE_PATTERN.GET_PHONE_VARIANT_IDS,
-        {},
-      ),
+      this.phoneServiceClient.send(PHONE_PATTERN.GET_PHONE_VARIANT_IDS, {}),
     );
     const totalProducts = variantIds.length;
 
@@ -1299,17 +1298,24 @@ export class OrderService implements IOrderService {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthOrders = orders.filter(order => 
-      order.orderDate >= startOfMonth
+    const thisMonthOrders = orders.filter(
+      (order) => order.orderDate >= startOfMonth,
     ).length;
 
-    const deliveredOrders = orders.filter(order => order.status === OrderStatus.DELIVERED);
-    const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+    const deliveredOrders = orders.filter(
+      (order) => order.status === OrderStatus.DELIVERED,
+    );
+    const totalRevenue = deliveredOrders.reduce(
+      (sum, order) => sum + order.finalAmount,
+      0,
+    );
     const thisMonthRevenue = deliveredOrders
-      .filter(order => order.orderDate >= startOfMonth)
+      .filter((order) => order.orderDate >= startOfMonth)
       .reduce((sum, order) => sum + order.finalAmount, 0);
 
-    const orderIds = orders.map(order => order.id).filter((id): id is number => typeof id === 'number');
+    const orderIds = orders
+      .map((order) => order.id)
+      .filter((id): id is number => typeof id === 'number');
     const payments = await firstValueFrom<PaymentDto[]>(
       this.paymentServiceClient.send(
         PAYMENT_PATTERN.GET_PAYMENT_BY_ORDER_IDS,
@@ -1318,48 +1324,57 @@ export class OrderService implements IOrderService {
     );
 
     // Add NONE payments for orders without payment records
-    const ordersWithPayments = new Set(payments.map(p => p.orderId));
+    const ordersWithPayments = new Set(payments.map((p) => p.orderId));
     const nonePayments: PaymentDto[] = orderIds
-      .filter(orderId => !ordersWithPayments.has(orderId))
-      .map(orderId => ({
-        id: 0,
-        orderId,
-        amount: 0,
-        status: PaymentStatus.PENDING,
-        paymentMethod: {
-          id: 0,
-          code: 'NONE',
-          name: 'Không có thanh toán',
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as PaymentDto));
+      .filter((orderId) => !ordersWithPayments.has(orderId))
+      .map(
+        (orderId) =>
+          ({
+            id: 0,
+            orderId,
+            amount: 0,
+            status: PaymentStatus.PENDING,
+            paymentMethod: {
+              id: 0,
+              code: 'NONE',
+              name: 'Không có thanh toán',
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }) as PaymentDto,
+      );
 
     const allPayments = [...payments, ...nonePayments];
 
     const paymentMethods: Record<string, number> = {};
-    allPayments.forEach(payment => {
+    allPayments.forEach((payment) => {
       const methodName = payment.paymentMethod.code;
       paymentMethods[methodName] = (paymentMethods[methodName] || 0) + 1;
     });
 
     const orderStatuses: Record<string, number> = {};
-    orders.forEach(order => {
+    orders.forEach((order) => {
       const status = order.status.toString();
       orderStatuses[status] = (orderStatuses[status] || 0) + 1;
     });
 
-    const deliveredOrderIds = deliveredOrders.map(order => order.id).filter((id): id is number => typeof id === 'number');
-    const orderItems = await this.orderRepository.findOrderItemsByOrderIds(deliveredOrderIds);
+    const deliveredOrderIds = deliveredOrders
+      .map((order) => order.id)
+      .filter((id): id is number => typeof id === 'number');
+    const orderItems =
+      await this.orderRepository.findOrderItemsByOrderIds(deliveredOrderIds);
     const itemsDto = await this.toOrderItemsDto(orderItems);
-    
-    const variantSales: Record<number, { 
-      name: string; 
-      quantity: number; 
-      revenue: number;
-    }> = {};
 
-    itemsDto.forEach(item => {
+    const variantSales: Record<
+      number,
+      {
+        name: string;
+        quantity: number;
+        revenue: number;
+      }
+    > = {};
+
+    itemsDto.forEach((item) => {
       const variantId = item.variant.id;
       if (!variantSales[variantId]) {
         variantSales[variantId] = {
@@ -1369,19 +1384,26 @@ export class OrderService implements IOrderService {
         };
       }
       variantSales[variantId].quantity += item.quantity;
-      variantSales[variantId].revenue += (item.discount || item.price) * item.quantity;
+      variantSales[variantId].revenue +=
+        (item.discount || item.price) * item.quantity;
     });
 
-    const bestSellingProducts: BestSellingProductDto[] = Object.values(variantSales)
+    const bestSellingProducts: BestSellingProductDto[] = Object.values(
+      variantSales,
+    )
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10)
-      .map(variant => ({
+      .map((variant) => ({
         variantName: variant.name,
         totalSoldQuantity: variant.quantity,
         revenue: variant.revenue,
       }));
 
-    const revenueByPeriod = this.calculateRevenueByPeriod(deliveredOrders);
+    const revenueByPeriod = this.calculateRevenueByPeriod(
+      deliveredOrders,
+      startDate,
+      endDate,
+    );
 
     return {
       totalProducts,
@@ -1397,134 +1419,186 @@ export class OrderService implements IOrderService {
     };
   }
 
-  private calculateRevenueByPeriod(orders: Order[]): RevenueByPeriodDto {
-    const now = new Date();
+  private calculateRevenueByPeriod(
+    orders: Order[],
+    start: string,
+    end: string,
+  ): RevenueByPeriodDto {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const groupBy = this.getOptimalGrouping(start, end);
+    const periods: PeriodDto[] = [];
 
-    // Last 7 days (daily)
-    const last7DaysData: RevenuePointDto[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayOrders = orders.filter(order => 
-        order.orderDate.toISOString().split('T')[0] === dateStr
-      );
-      const dayRevenue = dayOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-      
-      last7DaysData.push({
-        label: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`,
-        value: dayRevenue,
-        date: dateStr,
-      });
+    switch (groupBy) {
+      case 'daily': {
+        for (
+          let d = new Date(startDate);
+          d <= endDate;
+          d.setDate(d.getDate() + 1)
+        ) {
+          const dayStart = new Date(
+            d.getFullYear(),
+            d.getMonth(),
+            d.getDate(),
+            0,
+            0,
+            0,
+          );
+          const dayEnd = new Date(
+            d.getFullYear(),
+            d.getMonth(),
+            d.getDate(),
+            23,
+            59,
+            59,
+          );
+
+          periods.push({
+            startDate: dayStart,
+            endDate: dayEnd > endDate ? new Date(endDate) : dayEnd,
+            label: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, // dd/mm
+          });
+        }
+        break;
+      }
+      case 'weekly': {
+        const weekStart = this.getWeekStart(startDate);
+        while (weekStart <= endDate) {
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 6);
+          weekEnd.setHours(23, 59, 59);
+
+          const actualWeekEnd = weekEnd > endDate ? new Date(endDate) : weekEnd;
+
+          periods.push({
+            startDate: new Date(weekStart),
+            endDate: actualWeekEnd,
+            label: `${weekStart.getDate().toString().padStart(2, '0')}-${actualWeekEnd.getDate().toString().padStart(2, '0')}/${(weekStart.getMonth() + 1).toString().padStart(2, '0')}`, // dd-dd/mm
+          });
+
+          weekStart.setDate(weekStart.getDate() + 7);
+        }
+        break;
+      }
+      case 'monthly': {
+        for (
+          let d = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+          d <= endDate;
+          d.setMonth(d.getMonth() + 1)
+        ) {
+          const monthStart = new Date(
+            d.getFullYear(),
+            d.getMonth(),
+            1,
+            0,
+            0,
+            0,
+          );
+          const monthEnd = new Date(
+            d.getFullYear(),
+            d.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+          );
+
+          periods.push({
+            startDate:
+              monthStart < startDate ? new Date(startDate) : monthStart,
+            endDate: monthEnd > endDate ? new Date(endDate) : monthEnd,
+            label: `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear().toString().slice(-2)}`, // mm/yy
+          });
+        }
+        break;
+      }
+      case 'quarterly': {
+        for (
+          let year = startDate.getFullYear();
+          year <= endDate.getFullYear();
+          year++
+        ) {
+          for (let q = 1; q <= 4; q++) {
+            const quarterStart = new Date(year, (q - 1) * 3, 1, 0, 0, 0);
+            const quarterEnd = new Date(year, q * 3, 0, 23, 59, 59);
+
+            if (quarterStart > endDate) break;
+            if (quarterEnd < startDate) continue;
+
+            periods.push({
+              startDate:
+                quarterStart < startDate ? new Date(startDate) : quarterStart,
+              endDate: quarterEnd > endDate ? new Date(endDate) : quarterEnd,
+              label: `Quý ${q}/${year.toString().slice(-2)}`, // Quý ... / yy
+            });
+          }
+        }
+        break;
+      }
+      case 'yearly': {
+        for (
+          let year = startDate.getFullYear();
+          year <= endDate.getFullYear();
+          year++
+        ) {
+          const yearStart = new Date(year, 0, 1, 0, 0, 0);
+          const yearEnd = new Date(year, 11, 31, 23, 59, 59);
+
+          periods.push({
+            startDate: yearStart < startDate ? new Date(startDate) : yearStart,
+            endDate: yearEnd > endDate ? new Date(endDate) : yearEnd,
+            label: year.toString(), // yyyy
+          });
+        }
+        break;
+      }
     }
 
-    // Last 30 days (daily)
-    const last30DaysData: RevenuePointDto[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayOrders = orders.filter(order => 
-        order.orderDate.toISOString().split('T')[0] === dateStr
+    const revenueData: RevenuePointDto[] = periods.map((period) => {
+      const periodOrders = orders.filter(
+        (order) =>
+          order.orderDate >= period.startDate &&
+          order.orderDate <= period.endDate,
       );
-      const dayRevenue = dayOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-      
-      last30DaysData.push({
-        label: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`,
-        value: dayRevenue,
-        date: dateStr,
-      });
-    }
+      const periodRevenue = periodOrders.reduce(
+        (sum, order) => sum + order.finalAmount,
+        0,
+      );
 
-    // Last 3 months (monthly)
-    const last3MonthsData: RevenuePointDto[] = [];
-    for (let i = 2; i >= 0; i--) {
-      const date = new Date(now);
-      date.setMonth(date.getMonth() - i);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthOrders = orders.filter(order => 
-        order.orderDate >= monthStart && order.orderDate <= monthEnd
-      );
-      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-      
-      last3MonthsData.push({
-        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
-        value: monthRevenue,
-        date: monthStart.toISOString().split('T')[0],
-      });
-    }
-
-    // Last 6 months (monthly)
-    const last6MonthsData: RevenuePointDto[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now);
-      date.setMonth(date.getMonth() - i);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthOrders = orders.filter(order => 
-        order.orderDate >= monthStart && order.orderDate <= monthEnd
-      );
-      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-      
-      last6MonthsData.push({
-        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
-        value: monthRevenue,
-        date: monthStart.toISOString().split('T')[0],
-      });
-    }
-
-    // Last year (monthly)
-    const lastYearData: RevenuePointDto[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(now);
-      date.setMonth(date.getMonth() - i);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthOrders = orders.filter(order => 
-        order.orderDate >= monthStart && order.orderDate <= monthEnd
-      );
-      const monthRevenue = monthOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-      
-      lastYearData.push({
-        label: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`,
-        value: monthRevenue,
-        date: monthStart.toISOString().split('T')[0],
-      });
-    }
+      return {
+        label: period.label,
+        value: periodRevenue,
+        date: period.startDate.toISOString(),
+      };
+    });
 
     return {
-      last7Days: {
-        total: last7DaysData.reduce((sum, point) => sum + point.value, 0),
-        data: last7DaysData,
-        period: 'daily',
-      },
-      last30Days: {
-        total: last30DaysData.reduce((sum, point) => sum + point.value, 0),
-        data: last30DaysData,
-        period: 'daily',
-      },
-      last3Months: {
-        total: last3MonthsData.reduce((sum, point) => sum + point.value, 0),
-        data: last3MonthsData,
-        period: 'monthly',
-      },
-      last6Months: {
-        total: last6MonthsData.reduce((sum, point) => sum + point.value, 0),
-        data: last6MonthsData,
-        period: 'monthly',
-      },
-      lastYear: {
-        total: lastYearData.reduce((sum, point) => sum + point.value, 0),
-        data: lastYearData,
-        period: 'monthly',
-      },
+      total: revenueData.reduce((sum, point) => sum + point.value, 0),
+      data: revenueData,
+      period: groupBy,
     };
+  }
+
+  private getOptimalGrouping(startDate: string, endDate: string): PeriodType {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const dayDiff = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 3600 * 24),
+    );
+
+    if (dayDiff <= 31) return 'daily';
+    if (dayDiff <= 93) return 'weekly';
+    if (dayDiff <= 730) return 'monthly';
+    if (dayDiff <= 1825) return 'quarterly';
+    return 'yearly';
+  }
+
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday (Monday = start of week)
+    return new Date(d.setDate(diff));
   }
 
   private async validateRequester(requester: Requester): Promise<CustomerDto> {
@@ -1584,7 +1658,9 @@ export class OrderService implements IOrderService {
   ): Promise<LocationResult> {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
-        console.error(`Location CSV file not found at: ${this.csvFilePath}`);
+        this.logger.error(
+          `Location CSV file not found at: ${this.csvFilePath}`,
+        );
         resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
@@ -1630,14 +1706,14 @@ export class OrderService implements IOrderService {
               found: true,
             });
           } else {
-            console.log(
+            this.logger.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
             resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
-          console.error('Error reading CSV file:', error);
+          this.logger.error('Error reading CSV file:', error);
           reject(new Error(`Error reading CSV file: ${String(error)}`));
         });
     });

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { RabbitMQModule } from '@app/contracts/rmq';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { UserModule } from './user/user.module';
 import { HealthController } from './api-gateway.controller';
 import { CircuitBreakerModule } from './circuit-breaker/circuit-breaker.module';
@@ -13,6 +13,7 @@ import { VoucherModule } from './voucher/voucher.module';
 import paymentConfig from '@app/contracts/payment/payment.config';
 import { MetricsController, PrometheusModule } from '@app/monitoring';
 import { API_GATEWAY_NAME } from '@app/contracts';
+import { LoggingModule } from '@app/logging';
 
 @Module({
   imports: [
@@ -30,11 +31,9 @@ import { API_GATEWAY_NAME } from '@app/contracts';
     PaymentModule,
     VoucherModule,
     PrometheusModule.register(API_GATEWAY_NAME),
+    LoggingModule.register({ serviceName: API_GATEWAY_NAME }),
   ],
-  controllers: [
-    HealthController,
-    MetricsController,
-  ],
+  controllers: [HealthController, MetricsController],
   providers: [],
 })
 export class ApiGatewayModule {}

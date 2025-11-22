@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { IExtractService } from '../etl.port';
 import { SourceType } from '@app/contracts/ai';
 import { ConfigService } from '@nestjs/config/dist/config.service';
@@ -13,6 +13,8 @@ import { ApiResponseDto } from '@app/contracts/ai/ai.dto';
 
 @Injectable()
 export class ExtractService implements IExtractService {
+  private readonly logger = new Logger(ExtractService.name);
+
   constructor(
     private configService: ConfigService,
     private readonly httpService: HttpService,
@@ -160,7 +162,7 @@ export class ExtractService implements IExtractService {
 
       return documents;
     } catch (error: unknown) {
-      console.error('Failed to fetch phone data:', error);
+      this.logger.error('Failed to fetch phone data:', error);
       const errorMessage = extractErrorMessage(error);
       throw AppError.from(new Error(errorMessage), 400).withLog(
         `Failed to fetch phone data: ${errorMessage}`,
@@ -176,7 +178,7 @@ export class ExtractService implements IExtractService {
       );
 
       if (!fs.existsSync(dataDir)) {
-        console.warn(`Directory not found: ${dataDir}, creating it...`);
+        this.logger.warn(`Directory not found: ${dataDir}, creating it...`);
         fs.mkdirSync(dataDir, { recursive: true });
         return [];
       }
@@ -190,7 +192,7 @@ export class ExtractService implements IExtractService {
       });
 
       if (validFiles.length === 0) {
-        console.warn(`No supported files found in directory: ${dataDir}`);
+        this.logger.warn(`No supported files found in directory: ${dataDir}`);
         return [];
       }
 
@@ -222,7 +224,7 @@ export class ExtractService implements IExtractService {
 
       return documents;
     } catch (error: unknown) {
-      console.error('Failed to read from file:', error);
+      this.logger.error('Failed to read from file:', error);
       const errorMessage = extractErrorMessage(error);
       throw AppError.from(new Error(errorMessage), 400).withLog(
         `Failed to read from file: ${errorMessage}`,

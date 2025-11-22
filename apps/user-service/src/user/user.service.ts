@@ -8,11 +8,11 @@ import type {
 } from '@app/contracts';
 import {
   USER_REPOSITORY,
-  EVENT_PUBLISHER,
   AppError,
   AUTH_SERVICE,
   ORDER_SERVICE,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import {
   Address,
   AddressCreateDto,
@@ -394,11 +394,26 @@ export class UserService implements IUserService {
   // Notification
 
   async getNotifications(request: Requester): Promise<Notification[]> {
-    return this.userRepository.findNotificationsByUserId(request.sub);
+    const notifications = await this.userRepository.findNotificationsByUserId(
+      request.sub,
+    );
+
+    if (!notifications || notifications.length === 0) {
+      return [];
+    }
+
+    return notifications;
   }
 
   async getUnreadNotifications(request: Requester): Promise<Notification[]> {
-    return this.userRepository.findUnreadNotificationsByUserId(request.sub);
+    const notifications =
+      await this.userRepository.findUnreadNotificationsByUserId(request.sub);
+
+    if (!notifications || notifications.length === 0) {
+      return [];
+    }
+
+    return notifications;
   }
 
   async createNotifications(data: Notification[]): Promise<void> {

@@ -8,11 +8,12 @@ import {
   PHONE_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
-import { RabbitMQModule } from '@app/contracts/rmq/rmq.module';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { PhoneEventHandler } from './phone-event.handler';
 import { HttpModule } from '@nestjs/axios';
-import { RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQService } from '@app/rabbitmq';
 import { ClientProxyFactory } from '@nestjs/microservices';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ClientProxyFactory } from '@nestjs/microservices';
       timeout: 10000,
       maxRedirects: 5,
     }),
+    SearchModule,
   ],
   controllers: [PhoneController],
   providers: [

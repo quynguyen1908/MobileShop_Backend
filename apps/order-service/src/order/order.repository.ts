@@ -1,4 +1,4 @@
-import { OrderPrismaService } from '@app/contracts/prisma';
+import { OrderPrismaService } from '@app/prisma';
 import { Injectable } from '@nestjs/common';
 import { IOrderRepository } from './order.port';
 import {

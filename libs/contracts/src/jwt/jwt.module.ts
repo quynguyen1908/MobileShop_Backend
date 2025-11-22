@@ -4,8 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AUTH_SERVICE, TOKEN_PROVIDER, TOKEN_VALIDATOR } from '..';
 import { TokenWhitelistRepository } from './jwt.repository';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
-import { RabbitMQModule, RabbitMQService } from '../rmq';
-import { UserPrismaService } from '../prisma';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
+import { UserPrismaService } from '@app/prisma';
 
 @Global()
 @Module({

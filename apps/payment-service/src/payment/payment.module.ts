@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PaymentController } from './payment.controller';
-import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
 import { PaymentRepository } from './payment.repository';
 import {
   ORDER_SERVICE,

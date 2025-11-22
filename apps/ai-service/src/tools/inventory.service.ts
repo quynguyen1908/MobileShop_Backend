@@ -1,18 +1,19 @@
 import { CheckInventoryInput, checkInventorySchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { Inventory } from '@app/contracts/phone';
-import { extractErrorMessage, formatDate } from '@app/contracts/utils';
+import { InventoryDto } from '@app/contracts/phone';
+import { extractErrorMessage } from '@app/contracts/utils';
 import { ApiResponseDto } from '@app/contracts/ai/ai.dto';
 import { AppError } from '@app/contracts';
 
 @Injectable()
 export class InventoryToolService {
   private readonly inventoryServiceUrl: string;
+  private readonly logger = new Logger(InventoryToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -24,16 +25,19 @@ export class InventoryToolService {
     );
   }
 
-  async checkInventory(sku: string): Promise<string> {
+  async checkInventory(variantName: string): Promise<string> {
     try {
       const { data: response } = await firstValueFrom(
         this.httpService
           .get<
-            ApiResponseDto<Inventory>
-          >(`${this.inventoryServiceUrl}/sku/${sku}`)
+            ApiResponseDto<InventoryDto[]>
+          >(`${this.inventoryServiceUrl}/variant/${encodeURIComponent(variantName)}`)
           .pipe(
             catchError((error: unknown) => {
-              console.error(`Error checking inventory for SKU ${sku}:`, error);
+              this.logger.error(
+                `Error checking inventory for variant name ${variantName}:`,
+                error,
+              );
               const errorMessage = extractErrorMessage(error);
               throw AppError.from(new Error(errorMessage), 400).withLog(
                 `Failed to check inventory: ${errorMessage}`,
@@ -42,24 +46,60 @@ export class InventoryToolService {
           ),
       );
 
-      const inventory = response?.data;
-      if (inventory) {
-        let result = `Thông tin tồn kho cho sản phẩm SKU: ${inventory.sku}\n\n`;
-        result += `📦 Số lượng trong kho: ${inventory.stockQuantity} sản phẩm\n`;
+      const inventoryData = response?.data;
+      if (
+        inventoryData &&
+        Array.isArray(inventoryData) &&
+        inventoryData.length > 0
+      ) {
+        let result = `📋 Thông tin tồn kho cho sản phẩm: ${variantName}\n\n`;
 
-        result +=
-          inventory.stockQuantity > 20
-            ? `✅ Trạng thái: Còn nhiều hàng\n`
-            : inventory.stockQuantity > 0
-              ? `⚠️ Trạng thái: Sắp hết hàng\n`
-              : `❌ Trạng thái: Hết hàng\n`;
+        // Calculate total stock across all colors
+        const totalStock = inventoryData.reduce(
+          (sum, inventory) => sum + inventory.stockQuantity,
+          0,
+        );
+        result += `📦 Tổng số lượng trong kho: ${totalStock} sản phẩm\n\n`;
 
-        const updatedAt = inventory.updatedAt
-          ? formatDate(new Date(inventory.updatedAt))
-          : 'Không xác định';
+        // Show inventory for each color
+        result += `📊 Chi tiết theo màu sắc:\n`;
+        result += `${'='.repeat(40)}\n`;
 
-        result += `🕒 Cập nhật lần cuối: ${updatedAt}\n`;
-        result += `🆔 Mã biến thể sản phẩm: ${inventory.variantId}`;
+        inventoryData.forEach((inventory, index) => {
+          const colorName = inventory.color?.name || 'Không xác định';
+          const sku = inventory.sku || 'N/A';
+          const quantity = inventory.stockQuantity || 0;
+
+          result += `\n${index + 1}. ${colorName}:\n`;
+          result += `   🏷️  SKU: ${sku}\n`;
+          result += `   📦 Số lượng: ${quantity} sản phẩm\n`;
+
+          // Status per color
+          result += `   📊 Trạng thái: `;
+          if (quantity > 20) {
+            result += `✅ Còn nhiều hàng\n`;
+          } else if (quantity > 0) {
+            result += `⚠️  Sắp hết hàng\n`;
+          } else {
+            result += `❌ Hết hàng\n`;
+          }
+        });
+
+        // Overall status
+        result += `\n${'='.repeat(40)}\n`;
+        result += `📈 Tổng quan:\n`;
+
+        if (totalStock > 50) {
+          result += `✅ Trạng thái chung: Còn nhiều hàng\n`;
+        } else if (totalStock > 10) {
+          result += `⚠️  Trạng thái chung: Số lượng trung bình\n`;
+        } else if (totalStock > 0) {
+          result += `🔴 Trạng thái chung: Sắp hết hàng\n`;
+        } else {
+          result += `❌ Trạng thái chung: Hết hàng\n`;
+        }
+
+        result += `🆔 Mã biến thể: ${inventoryData[0].variantId}`;
 
         return result;
       }
@@ -70,25 +110,43 @@ export class InventoryToolService {
           : JSON.stringify(response?.errors ?? '');
 
       return response?.errors
-        ? `Không thể lấy thông tin tồn kho: ${errorDetail}`
-        : `Không tìm thấy thông tin tồn kho cho SKU ${sku}. Vui lòng kiểm tra lại mã SKU.`;
+        ? `❌ Không thể lấy thông tin tồn kho: ${errorDetail}`
+        : `❌ Không tìm thấy thông tin tồn kho cho sản phẩm "${variantName}". Vui lòng kiểm tra lại tên sản phẩm.`;
     } catch (error: unknown) {
-      console.error(`Failed to check inventory for SKU ${sku}:`, error);
-      return `Không thể kiểm tra tồn kho cho SKU ${sku}. Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.`;
+      this.logger.error(
+        `Failed to check inventory for variant ${variantName}:`,
+        error,
+      );
+      return `❌ Không thể kiểm tra tồn kho cho sản phẩm "${variantName}". Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.`;
     }
   }
 
   createCheckInventoryTool(): DynamicStructuredTool<any> {
     return tool(
       async (input: CheckInventoryInput): Promise<string> =>
-        this.checkInventory(input.sku),
+        this.checkInventory(input.variantName),
       {
         name: 'checkInventory',
-        description: `Gọi API để kiểm tra tồn kho cho một SKU nhất định.
-        Bất cứ câu hỏi nào liên quan đến việc kiểm tra số lượng sản phẩm trong kho, bạn nên sử dụng công cụ này.
-        Ví dụ: "Kiểm tra tồn kho cho SKU 12345".
-        Nếu bạn không chắc chắn về SKU, hãy hỏi người dùng để lấy SKU chính xác trước khi gọi công cụ này.
-        Nếu bạn không biết câu trả lời, hãy trả lời rằng bạn không biết thay vì đoán.`,
+        description: `Công cụ kiểm tra tồn kho sản phẩm trong hệ thống PHONEHUB.
+        
+        Sử dụng công cụ này khi khách hàng hỏi về:
+        - Số lượng sản phẩm còn trong kho (tổng và theo màu)
+        - Trạng thái tồn kho của một sản phẩm cụ thể  
+        - Kiểm tra xem sản phẩm còn hàng hay không
+        - Chi tiết tồn kho theo từng màu sắc
+        
+        Ví dụ câu hỏi từ khách hàng:
+        - "Kiểm tra tồn kho iPhone 16 Pro Max 1TB"
+        - "Samsung Galaxy S24 Ultra 1TB còn bao nhiêu?"
+        - "iPhone 16 Pro Max 256 GB có những màu nào còn hàng?"
+        
+        Lưu ý:
+        - Tool sẽ hiển thị tổng số lượng và chi tiết theo từng màu
+        - Luôn hiển thị đầy đủ: Số lượng, trạng thái cho mỗi màu
+        - Cung cấp tổng quan về tình trạng tồn kho chung
+        - Không được hiển thị thông tin kỹ thuật nội bộ như mã SKU, mã biến thể, v.v.
+        - Nếu bạn không chắc chắn về tên sản phẩm đầy đủ, hãy hỏi người dùng để lấy thông tin chính xác trước khi gọi công cụ này.
+        - Nếu không tìm thấy sản phẩm, hãy trả lời rằng không tìm thấy thay vì đoán.`,
         schema: checkInventorySchema,
       },
     );

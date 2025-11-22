@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Inject,
+  Logger,
   Param,
   Post,
   Put,
@@ -43,6 +44,8 @@ import { RemoteAuthGuard } from '@app/contracts/auth';
 @ApiTags('Vouchers')
 @Controller('v1/vouchers')
 export class VoucherController {
+  private readonly logger = new Logger(VoucherController.name);
+
   constructor(
     @Inject(VOUCHER_SERVICE) private readonly voucherServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -139,7 +142,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      console.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -256,7 +262,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      console.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -378,7 +387,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      console.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -473,7 +485,10 @@ export class VoucherController {
           { timeout: 10000 },
         );
 
-      console.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

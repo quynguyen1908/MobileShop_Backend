@@ -183,32 +183,28 @@ export const revenuePointDtoSchema = z.object({
 
 export type RevenuePointDto = z.infer<typeof revenuePointDtoSchema>;
 
+export const periodTypeSchema = z.enum([
+  'daily',
+  'weekly',
+  'monthly',
+  'quarterly',
+  'yearly',
+]);
+
+export const periodDtoSchema = z.object({
+  startDate: z.date(),
+  endDate: z.date(),
+  label: z.string(),
+});
+
+export type PeriodDto = z.infer<typeof periodDtoSchema>;
+
+export type PeriodType = z.infer<typeof periodTypeSchema>;
+
 export const revenueByPeriodDtoSchema = z.object({
-  last7Days: z.object({
-    total: z.number().min(0),
-    data: revenuePointDtoSchema.array().length(7),
-    period: z.literal("daily"),
-  }),
-  last30Days: z.object({
-    total: z.number().min(0),
-    data: revenuePointDtoSchema.array().length(30),
-    period: z.literal("daily"),
-  }),
-  last3Months: z.object({
-    total: z.number().min(0),
-    data: revenuePointDtoSchema.array().length(3),
-    period: z.literal("monthly"),
-  }),
-  last6Months: z.object({
-    total: z.number().min(0),
-    data: revenuePointDtoSchema.array().length(6),
-    period: z.literal("monthly"),
-  }),
-  lastYear: z.object({
-    total: z.number().min(0),
-    data: revenuePointDtoSchema.array().length(12),
-    period: z.literal("monthly"),
-  }),
+  total: z.number().min(0),
+  data: revenuePointDtoSchema.array(),
+  period: periodTypeSchema,
 });
 
 export type RevenueByPeriodDto = z.infer<typeof revenueByPeriodDtoSchema>;
@@ -235,4 +231,3 @@ export const dashboardStatsDtoSchema = z.object({
 });
 
 export type DashboardStatsDto = z.infer<typeof dashboardStatsDtoSchema>;
-  

@@ -1,4 +1,5 @@
-import { EVENT_SUBSCRIBER, ORDER_SERVICE } from '@app/contracts';
+import { ORDER_SERVICE } from '@app/contracts';
+import { EVENT_SUBSCRIBER } from '@app/rabbitmq';
 import type { EventJson, IEventSubscriber } from '@app/contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IOrderService } from './order.port';

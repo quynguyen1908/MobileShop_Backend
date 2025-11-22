@@ -1,6 +1,6 @@
 import { TrackOrderInput, trackOrderSchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { HttpService } from '@nestjs/axios/dist/http.service';
 import { ConfigService } from '@nestjs/config';
@@ -20,6 +20,7 @@ interface OrderResponse {
 @Injectable()
 export class OrderToolService {
   private readonly orderServiceUrl: string;
+  private readonly logger = new Logger(OrderToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -38,7 +39,7 @@ export class OrderToolService {
           .get<OrderResponse>(`${this.orderServiceUrl}/code/${orderCode}`)
           .pipe(
             catchError((error: unknown) => {
-              console.error(`Error tracking order ${orderCode}:`, error);
+              this.logger.error(`Error tracking order ${orderCode}:`, error);
               const errorMessage = extractErrorMessage(error);
               throw AppError.from(new Error(errorMessage), 400).withLog(
                 `Failed to track order: ${errorMessage}`,
@@ -70,7 +71,7 @@ export class OrderToolService {
             formattedOrderDate = formatDate(orderDate);
           }
         } catch (dateError) {
-          console.error('Error formatting date:', dateError);
+          this.logger.error('Error formatting date:', dateError);
         }
 
         const totalAmount =
@@ -120,7 +121,7 @@ export class OrderToolService {
         return `Không tìm thấy thông tin đơn hàng với mã ${orderCode}. Vui lòng kiểm tra lại mã đơn hàng.`;
       }
     } catch (error: unknown) {
-      console.error(`Failed to track order ${orderCode}:`, error);
+      this.logger.error(`Failed to track order ${orderCode}:`, error);
       return `Không thể tra cứu thông tin đơn hàng ${orderCode}. Vui lòng thử lại sau hoặc liên hệ với bộ phận Chăm sóc Khách hàng.`;
     }
   }
@@ -131,11 +132,24 @@ export class OrderToolService {
         this.trackOrder(input.orderCode),
       {
         name: 'trackOrder',
-        description: `Gọi API để theo dõi trạng thái của đơn hàng theo mã đơn hàng.
-        Bất cứ câu hỏi nào liên quan đến việc theo dõi đơn hàng, bạn nên sử dụng công cụ này.
-        Ví dụ: "Theo dõi đơn hàng với mã đơn hàng ORD12345".
-        Nếu bạn không chắc chắn về mã đơn hàng, hãy hỏi người dùng để lấy mã chính xác trước khi gọi công cụ này.
-        Nếu bạn không biết câu trả lời, hãy trả lời rằng bạn không biết thay vì đoán.`,
+        description: `Công cụ theo dõi trạng thái đơn hàng trong hệ thống PHONEHUB.
+        
+        Sử dụng công cụ này khi khách hàng hỏi về:
+        - Trạng thái hiện tại của đơn hàng
+        - Tiến độ xử lý đơn hàng (đang chuẩn bị, đang giao, đã giao)
+        
+        Ví dụ câu hỏi từ khách hàng:
+        - "Theo dõi đơn hàng PH0211259191"
+        - "Đơn hàng PH1211255447 đến đâu rồi?"
+        - "Xem tình trạng đơn hàng PH3010257917"
+        
+        Lưu ý:
+        - Tool sẽ hiển thị đầy đủ thông tin trạng thái đơn hàng
+        - Luôn hiển thị: Trạng thái hiện tại, ngày đặt hàng, thông tin người nhận
+        - Không được hiển thị thông tin kỹ thuật nội bộ như ID hệ thống, ngày cập nhật, v.v.
+        - Nếu bạn không chắc chắn về mã đơn hàng, hãy hỏi người dùng để lấy mã chính xác trước khi gọi công cụ này
+        - Nếu không tìm thấy đơn hàng, hãy trả lời rằng không tìm thấy thay vì đoán
+        - Mã đơn hàng thường có format: PH + số`,
         schema: trackOrderSchema,
       },
     );

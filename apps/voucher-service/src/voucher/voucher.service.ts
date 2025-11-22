@@ -2,13 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IVoucherRepository, IVoucherService } from './voucher.port';
 import {
   AppError,
-  EVENT_PUBLISHER,
   Paginated,
   PagingDto,
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   VOUCHER_REPOSITORY,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import type { IEventPublisher } from '@app/contracts';
 import {
   ApplyTo,

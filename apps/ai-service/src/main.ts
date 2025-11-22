@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AiServiceModule } from './ai-service.module';
 import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AiServiceModule);
+  const app = await NestFactory.create(AiServiceModule, { bufferLogs: true });
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
 
@@ -11,6 +12,8 @@ async function bootstrap() {
     origin: true,
     credentials: true,
   });
+
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   app.useGlobalPipes(
     new ValidationPipe({

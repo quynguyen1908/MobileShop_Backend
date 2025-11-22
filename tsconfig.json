@@ -28,12 +28,34 @@
       "@app/contracts/*": [
         "libs/contracts/src/*"
       ],
+      "@app/logging": [
+        "libs/logging/src"
+      ],
+      "@app/logging/*": [
+        "libs/logging/src/*"
+      ],
       "@app/monitoring": [
         "libs/monitoring/src"
       ],
       "@app/monitoring/*": [
         "libs/monitoring/src/*"
+      ],
+      "@app/prisma": [
+        "libs/prisma/src"
+      ],
+      "@app/prisma/*": [
+        "libs/prisma/src/*"
+      ],
+      "@app/rabbitmq": [
+        "libs/rabbitmq/src"
+      ],
+      "@app/rabbitmq/*": [
+        "libs/rabbitmq/src/*"
       ]
     }
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "**/node_modules/**"
+  ]
 }

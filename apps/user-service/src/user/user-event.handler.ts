@@ -1,11 +1,11 @@
 import {
   AUTH_SERVICE,
-  EVENT_SUBSCRIBER,
   ORDER_SERVICE,
   PAYMENT_SERVICE,
   PHONE_SERVICE,
   USER_SERVICE,
 } from '@app/contracts';
+import { EVENT_SUBSCRIBER } from '@app/rabbitmq';
 import type { IEventSubscriber } from '@app/contracts';
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import type { IUserService } from './user.port';

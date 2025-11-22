@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { VoucherController } from './voucher.controller';
-import { RabbitMQModule, RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQModule, RabbitMQService } from '@app/rabbitmq';
 import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module';
 import { VOUCHER_SERVICE } from '@app/contracts';
 import { ClientProxyFactory } from '@nestjs/microservices';

@@ -15,7 +15,6 @@ import type {
 import * as bcrypt from 'bcrypt';
 import {
   AppError,
-  EVENT_PUBLISHER,
   Paginated,
   PagingDto,
   TOKEN_PROVIDER,
@@ -23,6 +22,7 @@ import {
   AUTH_REPOSITORY,
   OAUTH_REPOSITORY,
 } from '@app/contracts';
+import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import {
   ErrUsernameAlreadyExists,
   ErrEmailAlreadyExists,

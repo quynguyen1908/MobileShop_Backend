@@ -1,6 +1,6 @@
 import { ShippingQuoteInput, shippingQuoteSchema } from '@app/contracts/ai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -27,6 +27,7 @@ export class ShipmentToolService {
   private readonly ghnApiUrl: string;
   private readonly ghnToken: string;
   private readonly ghnShopId: number;
+  private readonly logger = new Logger(ShipmentToolService.name);
 
   constructor(
     private configService: ConfigService,
@@ -47,7 +48,9 @@ export class ShipmentToolService {
   ): Promise<LocationResult> {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this.csvFilePath)) {
-        console.error(`Location CSV file not found at: ${this.csvFilePath}`);
+        this.logger.error(
+          `Location CSV file not found at: ${this.csvFilePath}`,
+        );
         resolve({ wardCode: '0', districtId: 0, found: false });
         return;
       }
@@ -93,14 +96,14 @@ export class ShipmentToolService {
               found: true,
             });
           } else {
-            console.log(
+            this.logger.log(
               `No matching location found for commune "${commune}" in province "${province}"`,
             );
             resolve({ wardCode: '0', districtId: 0, found: false });
           }
         })
         .on('error', (error: unknown) => {
-          console.error('Error reading CSV file:', error);
+          this.logger.error('Error reading CSV file:', error);
           reject(new Error(`Error reading CSV file: ${String(error)}`));
         });
     });
@@ -145,7 +148,7 @@ export class ShipmentToolService {
 
               const axiosError = error as AxiosErrorResponse;
 
-              console.error(
+              this.logger.error(
                 'GHN API Error:',
                 axiosError?.response?.data ||
                   axiosError?.message ||
@@ -192,7 +195,7 @@ export class ShipmentToolService {
         return `Không thể tính phí vận chuyển. Vui lòng thử lại sau hoặc liên hệ với bộ phận hỗ trợ.`;
       }
     } catch (error: unknown) {
-      console.error('Error fetching shipping quote:', error);
+      this.logger.error('Error fetching shipping quote:', error);
       return 'Đã xảy ra lỗi khi lấy báo giá vận chuyển. Vui lòng thử lại sau.';
     }
   }
@@ -203,11 +206,28 @@ export class ShipmentToolService {
         this.getShippingQuote(input.commune, input.province),
       {
         name: 'getShippingQuote',
-        description: `Gọi API để nhận báo giá vận chuyển dựa trên tỉnh/thành phố và xã/phường được cung cấp.
-        Bất cứ câu hỏi nào liên quan đến việc báo giá vận chuyển, bạn nên sử dụng công cụ này.
-        Ví dụ: "Báo giá vận chuyển đến xã XYZ, tỉnh TP".
-        Nếu bạn không chắc chắn về xã/phường hoặc tỉnh/thành phố, hãy hỏi người dùng để lấy thông tin chính xác trước khi gọi công cụ này.
-        Nếu bạn không biết câu trả lời, hãy trả lời rằng bạn không biết thay vì đoán.`,
+        description: `Công cụ tính phí vận chuyển trong hệ thống PHONEHUB.
+        
+        Sử dụng công cụ này khi khách hàng hỏi về phí vận chuyển đến một địa chỉ cụ thể
+        
+        Ví dụ câu hỏi từ khách hàng:
+        - "Phí ship đến phường Sài Gòn, TP Hồ Chí Minh bao nhiêu?"
+        - "Giao hàng đến xã Long Thành, tỉnh Đồng Nai tốn bao nhiêu?"
+        - "Tính phí vận chuyển về phường Đống Đa, Hà Nội"
+        - "Ship đến phường Tân Lộc, Cần Thơ giá bao nhiêu?"
+        - "Chi phí giao hàng đến xã Chợ Mới, An Giang?"
+        
+        YÊU CẦU ĐỊA CHỈ 2 CẤP:
+        - Cấp 1: Tỉnh/Thành phố (VD: TP Hồ Chí Minh, Hà Nội, Cần Thơ)
+        - Cấp 2: Xã/Phường (VD: Phường Sài Gòn, Xã Long Thành)
+
+        Lưu ý:
+        - Tool sẽ hiển thị phí vận chuyển chính xác theo địa chỉ 2 cấp
+        - Luôn hiển thị đầy đủ: Phí ship, thời gian giao hàng dự kiến
+        - Không được hiển thị thông tin kỹ thuật nội bộ như mã vùng, ID hệ thống, v.v.
+        - BẮT BUỘC phải có đủ 2 cấp địa chỉ: nếu thiếu thông tin, hãy hỏi người dùng bổ sung
+        - Định dạng yêu cầu: [Xã/Phường] + [Tỉnh/Thành phố]
+        - Nếu không tìm thấy địa chỉ trong hệ thống, thông báo không hỗ trợ giao hàng đến khu vực đó`,
         schema: shippingQuoteSchema,
       },
     );

@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
 import { AUTH_PATTERN } from '@app/contracts/auth';
@@ -17,6 +17,8 @@ import type { PagingDto, Requester, TokenResponse } from '@app/contracts';
 
 @Controller()
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @MessagePattern(AUTH_PATTERN.REGISTER)
@@ -160,7 +162,7 @@ export class AuthController {
 
   @MessagePattern(AUTH_PATTERN.TEST)
   async test(@Payload() payload: { timestamp: string }) {
-    console.log(
+    this.logger.log(
       'Received test message with payload:',
       payload,
       'at',

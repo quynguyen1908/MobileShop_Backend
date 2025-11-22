@@ -1,13 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { UserServiceModule } from './user-service.module';
-import { RabbitMQService } from '@app/contracts/rmq';
+import { RabbitMQService } from '@app/rabbitmq';
 import { UserEventHandler } from './user/user-event.handler';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(UserServiceModule);
+  const app = await NestFactory.create(UserServiceModule, { bufferLogs: true });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
-
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   const userEventHandler = app.get(UserEventHandler);
 
   app.connectMicroservice(rmqService.userServiceOptions);

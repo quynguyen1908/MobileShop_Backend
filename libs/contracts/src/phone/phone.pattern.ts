@@ -38,10 +38,15 @@ export const PHONE_PATTERN = {
   CREATE_SPECIFICATION: 'phone.createSpecification',
 
   GET_INVENTORY_BY_SKU: 'phone.getInventoryBySku',
+  GET_INVENTORIES_BY_NAME: 'phone.getInventoriesByName',
   CHECK_INVENTORY_AVAILABILITY: 'phone.checkInventoryAvailability',
   ADD_INVENTORY: 'phone.addInventory',
 
   CREATE_REVIEW: 'phone.createReview',
+
+  SEARCH_PHONES: 'phone.searchPhones',
+  SYNC_PHONES_TO_SEARCH: 'phone.syncPhonesToSearch',
 };
 
 export const PHONE_SERVICE_NAME = 'phone-service';
+export const ES_SEARCH_INDEX = 'phones';

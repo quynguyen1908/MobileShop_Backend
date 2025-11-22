@@ -7,6 +7,7 @@ import { ToolsModule } from './tools/tools.module';
 import aiConfig from '@app/contracts/ai/ai.config';
 import { MetricsController, PrometheusModule } from '@app/monitoring';
 import { AI_SERVICE_NAME } from '@app/contracts';
+import { LoggingModule } from '@app/logging';
 
 @Module({
   imports: [
@@ -18,10 +19,8 @@ import { AI_SERVICE_NAME } from '@app/contracts';
     RagModule,
     ToolsModule,
     PrometheusModule.register(AI_SERVICE_NAME),
+    LoggingModule.register({ serviceName: AI_SERVICE_NAME }),
   ],
-  controllers: [
-    AiServiceHealthController,
-    MetricsController,
-  ],
+  controllers: [AiServiceHealthController, MetricsController],
 })
 export class AiServiceModule {}

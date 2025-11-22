@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Inject,
+  Logger,
   Post,
   Query,
   Req,
@@ -34,6 +35,8 @@ import { ConfigService } from '@nestjs/config';
 @ApiTags('Payments')
 @Controller('v1/payments')
 export class PaymentController {
+  private readonly logger = new Logger(PaymentController.name);
+
   constructor(
     @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -91,7 +94,10 @@ export class PaymentController {
         { timeout: 10000 },
       );
 
-      console.log('Payment service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Payment service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -112,8 +118,7 @@ export class PaymentController {
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
-      const errorMessage =
-        typedError.logMessage || 'Create COD payment failed';
+      const errorMessage = typedError.logMessage || 'Create COD payment failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,
@@ -180,7 +185,10 @@ export class PaymentController {
         { timeout: 10000 },
       );
 
-      console.log('Payment service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Payment service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -319,7 +327,10 @@ export class PaymentController {
         { timeout: 10000 },
       );
 
-      console.log('Payment service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Payment service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

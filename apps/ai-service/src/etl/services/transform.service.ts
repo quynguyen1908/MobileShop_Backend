@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ITransformService } from '../etl.port';
 import { AppError, OPENAI_EMBEDDINGS } from '@app/contracts';
 import { OpenAIEmbeddings } from '@langchain/openai';
@@ -11,6 +11,8 @@ interface DocumentContent {
 
 @Injectable()
 export class TransformService implements ITransformService {
+  private readonly logger = new Logger(TransformService.name);
+
   constructor(
     @Inject(OPENAI_EMBEDDINGS) private readonly embeddings: OpenAIEmbeddings,
   ) {}
@@ -38,7 +40,7 @@ export class TransformService implements ITransformService {
           content: content,
         });
       } catch (error: unknown) {
-        console.error('Error cleaning document:', error);
+        this.logger.error('Error cleaning document:', error);
         return item;
       }
     });
@@ -153,7 +155,7 @@ export class TransformService implements ITransformService {
           );
         }
       } catch (error: unknown) {
-        console.error('Error splitting document:', error);
+        this.logger.error('Error splitting document:', error);
         chunks.push(item);
       }
     });
@@ -172,7 +174,7 @@ export class TransformService implements ITransformService {
             const parsed = JSON.parse(chunk) as DocumentContent;
             return parsed.content || '';
           } catch (error: unknown) {
-            console.error('Error parsing chunk for embeddings:', error);
+            this.logger.error('Error parsing chunk for embeddings:', error);
             return '';
           }
         })
@@ -196,7 +198,7 @@ export class TransformService implements ITransformService {
             (error.message?.includes('rate_limit') ||
               error.message?.includes('429'))
           ) {
-            console.warn('Rate limit exceeded, waiting before retrying...');
+            this.logger.warn('Rate limit exceeded, waiting before retrying...');
             await new Promise((resolve) => setTimeout(resolve, 2000));
             i -= batchSize;
             continue;
@@ -206,7 +208,7 @@ export class TransformService implements ITransformService {
       }
       return allEmbeddings;
     } catch (error: unknown) {
-      console.error('Error generating embeddings:', error);
+      this.logger.error('Error generating embeddings:', error);
       throw AppError.from(new Error('Failed to generate embeddings'), 500)
         .withLog(`
                 Error generating embeddings: ${error instanceof Error ? error.message : 'Unknown error'}

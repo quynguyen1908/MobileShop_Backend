@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from './user.port';
-import { UserPrismaService } from '@app/contracts/prisma';
+import { UserPrismaService } from '@app/prisma';
 import {
   Address,
   AddressCreateDto,
