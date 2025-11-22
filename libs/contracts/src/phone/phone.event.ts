@@ -7,6 +7,10 @@ export const EVT_BRAND_UPDATED = 'BrandUpdated';
 export const EVT_CATEGORY_UPDATED = 'CategoryUpdated';
 export const EVT_PHONE_VARIANT_UPDATED = 'PhoneVariantUpdated';
 export const EVT_PHONE_UPDATED = 'PhoneUpdated';
+export const EVT_BRAND_DELETED = 'BrandDeleted';
+export const EVT_CATEGORY_DELETED = 'CategoryDeleted';
+export const EVT_PHONE_VARIANT_DELETED = 'PhoneVariantDeleted';
+export const EVT_PHONE_DELETED = 'PhoneDeleted';
 export const EVT_INVENTORY_LOW = 'InventoryLow';
 
 export interface BasePhoneEventPayload {
@@ -23,6 +27,10 @@ export interface VariantCreatedPayload extends BasePhoneEventPayload {
   phoneId: number;
   variantName: string;
   description?: string;
+}
+
+export interface VariantDeletedPayload extends BasePhoneEventPayload {
+  variantIds: number[];
 }
 
 export interface InventoryLowPayload extends BasePhoneEventPayload {
@@ -139,6 +147,58 @@ export abstract class PhoneEvent<
           version,
         });
       }
+      case EVT_BRAND_DELETED: {
+        const variantDeletedPayload = validateVariantDeletedPayload(payload);
+        return new BrandDeletedEvent(variantDeletedPayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_CATEGORY_DELETED: {
+        const variantDeletedPayload = validateVariantDeletedPayload(payload);
+        return new CategoryDeletedEvent(variantDeletedPayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_PHONE_VARIANT_DELETED: {
+        const variantDeletedPayload = validateVariantDeletedPayload(payload);
+        return new PhoneVariantDeletedEvent(variantDeletedPayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
+      case EVT_PHONE_DELETED: {
+        const variantDeletedPayload = validateVariantDeletedPayload(payload);
+        return new PhoneDeletedEvent(variantDeletedPayload, {
+          id,
+          occurredAt:
+            occurredAt instanceof Date
+              ? occurredAt
+              : new Date(String(occurredAt)),
+          senderId,
+          correlationId,
+          version,
+        });
+      }
       case EVT_INVENTORY_LOW: {
         const inventoryLowPayload = validateInventoryLowPayload(payload);
         return new InventoryLowEvent(inventoryLowPayload, {
@@ -213,6 +273,25 @@ function validateVariantCreatedPayload(
     variantName: payload.variantName,
     description:
       typeof payload.description === 'string' ? payload.description : undefined,
+  };
+}
+
+function validateVariantDeletedPayload(
+  payload: Record<string, unknown>,
+): VariantDeletedPayload {
+  if (typeof payload.id !== 'number') {
+    throw new Error('Invalid payload: id must be a number');
+  }
+  if (
+    !Array.isArray(payload.variantIds) ||
+    !payload.variantIds.every((id) => typeof id === 'number')
+  ) {
+    throw new Error('Invalid payload: variantIds must be an array of numbers');
+  }
+
+  return {
+    id: payload.id,
+    variantIds: payload.variantIds,
   };
 }
 
@@ -409,6 +488,118 @@ export class PhoneUpdatedEvent extends PhoneEvent<BasePhoneEventPayload> {
 
   static from(json: EventJson): PhoneUpdatedEvent {
     return PhoneEvent.fromJson(json) as PhoneUpdatedEvent;
+  }
+}
+
+export class BrandDeletedEvent extends PhoneEvent<VariantDeletedPayload> {
+  constructor(
+    payload: VariantDeletedPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_BRAND_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: VariantDeletedPayload,
+    senderId: string,
+  ): BrandDeletedEvent {
+    return new BrandDeletedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): BrandDeletedEvent {
+    return PhoneEvent.fromJson(json) as BrandDeletedEvent;
+  }
+}
+
+export class CategoryDeletedEvent extends PhoneEvent<VariantDeletedPayload> {
+  constructor(
+    payload: VariantDeletedPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_CATEGORY_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: VariantDeletedPayload,
+    senderId: string,
+  ): CategoryDeletedEvent {
+    return new CategoryDeletedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): CategoryDeletedEvent {
+    return PhoneEvent.fromJson(json) as CategoryDeletedEvent;
+  }
+}
+
+export class PhoneVariantDeletedEvent extends PhoneEvent<VariantDeletedPayload> {
+  constructor(
+    payload: VariantDeletedPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_PHONE_VARIANT_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: VariantDeletedPayload,
+    senderId: string,
+  ): PhoneVariantDeletedEvent {
+    return new PhoneVariantDeletedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): PhoneVariantDeletedEvent {
+    return PhoneEvent.fromJson(json) as PhoneVariantDeletedEvent;
+  }
+}
+
+export class PhoneDeletedEvent extends PhoneEvent<VariantDeletedPayload> {
+  constructor(
+    payload: VariantDeletedPayload,
+    options?: {
+      id?: string;
+      occurredAt?: Date;
+      senderId?: string;
+      correlationId?: string;
+      version?: string;
+    },
+  ) {
+    super(EVT_PHONE_UPDATED, payload, options);
+  }
+
+  static create(
+    payload: VariantDeletedPayload,
+    senderId: string,
+  ): PhoneDeletedEvent {
+    return new PhoneDeletedEvent(payload, {
+      senderId,
+    });
+  }
+
+  static from(json: EventJson): PhoneDeletedEvent {
+    return PhoneEvent.fromJson(json) as PhoneDeletedEvent;
   }
 }
 

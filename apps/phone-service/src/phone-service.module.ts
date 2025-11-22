@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MetricsController, PrometheusModule } from '@app/monitoring';
 import { PHONE_SERVICE_NAME } from '@app/contracts/phone';
 import { LoggingModule } from '@app/logging';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { LoggingModule } from '@app/logging';
     PrismaModule,
     PrometheusModule.register(PHONE_SERVICE_NAME),
     LoggingModule.register({ serviceName: PHONE_SERVICE_NAME }),
+    SearchModule,
   ],
   controllers: [MetricsController],
   providers: [],

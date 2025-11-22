@@ -5,7 +5,9 @@ import { OrderEventHandler } from './order/order-event.handler';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(OrderServiceModule, { bufferLogs: true });
+  const app = await NestFactory.create(OrderServiceModule, {
+    bufferLogs: true,
+  });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const orderEventHandler = app.get(OrderEventHandler);

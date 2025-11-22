@@ -5,7 +5,9 @@ import { PhoneEventHandler } from './phone/phone-event.handler';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(PhoneServiceModule, { bufferLogs: true });
+  const app = await NestFactory.create(PhoneServiceModule, {
+    bufferLogs: true,
+  });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const phoneEventHandler = app.get(PhoneEventHandler);

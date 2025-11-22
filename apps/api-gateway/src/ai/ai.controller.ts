@@ -32,7 +32,7 @@ interface IngestResponse {
 @Controller('v1/ai')
 export class AiController {
   private readonly logger = new Logger(AiController.name);
-  
+
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,

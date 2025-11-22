@@ -43,6 +43,10 @@ export const PHONE_PATTERN = {
   ADD_INVENTORY: 'phone.addInventory',
 
   CREATE_REVIEW: 'phone.createReview',
+
+  SEARCH_PHONES: 'phone.searchPhones',
+  SYNC_PHONES_TO_SEARCH: 'phone.syncPhonesToSearch',
 };
 
 export const PHONE_SERVICE_NAME = 'phone-service';
+export const ES_SEARCH_INDEX = 'phones';

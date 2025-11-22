@@ -45,6 +45,7 @@ export interface IPhoneService {
   getPhonesByIds(ids: number[]): Promise<Phone[]>;
   listPhones(paging: PagingDto): Promise<Paginated<PhoneWithVariantsDto>>;
   getPhoneById(id: number): Promise<PhoneWithVariantsDto>;
+  getPhonesByCategoryId(categoryId: number): Promise<PhoneWithVariantsDto[]>;
   createPhone(phoneCreateDto: PhoneCreateDto): Promise<number>;
   updatePhone(id: number, data: PhoneUpdateDto): Promise<void>;
   deletePhonesByIds(ids: number[]): Promise<void>;
@@ -111,6 +112,9 @@ export interface IPhoneService {
     requester: Requester,
     reviewCreateDto: ReviewCreateDto,
   ): Promise<number>;
+
+  // Search
+  syncAllDocuments(): Promise<void>;
 }
 
 export interface IPhoneRepository

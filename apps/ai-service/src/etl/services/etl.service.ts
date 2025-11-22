@@ -35,7 +35,9 @@ export class ETLService implements IETLService {
       const dbDocuments = await this.extractService.readFromSource(
         SourceType.DATABASE,
       );
-      this.logger.log(`Extracted ${dbDocuments.length} documents from database`);
+      this.logger.log(
+        `Extracted ${dbDocuments.length} documents from database`,
+      );
 
       const fileDocuments = await this.extractService.readFromSource(
         SourceType.FILE,

@@ -65,6 +65,10 @@ import {
   InventoryCreateDto,
   inventoryCreateDtoSchema,
   InventoryDto,
+  PhoneDeletedEvent,
+  BrandDeletedEvent,
+  CategoryDeletedEvent,
+  PhoneVariantDeletedEvent,
 } from '@app/contracts/phone';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -75,6 +79,7 @@ import {
 } from '@app/contracts/user';
 import { firstValueFrom } from 'rxjs';
 import { ORDER_PATTERN } from '@app/contracts/order';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class PhoneService implements IPhoneService {
@@ -86,6 +91,7 @@ export class PhoneService implements IPhoneService {
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
     @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
+    private readonly searchService: SearchService,
   ) {}
 
   // Phone
@@ -132,6 +138,20 @@ export class PhoneService implements IPhoneService {
       phone,
     ]);
     return phoneDtoArray[0];
+  }
+
+  async getPhonesByCategoryId(
+    categoryId: number,
+  ): Promise<PhoneWithVariantsDto[]> {
+    const phones =
+      await this.phoneRepository.findPhonesByCategoryId(categoryId);
+
+    if (!phones || phones.length === 0) {
+      return [];
+    }
+
+    const phoneDtos: PhoneWithVariantsDto[] = await this.toPhoneDto(phones);
+    return phoneDtos;
   }
 
   async createPhone(phoneCreateDto: PhoneCreateDto): Promise<number> {
@@ -197,11 +217,14 @@ export class PhoneService implements IPhoneService {
       );
     }
 
+    const variants = await this.phoneRepository.findVariantsByPhoneIds(ids);
+
     await this.deletePhones(ids);
 
-    const event = PhoneUpdatedEvent.create(
+    const event = PhoneDeletedEvent.create(
       {
         id: ids[0],
+        variantIds: variants.map((v) => v.id!),
       },
       PHONE_SERVICE_NAME,
     );
@@ -334,16 +357,25 @@ export class PhoneService implements IPhoneService {
     }
 
     const phones = await this.phoneRepository.findPhonesByBrandId(id);
+    let variants: PhoneVariant[] = [];
+
     if (phones && phones.length > 0) {
+      variants = await this.phoneRepository.findVariantsByPhoneIds(
+        phones
+          .map((phone) => phone.id!)
+          .filter((id): id is number => id !== undefined),
+      );
+
       await this.deletePhones(
         phones
           .map((phone) => phone.id)
           .filter((id): id is number => id !== undefined),
       );
 
-      const event = BrandUpdatedEvent.create(
+      const event = BrandDeletedEvent.create(
         {
           id: id,
+          variantIds: variants.map((v) => v.id!),
         },
         PHONE_SERVICE_NAME,
       );
@@ -456,16 +488,25 @@ export class PhoneService implements IPhoneService {
     const phones =
       await this.phoneRepository.findPhonesByCategoryIds(categoryIdsToDelete);
 
+    let variants: PhoneVariant[] = [];
+
     if (phones && phones.length > 0) {
+      variants = await this.phoneRepository.findVariantsByPhoneIds(
+        phones
+          .map((phone) => phone.id!)
+          .filter((id): id is number => id !== undefined),
+      );
+
       await this.deletePhones(
         phones
           .map((phone) => phone.id)
           .filter((id): id is number => id !== undefined),
       );
 
-      const event = CategoryUpdatedEvent.create(
+      const event = CategoryDeletedEvent.create(
         {
           id: id,
+          variantIds: variants.map((v) => v.id!),
         },
         PHONE_SERVICE_NAME,
       );
@@ -1034,9 +1075,10 @@ export class PhoneService implements IPhoneService {
 
     await this.deletePhoneVariants(ids);
 
-    const event = PhoneVariantUpdatedEvent.create(
+    const event = PhoneVariantDeletedEvent.create(
       {
         id: ids[0],
+        variantIds: variants.map((v) => v.id!),
       },
       PHONE_SERVICE_NAME,
     );
@@ -1330,6 +1372,12 @@ export class PhoneService implements IPhoneService {
     });
 
     return newReview.id!;
+  }
+
+  async syncAllDocuments(): Promise<void> {
+    const variants = await this.getAllVariants();
+
+    await this.searchService.bulkIndex(variants);
   }
 
   private async toPhoneDto(phones: Phone[]): Promise<PhoneWithVariantsDto[]> {

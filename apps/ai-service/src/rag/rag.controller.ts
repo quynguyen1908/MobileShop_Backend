@@ -6,7 +6,7 @@ import type { Response } from 'express';
 @Controller('v1/ai/rag')
 export class RagController {
   private readonly logger = new Logger(RagController.name);
-  
+
   constructor(private readonly ragService: RagService) {}
 
   @Post('chat')

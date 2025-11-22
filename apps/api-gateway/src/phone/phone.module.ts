@@ -5,6 +5,7 @@ import {
   InventoryController,
   PhoneController,
   ReviewController,
+  SearchController,
 } from './phone.controller';
 import { RabbitMQService } from '@app/rabbitmq';
 import { ClientProxyFactory } from '@nestjs/microservices/client/client-proxy-factory';
@@ -20,6 +21,7 @@ import { CircuitBreakerModule } from '../circuit-breaker/circuit-breaker.module'
     InventoryController,
     BrandController,
     ReviewController,
+    SearchController,
   ],
   providers: [
     {

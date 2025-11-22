@@ -15,10 +15,14 @@ import type {
 } from '@app/contracts/phone';
 import { PHONE_PATTERN } from '@app/contracts/phone/phone.pattern';
 import type { PagingDto, Requester } from '@app/contracts';
+import { SearchService } from '../search/search.service';
 
 @Controller()
 export class PhoneController {
-  constructor(private readonly phoneService: PhoneService) {}
+  constructor(
+    private readonly phoneService: PhoneService,
+    private readonly searchService: SearchService,
+  ) {}
 
   @MessagePattern(PHONE_PATTERN.GET_PHONES_BY_IDS)
   async getPhonesByIds(@Payload() phoneIds: number[]) {
@@ -244,5 +248,16 @@ export class PhoneController {
   ) {
     const { requester, reviewCreateDto } = payload;
     return this.phoneService.createReview(requester, reviewCreateDto);
+  }
+
+  @MessagePattern(PHONE_PATTERN.SEARCH_PHONES)
+  async searchPhones(@Payload() keyword: string) {
+    return this.searchService.searchInstant(keyword);
+  }
+
+  @MessagePattern(PHONE_PATTERN.SYNC_PHONES_TO_SEARCH)
+  async syncPhonesToSearch() {
+    await this.phoneService.syncAllDocuments();
+    return { success: true };
   }
 }

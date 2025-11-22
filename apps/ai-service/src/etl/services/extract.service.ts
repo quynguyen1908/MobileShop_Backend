@@ -14,7 +14,7 @@ import { ApiResponseDto } from '@app/contracts/ai/ai.dto';
 @Injectable()
 export class ExtractService implements IExtractService {
   private readonly logger = new Logger(ExtractService.name);
-  
+
   constructor(
     private configService: ConfigService,
     private readonly httpService: HttpService,

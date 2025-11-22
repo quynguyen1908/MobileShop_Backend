@@ -36,7 +36,9 @@ export class LoadService implements ILoadService {
           );
 
           if ((i + 1) % 10 === 0 || i === vectors.length - 1) {
-            this.logger.log(`Progress: ${i + 1}/${vectors.length} vectors saved`);
+            this.logger.log(
+              `Progress: ${i + 1}/${vectors.length} vectors saved`,
+            );
           }
 
           if (i > 0 && i % 50 === 0 && i < vectors.length - 1) {

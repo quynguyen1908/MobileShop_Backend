@@ -47,7 +47,7 @@ import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 @Controller('v1/orders')
 export class OrderController {
   private readonly logger = new Logger(OrderController.name);
-  
+
   constructor(
     @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -211,7 +211,10 @@ export class OrderController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -355,7 +358,10 @@ export class OrderController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -552,7 +558,10 @@ export class OrderController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -647,7 +656,10 @@ export class OrderController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -820,7 +832,10 @@ export class OrderController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -950,7 +965,10 @@ export class OrderController {
         { timeout: 30000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1032,7 +1050,10 @@ export class OrderController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1121,7 +1142,10 @@ export class OrderController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1160,7 +1184,7 @@ export class OrderController {
 @Controller('v1/shipment')
 export class ShipmentController {
   private readonly logger = new Logger(ShipmentController.name);
-  
+
   constructor(
     @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -1223,7 +1247,10 @@ export class ShipmentController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1327,7 +1354,10 @@ export class CartController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1413,7 +1443,10 @@ export class CartController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1498,7 +1531,10 @@ export class CartController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1585,7 +1621,10 @@ export class CartController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1624,7 +1663,7 @@ export class CartController {
 @Controller('v1/dashboard')
 export class DashboardController {
   private readonly logger = new Logger(DashboardController.name);
-  
+
   constructor(
     @Inject(ORDER_SERVICE) private readonly orderServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -1727,7 +1766,10 @@ export class DashboardController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Order service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

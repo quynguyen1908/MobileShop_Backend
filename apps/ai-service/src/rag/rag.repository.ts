@@ -49,7 +49,9 @@ export class RetrievalRepository implements IRetrievalRepository {
 
         await this.client.createCollection(this.collectionName, payload);
 
-        this.logger.log(`Collection ${this.collectionName} created successfully`);
+        this.logger.log(
+          `Collection ${this.collectionName} created successfully`,
+        );
       }
     } catch (error: unknown) {
       this.logger.error('Failed to initialize Qdrant collection:', error);

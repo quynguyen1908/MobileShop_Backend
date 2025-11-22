@@ -22,6 +22,7 @@ import {
   Inventory,
   PHONE_PATTERN,
   PHONE_SERVICE_NAME,
+  SearchPhoneResult,
 } from '@app/contracts/phone';
 import type {
   Brand,
@@ -61,7 +62,7 @@ import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 @Controller('v1/phones')
 export class PhoneController {
   private readonly logger = new Logger(PhoneController.name);
-  
+
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -194,7 +195,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -336,7 +340,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -425,7 +432,10 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -501,7 +511,10 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -632,7 +645,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -877,7 +893,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1016,7 +1035,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1157,7 +1179,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1294,7 +1319,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1430,7 +1458,10 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1508,7 +1539,10 @@ export class PhoneController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1580,7 +1614,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1659,7 +1696,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1730,7 +1770,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1813,7 +1856,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -1956,7 +2002,10 @@ export class PhoneController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2050,7 +2099,10 @@ export class BrandController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2135,7 +2187,10 @@ export class BrandController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2227,7 +2282,10 @@ export class BrandController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2301,7 +2359,10 @@ export class BrandController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2392,7 +2453,10 @@ export class CategoryController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2474,7 +2538,10 @@ export class CategoryController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2562,7 +2629,10 @@ export class CategoryController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2639,7 +2709,10 @@ export class CategoryController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2727,7 +2800,10 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2810,7 +2886,10 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2894,7 +2973,10 @@ export class InventoryController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -2933,7 +3015,7 @@ export class InventoryController {
 @Controller('v1/reviews')
 export class ReviewController {
   private readonly logger = new Logger(ReviewController.name);
-  
+
   constructor(
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -2993,7 +3075,10 @@ export class ReviewController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Phone Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -3015,6 +3100,181 @@ export class ReviewController {
       const typedError = error as ServiceError;
       const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
       const errorMessage = typedError.logMessage || 'Creating review failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+}
+
+@ApiTags('Search')
+@Controller('v1/search')
+export class SearchController {
+  private readonly logger = new Logger(SearchController.name);
+
+  constructor(
+    @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
+    private readonly circuitBreakerService: CircuitBreakerService,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Search phones' })
+  @ApiParam({
+    name: 'q',
+    type: String,
+    description: 'Search query string',
+    example: 'iPhone',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search completed successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Search completed successfully',
+          data: {
+            phones: [
+              {
+                id: 1,
+                name: 'iPhone 16 Pro Max 1TB',
+                imageUrl: 'https://www.apple.com/iphone-16-pro.jpg',
+                originalPrice: 48000000,
+                discountPercent: 10,
+              },
+              {
+                id: 2,
+                name: 'iPhone 16 Pro Max 256GB',
+                imageUrl: 'https://www.apple.com/iphone-16-pro.jpg',
+                originalPrice: 34000000,
+                discountPercent: 10,
+              },
+            ],
+            categories: ['iPhone 16 Series'],
+          },
+        },
+      },
+    },
+  })
+  async searchPhones(@Query('q') keyword: string, @Res() res: Response) {
+    try {
+      const result = await this.circuitBreakerService.sendRequest<
+        SearchPhoneResult | FallbackResponse
+      >(
+        this.phoneServiceClient,
+        PHONE_SERVICE_NAME,
+        PHONE_PATTERN.SEARCH_PHONES,
+        keyword,
+        () => {
+          return {
+            fallback: true,
+            message: 'Phone service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Search completed successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage = typedError.logMessage || 'Search failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('sync')
+  @UseGuards(RemoteAuthGuard)
+  @Roles(RoleType.ADMIN)
+  @ApiOperation({ summary: 'Synchronize search index (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search index synchronized successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Search index synchronized successfully',
+          data: { success: true },
+        },
+      },
+    },
+  })
+  async syncSearchIndex(@Res() res: Response) {
+    try {
+      const result =
+        await this.circuitBreakerService.sendRequest<void | FallbackResponse>(
+          this.phoneServiceClient,
+          PHONE_SERVICE_NAME,
+          PHONE_PATTERN.SYNC_PHONES_TO_SEARCH,
+          {},
+          () => {
+            return {
+              fallback: true,
+              message: 'Phone service is temporarily unavailable',
+            } as FallbackResponse;
+          },
+          { timeout: 60000 },
+        );
+
+      this.logger.log(
+        'Phone Service response:',
+        JSON.stringify(result, null, 2),
+      );
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Search index synchronized successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Synchronizing search index failed';
 
       const errorResponse = new ApiResponseDto(
         statusCode,

@@ -431,7 +431,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
-      - monitoring.collection.enabled=true
+      - xpack.monitoring.collection.enabled=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - bootstrap.memory_lock=true
     ulimits:

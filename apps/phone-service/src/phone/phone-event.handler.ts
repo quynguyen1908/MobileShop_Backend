@@ -12,19 +12,29 @@ import {
   OrderUpdatedEvent,
 } from '@app/contracts/order/order.event';
 import {
+  BrandDeletedEvent,
   BrandUpdatedEvent,
+  CategoryDeletedEvent,
   CategoryUpdatedEvent,
+  EVT_BRAND_DELETED,
   EVT_BRAND_UPDATED,
+  EVT_CATEGORY_DELETED,
   EVT_CATEGORY_UPDATED,
   EVT_PHONE_CREATED,
+  EVT_PHONE_DELETED,
   EVT_PHONE_UPDATED,
+  EVT_PHONE_VARIANT_DELETED,
   EVT_PHONE_VARIANT_UPDATED,
   EVT_VARIANT_CREATED,
   InventoryLowEvent,
   PHONE_SERVICE_NAME,
   PhoneCreatedEvent,
+  PhoneDeletedEvent,
   PhoneUpdatedEvent,
+  PhoneVariantDeletedEvent,
+  PhoneVariantDto,
   PhoneVariantUpdatedEvent,
+  PhoneWithVariantsDto,
   VariantCreatedEvent,
 } from '@app/contracts/phone';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -34,6 +44,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { catchError, firstValueFrom } from 'rxjs';
 import { OrderStatus } from '@app/contracts/order';
+import { SearchService } from '../search/search.service';
 
 interface TypedError {
   message: string;
@@ -57,6 +68,7 @@ export class PhoneEventHandler {
     private eventEmitter: EventEmitter2,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly searchService: SearchService,
   ) {
     this.logger.log('PhoneEventHandler initialized');
     this.eventEmitter.emit('app.ready');
@@ -177,6 +189,12 @@ export class PhoneEventHandler {
     );
     try {
       await this.ingest();
+
+      const newPhone = await this.phoneService.getPhoneById(event.payload.id);
+
+      const variants = this.phoneToVariantDto(newPhone);
+
+      await this.bulkIndex(variants);
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(
@@ -191,6 +209,12 @@ export class PhoneEventHandler {
     );
     try {
       await this.ingest();
+
+      const newVariant = await this.phoneService.getVariantById(
+        event.payload.id,
+      );
+
+      await this.bulkIndex([newVariant]);
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(
@@ -219,6 +243,13 @@ export class PhoneEventHandler {
     );
     try {
       await this.ingest();
+
+      const phones = await this.phoneService.getPhonesByCategoryId(
+        event.payload.id,
+      );
+
+      const variants = phones.flatMap((phone) => this.phoneToVariantDto(phone));
+      await this.bulkIndex(variants);
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(
@@ -233,6 +264,14 @@ export class PhoneEventHandler {
     );
     try {
       await this.ingest();
+
+      const updatedPhone = await this.phoneService.getPhoneById(
+        event.payload.id,
+      );
+
+      const variants = this.phoneToVariantDto(updatedPhone);
+
+      await this.bulkIndex(variants);
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(
@@ -249,12 +288,130 @@ export class PhoneEventHandler {
     );
     try {
       await this.ingest();
+
+      const updatedVariant = await this.phoneService.getVariantById(
+        event.payload.id,
+      );
+
+      await this.bulkIndex([updatedVariant]);
     } catch (error) {
       const typedError = error as TypedError;
       this.logger.error(
         `Failed to process PhoneVariantUpdated event: ${typedError.message}`,
       );
     }
+  }
+
+  async handleBrandDeleted(event: BrandDeletedEvent): Promise<void> {
+    this.logger.log(
+      `Handling BrandDeleted event for brand ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+
+      const variantIds: string[] = event.payload.variantIds.map((id) =>
+        id.toString(),
+      );
+
+      await this.bulkDelete(variantIds);
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process BrandDeleted event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handleCategoryDeleted(event: CategoryDeletedEvent): Promise<void> {
+    this.logger.log(
+      `Handling CategoryDeleted event for category ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+
+      const variantIds: string[] = event.payload.variantIds.map((id) =>
+        id.toString(),
+      );
+
+      await this.bulkDelete(variantIds);
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process CategoryDeleted event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handlePhoneDeleted(event: PhoneDeletedEvent): Promise<void> {
+    this.logger.log(
+      `Handling PhoneDeleted event for phone ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+
+      const variantIds: string[] = event.payload.variantIds.map((id) =>
+        id.toString(),
+      );
+
+      await this.bulkDelete(variantIds);
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process PhoneDeleted event: ${typedError.message}`,
+      );
+    }
+  }
+
+  async handlePhoneVariantDeleted(
+    event: PhoneVariantDeletedEvent,
+  ): Promise<void> {
+    this.logger.log(
+      `Handling PhoneVariantDeleted event for variant ID: ${event.payload.id}`,
+    );
+    try {
+      await this.ingest();
+
+      const variantIds: string[] = event.payload.variantIds.map((id) =>
+        id.toString(),
+      );
+
+      await this.bulkDelete(variantIds);
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to process PhoneVariantDeleted event: ${typedError.message}`,
+      );
+    }
+  }
+
+  private phoneToVariantDto(phoneDto: PhoneWithVariantsDto): PhoneVariantDto[] {
+    const variants: PhoneVariantDto[] = phoneDto.variants.map((variant) => ({
+      id: variant.id,
+      variantName: variant.variantName,
+      description: variant.description,
+      colors: variant.colors,
+      price: variant.price,
+      discount: variant.discount,
+      images: variant.images,
+      inventories: variant.inventories,
+      specifications: variant.specifications,
+      reviews: variant.reviews,
+      averageRating: variant.averageRating,
+      phone: {
+        id: phoneDto.id,
+        name: phoneDto.name,
+        brand: phoneDto.brand,
+        category: phoneDto.category,
+        createdAt: phoneDto.createdAt,
+        updatedAt: phoneDto.updatedAt,
+        isDeleted: phoneDto.isDeleted,
+      },
+      createdAt: variant.createdAt,
+      updatedAt: variant.updatedAt,
+      isDeleted: variant.isDeleted,
+    }));
+
+    return variants;
   }
 
   private async ingest(): Promise<void> {
@@ -273,6 +430,32 @@ export class PhoneEventHandler {
     this.logger.log(
       `ETL Ingestion started successfully: ${JSON.stringify(data)}`,
     );
+  }
+
+  private async bulkIndex(variants: PhoneVariantDto[]): Promise<void> {
+    try {
+      await this.searchService.bulkIndex(variants);
+
+      this.logger.log(`Successfully bulk indexed ${variants.length} variants.`);
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(`Failed to bulk index variants: ${typedError.message}`);
+    }
+  }
+
+  private async bulkDelete(variantIds: string[]): Promise<void> {
+    try {
+      await this.searchService.bulkDelete(variantIds);
+
+      this.logger.log(
+        `Successfully bulk deleted ${variantIds.length} variants.`,
+      );
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(
+        `Failed to bulk delete variants: ${typedError.message}`,
+      );
+    }
   }
 
   private async subscribe(): Promise<void> {
@@ -529,6 +712,136 @@ export class PhoneEventHandler {
             const typedError = error as TypedError;
             this.logger.error(
               `Error processing ${EVT_PHONE_VARIANT_UPDATED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_BRAND_DELETED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_BRAND_DELETED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_BRAND_DELETED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = BrandDeletedEvent.from(eventJson);
+            await this.handleBrandDeleted(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_BRAND_DELETED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_CATEGORY_DELETED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_CATEGORY_DELETED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_CATEGORY_DELETED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = CategoryDeletedEvent.from(eventJson);
+            await this.handleCategoryDeleted(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_CATEGORY_DELETED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_PHONE_DELETED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(`Received ${EVT_PHONE_DELETED} event: ${msg}`);
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_PHONE_DELETED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = PhoneDeletedEvent.from(eventJson);
+            await this.handlePhoneDeleted(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_PHONE_DELETED} event: ${typedError.message}`,
+              typedError.stack,
+            );
+          }
+        })();
+      },
+    );
+
+    await this.eventSubscriber.subscribe(
+      EVT_PHONE_VARIANT_DELETED,
+      PHONE_SERVICE_NAME,
+      (msg: string): void => {
+        void (async () => {
+          try {
+            this.logger.log(
+              `Received ${EVT_PHONE_VARIANT_DELETED} event: ${msg}`,
+            );
+            const parsedData = JSON.parse(msg) as EventJson;
+
+            const eventJson: EventJson = {
+              eventName: EVT_PHONE_VARIANT_DELETED,
+              payload: parsedData.payload || {},
+              id: parsedData.id,
+              occurredAt: parsedData.occurredAt,
+              senderId: parsedData.senderId,
+              correlationId: parsedData.correlationId,
+              version: parsedData.version,
+            };
+
+            const event = PhoneVariantDeletedEvent.from(eventJson);
+            await this.handlePhoneVariantDeleted(event);
+          } catch (error) {
+            const typedError = error as TypedError;
+            this.logger.error(
+              `Error processing ${EVT_PHONE_VARIANT_DELETED} event: ${typedError.message}`,
               typedError.stack,
             );
           }

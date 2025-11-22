@@ -10,7 +10,7 @@ async function bootstrap() {
 
   app.connectMicroservice(rmqService.authServiceOptions);
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
-  
+
   await app.startAllMicroservices();
   const port = process.env.AUTH_SERVICE_PORT || 3001;
   await app.listen(port);

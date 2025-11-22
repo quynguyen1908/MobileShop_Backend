@@ -575,3 +575,32 @@ export const phoneUpdateDtoSchema = phoneSchema
   .partial();
 
 export type PhoneUpdateDto = z.infer<typeof phoneUpdateDtoSchema>;
+
+// Search Phone
+
+export const searchPhoneDtoSchema = z.object({
+  id: z.string(),
+  phoneId: z.string(),
+  name: z.string(),
+  category: z.string(),
+  originalPrice: z.number().int().nonnegative(),
+  discountPercent: z.number().int().min(0).max(100).nullable(),
+  imageUrl: z.url().nullable(),
+});
+
+export type SearchPhoneDto = z.infer<typeof searchPhoneDtoSchema>;
+
+export const searchPhoneResultSchema = z.object({
+  phones: searchPhoneDtoSchema
+    .pick({
+      id: true,
+      name: true,
+      imageUrl: true,
+      originalPrice: true,
+      discountPercent: true,
+    })
+    .array(),
+  categories: z.array(z.string()),
+});
+
+export type SearchPhoneResult = z.infer<typeof searchPhoneResultSchema>;

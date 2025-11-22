@@ -394,11 +394,26 @@ export class UserService implements IUserService {
   // Notification
 
   async getNotifications(request: Requester): Promise<Notification[]> {
-    return this.userRepository.findNotificationsByUserId(request.sub);
+    const notifications = await this.userRepository.findNotificationsByUserId(
+      request.sub,
+    );
+
+    if (!notifications || notifications.length === 0) {
+      return [];
+    }
+
+    return notifications;
   }
 
   async getUnreadNotifications(request: Requester): Promise<Notification[]> {
-    return this.userRepository.findUnreadNotificationsByUserId(request.sub);
+    const notifications =
+      await this.userRepository.findUnreadNotificationsByUserId(request.sub);
+
+    if (!notifications || notifications.length === 0) {
+      return [];
+    }
+
+    return notifications;
   }
 
   async createNotifications(data: Notification[]): Promise<void> {

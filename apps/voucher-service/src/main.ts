@@ -5,7 +5,9 @@ import { VoucherEventHandler } from './voucher/voucher-event.handler';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(VoucherServiceModule, { bufferLogs: true });
+  const app = await NestFactory.create(VoucherServiceModule, {
+    bufferLogs: true,
+  });
   app.enableShutdownHooks();
   const rmqService = app.get<RabbitMQService>(RabbitMQService);
   const voucherEventHandler = app.get(VoucherEventHandler);

@@ -142,7 +142,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -259,7 +262,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -381,7 +387,10 @@ export class VoucherController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -476,7 +485,10 @@ export class VoucherController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Voucher Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Voucher Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(

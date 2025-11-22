@@ -143,7 +143,10 @@ export class RagService implements IRagService {
 
         (async () => {
           try {
-            this.logger.log('Starting stream with context length:', context.length);
+            this.logger.log(
+              'Starting stream with context length:',
+              context.length,
+            );
 
             const stream = await this.agentExecutor.stream({
               input: query,

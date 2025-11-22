@@ -45,7 +45,7 @@ import { Roles, RoleType } from '@app/contracts/auth/roles.decorator';
 @Controller('v1/auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
-  
+
   constructor(
     @Inject(AUTH_SERVICE) private readonly authServiceClient: ClientProxy,
     private readonly circuitBreakerService: CircuitBreakerService,
@@ -118,7 +118,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -207,7 +210,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -293,7 +299,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -381,7 +390,10 @@ export class AuthController {
         },
         { timeout: 10000 },
       );
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -497,7 +509,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -601,7 +616,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -660,7 +678,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -744,7 +765,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -829,7 +853,10 @@ export class AuthController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -919,7 +946,10 @@ export class AuthController {
           { timeout: 10000 },
         );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
@@ -975,7 +1005,10 @@ export class AuthController {
         { timeout: 10000 },
       );
 
-      this.logger.log('Auth Service response:', JSON.stringify(result, null, 2));
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
 
       if (isFallbackResponse(result)) {
         const fallbackResponse = new ApiResponseDto(
