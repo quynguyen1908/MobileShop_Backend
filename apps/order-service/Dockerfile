@@ -1,4 +1,4 @@
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev
@@ -6,7 +6,7 @@ RUN npm ci --include=dev
 FROM dependencies AS security-scan
 RUN npm audit --production --audit-level=high
 
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
@@ -16,7 +16,7 @@ RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 RUN npm run build order-service
 
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=dependencies /app/node_modules ./node_modules
@@ -27,7 +27,7 @@ RUN mkdir -p node_modules/.prisma/client
 RUN npm run prisma:generate:all
 CMD ["node", "dist/apps/order-service/main.js"]
 
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./

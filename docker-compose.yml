@@ -1,4 +1,36 @@
 services:
+  frontend:
+    # Adjust the build context and volumes to point to the frontend directory
+    build:
+      context: ../../PhoneStore-Frontend/MobileShop_FrontEnd_DATN
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - '${FRONTEND_PORT:-5000}:5000'
+    environment:
+      - PORT=${FRONTEND_PORT:-5000}
+      - NEXT_PUBLIC_API_URL='${NEXT_PUBLIC_API_URL:-http://api-gateway:3000/api/v1}'
+    volumes:
+      - ../../PhoneStore-Frontend/MobileShop_FrontEnd_DATN:/app:ro
+    networks:
+      - frontend-network
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+
   api-gateway:
     build:
       context: .
