@@ -146,6 +146,7 @@ export interface VNPayConfig {
   hashSecret: string;
   apiUrl: string;
   returnUrl: string;
+  mobileReturnUrl: string;
   version: string;
   command: string;
   currCode: string;

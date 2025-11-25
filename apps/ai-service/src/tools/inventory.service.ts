@@ -25,17 +25,21 @@ export class InventoryToolService {
     );
   }
 
-  async checkInventory(variantName: string): Promise<string> {
+  async checkInventory(
+    phoneName: string,
+    variantName: string,
+  ): Promise<string> {
     try {
+      const fullVariantName = `${phoneName} ${variantName}`;
       const { data: response } = await firstValueFrom(
         this.httpService
           .get<
             ApiResponseDto<InventoryDto[]>
-          >(`${this.inventoryServiceUrl}/variant/${encodeURIComponent(variantName)}`)
+          >(`${this.inventoryServiceUrl}/variant/${encodeURIComponent(fullVariantName)}`)
           .pipe(
             catchError((error: unknown) => {
               this.logger.error(
-                `Error checking inventory for variant name ${variantName}:`,
+                `Error checking inventory for variant name ${fullVariantName}:`,
                 error,
               );
               const errorMessage = extractErrorMessage(error);
@@ -52,7 +56,7 @@ export class InventoryToolService {
         Array.isArray(inventoryData) &&
         inventoryData.length > 0
       ) {
-        let result = `📋 Thông tin tồn kho cho sản phẩm: ${variantName}\n\n`;
+        let result = `📋 Thông tin tồn kho cho sản phẩm: ${fullVariantName}\n\n`;
 
         // Calculate total stock across all colors
         const totalStock = inventoryData.reduce(
@@ -111,20 +115,20 @@ export class InventoryToolService {
 
       return response?.errors
         ? `❌ Không thể lấy thông tin tồn kho: ${errorDetail}`
-        : `❌ Không tìm thấy thông tin tồn kho cho sản phẩm "${variantName}". Vui lòng kiểm tra lại tên sản phẩm.`;
+        : `❌ Không tìm thấy thông tin tồn kho cho sản phẩm "${fullVariantName}". Vui lòng kiểm tra lại tên sản phẩm.`;
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to check inventory for variant ${variantName}:`,
+        `Failed to check inventory for variant ${phoneName}:`,
         error,
       );
-      return `❌ Không thể kiểm tra tồn kho cho sản phẩm "${variantName}". Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.`;
+      return `❌ Không thể kiểm tra tồn kho cho sản phẩm "${phoneName}". Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.`;
     }
   }
 
   createCheckInventoryTool(): DynamicStructuredTool<any> {
     return tool(
       async (input: CheckInventoryInput): Promise<string> =>
-        this.checkInventory(input.variantName),
+        this.checkInventory(input.phoneName, input.variantName),
       {
         name: 'checkInventory',
         description: `Công cụ kiểm tra tồn kho sản phẩm trong hệ thống PHONEHUB.
@@ -146,7 +150,9 @@ export class InventoryToolService {
         - Cung cấp tổng quan về tình trạng tồn kho chung
         - Không được hiển thị thông tin kỹ thuật nội bộ như mã SKU, mã biến thể, v.v.
         - Nếu bạn không chắc chắn về tên sản phẩm đầy đủ, hãy hỏi người dùng để lấy thông tin chính xác trước khi gọi công cụ này.
-        - Nếu không tìm thấy sản phẩm, hãy trả lời rằng không tìm thấy thay vì đoán.`,
+        - Nếu không tìm thấy sản phẩm, hãy trả lời rằng không tìm thấy thay vì đoán.
+        - Cấu trúc tên sản phẩm thường là "<Thương hiệu> <Tên sản phẩm> <Dung lượng>". Ví dụ: "iPhone 16 Pro Max 1TB", "Samsung Galaxy S24 Ultra 512GB".
+        - Phải truyền tên sản phẩm đúng định dạng như trên vào các biến "phoneName" và "variantName".`,
         schema: checkInventorySchema,
       },
     );

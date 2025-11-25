@@ -491,7 +491,7 @@ export class AuthService implements IAuthService {
     const adminRole = role.find((r) => r.name === RoleType.ADMIN.toString());
     if (!adminRole) {
       throw new RpcException(
-        AppError.from(new Error('Admin role not found'), 500)
+        AppError.from(new Error('Admin role not found'), 404)
           .withLog('Admin role not found')
           .toJson(false),
       );

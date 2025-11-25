@@ -535,6 +535,7 @@ export const phoneVariantUpdateDtoSchema = phoneVariantSchema
   .pick({
     variantName: true,
     description: true,
+    features: true,
     updatedAt: true,
     isDeleted: true,
   })
@@ -553,6 +554,7 @@ export const phoneVariantUpdatePrismaSchema = phoneVariantSchema
   .pick({
     variantName: true,
     description: true,
+    features: true,
     updatedAt: true,
     isDeleted: true,
   })
@@ -604,3 +606,18 @@ export const searchPhoneResultSchema = z.object({
 });
 
 export type SearchPhoneResult = z.infer<typeof searchPhoneResultSchema>;
+
+// Fix feature
+
+export const FIXED_FEATURES = [
+  'Chơi game đỉnh cao',
+  'Pin trâu, dùng cả ngày',
+  'Thiết kế mỏng nhẹ',
+  'Chụp ảnh chuyên nghiệp',
+  'Chụp ảnh xóa phông đẹp',
+  'Màn hình lớn, giải trí sướng',
+  'Hỗ trợ 5G tốc độ cao',
+  'Nhỏ gọn, dễ cầm nắm',
+  'Dung lượng lưu trữ lớn',
+  'Livestream mượt mà',
+];

@@ -31,6 +31,18 @@ export class PaymentController {
     return this.vnPayService.createPaymentUrl(requester, paymentCreateDto);
   }
 
+  @MessagePattern(PAYMENT_PATTERN.CREATE_MOBILE_VNPAY_PAYMENT_URL)
+  createMobilePaymentUrl(
+    @Payload()
+    payload: {
+      requester: Requester;
+      orderId: number;
+    },
+  ): Promise<string> {
+    const { requester, orderId } = payload;
+    return this.vnPayService.createMobilePaymentUrl(requester, orderId);
+  }
+
   @MessagePattern(PAYMENT_PATTERN.PROCESS_VNPAY_CALLBACK)
   processCallback(data: VNPayCallbackDto): Promise<VNPayResultDto> {
     return this.vnPayService.processCallback(data);

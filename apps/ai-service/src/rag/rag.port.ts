@@ -1,9 +1,14 @@
 import { AgentContent, VectorMetadata } from '@app/contracts';
+import { PhoneVariantDto } from '@app/contracts/phone/phone.dto';
 import { Observable } from 'rxjs';
 
 export interface IRagService {
-  execute(query: string): Promise<AgentContent[]>;
-  executeStream(query: string): Promise<Observable<AgentContent>>;
+  execute(query: string, token?: string): Promise<AgentContent[]>;
+  executeStream(
+    query: string,
+    token?: string,
+  ): Promise<Observable<AgentContent>>;
+  getTopFeatures(dto: PhoneVariantDto): Promise<string>;
 }
 
 export interface IRetrievalRepository

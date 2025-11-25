@@ -188,11 +188,20 @@ export class PhoneEventHandler {
       `Handling PhoneCreated event for phone ID: ${event.payload.id}`,
     );
     try {
-      await this.ingest();
-
       const newPhone = await this.phoneService.getPhoneById(event.payload.id);
 
       const variants = this.phoneToVariantDto(newPhone);
+
+      for (const variant of variants) {
+        const features = await this.getTopFeatures(variant);
+        variant.features = features;
+
+        await this.phoneService.updatePhoneVariant(variant.id!, {
+          features: features,
+        });
+      }
+
+      await this.ingest();
 
       await this.bulkIndex(variants);
     } catch (error) {
@@ -208,11 +217,18 @@ export class PhoneEventHandler {
       `Handling VariantCreated event for variant ID: ${event.payload.id}`,
     );
     try {
-      await this.ingest();
-
       const newVariant = await this.phoneService.getVariantById(
         event.payload.id,
       );
+
+      const features = await this.getTopFeatures(newVariant);
+      newVariant.features = features;
+
+      await this.phoneService.updatePhoneVariant(newVariant.id!, {
+        features: features,
+      });
+
+      await this.ingest();
 
       await this.bulkIndex([newVariant]);
     } catch (error) {
@@ -455,6 +471,33 @@ export class PhoneEventHandler {
       this.logger.error(
         `Failed to bulk delete variants: ${typedError.message}`,
       );
+    }
+  }
+
+  private async getTopFeatures(dto: PhoneVariantDto): Promise<string> {
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService
+          .post<string>(`${this.aiServiceUrl}/rag/features`, dto)
+          .pipe(
+            catchError((error: unknown) => {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              this.logger.error(`Failed to get top features: ${errorMessage}`);
+              throw error;
+            }),
+          ),
+      );
+
+      this.logger.log(
+        `Successfully retrieved top features for variant ID: ${dto.id}`,
+      );
+
+      return data;
+    } catch (error) {
+      const typedError = error as TypedError;
+      this.logger.error(`Failed to get top features: ${typedError.message}`);
+      return '';
     }
   }
 

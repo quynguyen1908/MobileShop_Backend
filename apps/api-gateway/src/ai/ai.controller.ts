@@ -159,6 +159,13 @@ export class AiController {
   })
   async chat(@Body() dto: AskDto, @Req() req: Request, @Res() res: Response) {
     try {
+      const authHeader = req.headers.authorization;
+      let forwardedAuthHeader: string | undefined;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        forwardedAuthHeader = authHeader;
+      }
+
       const response = await firstValueFrom(
         this.httpService
           .post(`${this.aiServiceUrl}/rag/chat`, dto, {
@@ -166,6 +173,9 @@ export class AiController {
             headers: {
               'Content-Type': 'application/json',
               Accept: 'text/event-stream',
+              ...(forwardedAuthHeader && {
+                Authorization: forwardedAuthHeader,
+              }),
             },
           })
           .pipe(catchError(this.handleAxiosError('RAG Chat request failed'))),

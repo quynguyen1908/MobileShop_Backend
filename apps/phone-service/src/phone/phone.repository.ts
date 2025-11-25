@@ -82,6 +82,7 @@ interface PrismaPhoneVariant {
   phoneId: number;
   variantName: string;
   description: string | null;
+  features: string | null;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -399,7 +400,7 @@ export class PhoneRepository implements IPhoneRepository {
     }
 
     const variants: PhoneVariant[] = result.map((row) => {
-      const rawRow = row as RawVariantRow;
+      const rawRow = row;
 
       return {
         id: rawRow.id,
@@ -1266,7 +1267,7 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
 
-    const rawModel = result[0] as RawPhoneRow;
+    const rawModel = result[0];
 
     const model: Phone = {
       id: rawModel.id,
@@ -1551,6 +1552,7 @@ export class PhoneRepository implements IPhoneRepository {
       phoneId: data.phoneId,
       variantName: data.variantName,
       description: data.description,
+      features: data.features,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

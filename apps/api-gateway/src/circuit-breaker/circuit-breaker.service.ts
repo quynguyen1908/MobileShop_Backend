@@ -46,16 +46,7 @@ export class CircuitBreakerService {
       allowWarmUp: true,
       volumeThreshold: 20,
       errorFilter: (err: unknown) => {
-        if (
-          typeof err === 'object' &&
-          err !== null &&
-          'statusCode' in err &&
-          typeof (err as { statusCode: unknown }).statusCode === 'number'
-        ) {
-          const statusCode = (err as { statusCode: number }).statusCode;
-          if (statusCode >= 400 && statusCode < 500) return true;
-        }
-        return false;
+        return this.isClientError(err);
       },
       ...options,
     };
@@ -133,6 +124,10 @@ export class CircuitBreakerService {
 
     if (fallbackFn) {
       breaker.fallback(async (err: unknown) => {
+        if (this.isClientError(err)) {
+          throw err;
+        }
+
         const formattedError = this.formatError(err);
         this.logger.warn(
           `Executing fallback for ${serviceId}. Error: ${formattedError}`,
@@ -153,6 +148,11 @@ export class CircuitBreakerService {
       return result as T;
     } catch (error) {
       const formattedError = this.formatError(error);
+
+      if (this.isClientError(error)) {
+        throw formattedError;
+      }
+
       this.logger.error(
         `Error executing request to ${serviceId}: ${formattedError.message}`,
         formattedError.stack,
@@ -209,6 +209,19 @@ export class CircuitBreakerService {
     return false;
   }
 
+  private isClientError(err: unknown): boolean {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'statusCode' in err &&
+      typeof (err as { statusCode: unknown }).statusCode === 'number'
+    ) {
+      const statusCode = (err as { statusCode: number }).statusCode;
+      if (statusCode >= 400 && statusCode < 500) return true;
+    }
+    return false;
+  }
+
   private formatError(error: unknown): Error {
     try {
       if (error instanceof Error) {
@@ -243,9 +256,7 @@ export class CircuitBreakerService {
           }
         });
 
-        return new Error(
-          `Service error: ${JSON.stringify(errorInfo, null, 2)}`,
-        );
+        return new Error(`${JSON.stringify(errorInfo, null, 2)}`);
       }
 
       return new Error(
