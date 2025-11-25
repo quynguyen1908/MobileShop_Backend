@@ -39,6 +39,32 @@ export function formatError(error: unknown): ErrorDetail[] {
     });
   }
 
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof (error as { message: unknown }).message === 'string'
+  ) {
+    const rawMessage = (error as { message: string }).message;
+
+    try {
+      const parsedError: unknown = JSON.parse(rawMessage);
+
+      if (
+        typeof parsedError === 'object' &&
+        parsedError !== null &&
+        'message' in parsedError &&
+        typeof (parsedError as { message?: unknown }).message === 'string'
+      ) {
+        return [{ message: (parsedError as { message: string }).message }];
+      }
+    } catch (e) {
+      console.error('Failed to parse error message as JSON:', e);
+    }
+
+    return [{ message: rawMessage }];
+  }
+
   const errorMessage =
     typeof typedError.logMessage === 'string'
       ? typedError.logMessage

@@ -68,7 +68,7 @@ export class UserService implements IUserService {
 
         if (!user) {
           throw new RpcException(
-            AppError.from(new Error('User not found'))
+            AppError.from(new Error('User not found'), 404)
               .withLog('User not found for customer id ' + customer.id)
               .toJson(false),
           );
@@ -109,7 +109,7 @@ export class UserService implements IUserService {
     const customer = await this.userRepository.findCustomerById(id);
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -124,7 +124,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -153,7 +153,7 @@ export class UserService implements IUserService {
     const customer = await this.userRepository.findCustomerById(id);
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -171,7 +171,7 @@ export class UserService implements IUserService {
     );
     if (!user) {
       throw new RpcException(
-        AppError.from(new Error('User not found'))
+        AppError.from(new Error('User not found'), 404)
           .withLog('User not found')
           .toJson(false),
       );
@@ -191,7 +191,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -235,7 +235,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -253,7 +253,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -300,7 +300,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -312,7 +312,7 @@ export class UserService implements IUserService {
     const address = addresses.find((addr) => addr.id === addressId);
     if (!address) {
       throw new RpcException(
-        AppError.from(new Error('Address not found'))
+        AppError.from(new Error('Address not found'), 404)
           .withLog('Address not found')
           .toJson(false),
       );
@@ -352,7 +352,7 @@ export class UserService implements IUserService {
     );
     if (!customer) {
       throw new RpcException(
-        AppError.from(new Error('Customer not found'))
+        AppError.from(new Error('Customer not found'), 404)
           .withLog('Customer not found')
           .toJson(false),
       );
@@ -364,7 +364,7 @@ export class UserService implements IUserService {
     const address = addresses.find((addr) => addr.id === addressId);
     if (!address) {
       throw new RpcException(
-        AppError.from(new Error('Address not found'))
+        AppError.from(new Error('Address not found'), 404)
           .withLog('Address not found')
           .toJson(false),
       );
@@ -428,7 +428,7 @@ export class UserService implements IUserService {
       await this.userRepository.findNotificationsByIds(notificationIds);
     if (!notifications || notifications.length === 0) {
       throw new RpcException(
-        AppError.from(new Error('Notification not found'))
+        AppError.from(new Error('Notification not found'), 404)
           .withLog('Notification not found')
           .toJson(false),
       );
@@ -437,7 +437,7 @@ export class UserService implements IUserService {
     const unauthorized = notifications.filter((n) => n.userId !== request.sub);
     if (unauthorized.length > 0) {
       throw new RpcException(
-        AppError.from(new Error('Forbidden'))
+        AppError.from(new Error('Forbidden'), 403)
           .withLog(
             'User not authorized to read notifications: ' +
               unauthorized.map((n) => n.id).join(', '),
@@ -460,7 +460,7 @@ export class UserService implements IUserService {
     );
     if (!user) {
       throw new RpcException(
-        AppError.from(new Error('User not found'))
+        AppError.from(new Error('User not found'), 404)
           .withLog('User not found')
           .toJson(false),
       );

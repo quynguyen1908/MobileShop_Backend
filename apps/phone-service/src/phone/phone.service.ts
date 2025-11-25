@@ -1374,6 +1374,8 @@ export class PhoneService implements IPhoneService {
     return newReview.id!;
   }
 
+  // Search Sync
+
   async syncAllDocuments(): Promise<void> {
     const variants = await this.getAllVariants();
 
@@ -1634,6 +1636,7 @@ export class PhoneService implements IPhoneService {
         id: variant.id,
         variantName: variant.variantName,
         description: variant.description,
+        features: variant.features,
         phone: {
           id: phone.id,
           name: phone.name,

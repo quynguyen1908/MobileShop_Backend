@@ -102,6 +102,7 @@ export const phoneVariantSchema = z.object({
   phoneId: z.number().int().positive(),
   variantName: z.string().max(100, ErrVariantNameAtMost100Chars.message),
   description: z.string().optional().nullable(),
+  features: z.string().optional().nullable(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   isDeleted: z.boolean().optional().default(false),

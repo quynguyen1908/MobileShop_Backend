@@ -131,7 +131,7 @@ export class PaymentService implements IPaymentService {
     for (const payment of payments) {
       if ((payment.status as PaymentStatus) === PaymentStatus.COMPLETED) {
         throw new RpcException(
-          AppError.from(new Error('Payment already completed'))
+          AppError.from(new Error('Payment already completed'), 400)
             .withLog(
               'Attempted to create COD payment for an order that is already paid',
             )

@@ -246,7 +246,7 @@ export class OrderService implements IOrderService {
     const pointConfig = await this.getPointConfig();
     if (!pointConfig) {
       throw new RpcException(
-        AppError.from(new Error('Point configuration not found'), 500)
+        AppError.from(new Error('Point configuration not found'), 404)
           .withLog('Point configuration not found')
           .toJson(false),
       );
@@ -769,7 +769,7 @@ export class OrderService implements IOrderService {
                   'Unknown error';
 
                 throw new RpcException(
-                  AppError.from(new Error(errorMessage), 500)
+                  AppError.from(new Error(errorMessage), 400)
                     .withLog('Failed to create shipment in GHN API')
                     .toJson(false),
                 );
@@ -796,7 +796,7 @@ export class OrderService implements IOrderService {
           throw new RpcException(
             AppError.from(
               new Error('Failed to create shipment in GHN API'),
-              500,
+              400,
             )
               .withLog(
                 `GHN API responded with code ${responseData.code}: ${responseData.message}`,
@@ -1113,7 +1113,7 @@ export class OrderService implements IOrderService {
               'Unknown error';
 
             throw new RpcException(
-              AppError.from(new Error(errorMessage), 500)
+              AppError.from(new Error(errorMessage), 400)
                 .withLog('Failed to fetch shipping fee from GHN API')
                 .toJson(false),
             );
@@ -1129,7 +1129,7 @@ export class OrderService implements IOrderService {
       throw new RpcException(
         AppError.from(
           new Error('Failed to fetch shipping fee from GHN API'),
-          500,
+          400,
         )
           .withLog(
             `GHN API responded with code ${responseData.code}: ${responseData.message}`,

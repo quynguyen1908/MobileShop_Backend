@@ -169,6 +169,7 @@ export class VoucherService implements IVoucherService {
             new Error(
               'Discount value must be between 0 and 100 for percentage discount',
             ),
+            400,
           )
             .withLog('Invalid discount value for percentage type')
             .toJson(false),
@@ -177,7 +178,7 @@ export class VoucherService implements IVoucherService {
     } else if (data.discountType === DiscountType.AMOUNT) {
       if (data.discountValue < 0) {
         throw new RpcException(
-          AppError.from(new Error('Discount value must be non-negative'))
+          AppError.from(new Error('Discount value must be non-negative'), 400)
             .withLog('Invalid discount value for amount type')
             .toJson(false),
         );
@@ -194,6 +195,7 @@ export class VoucherService implements IVoucherService {
           new Error(
             'Max discount value cannot be greater than minimum order value',
           ),
+          400,
         )
           .withLog('Invalid max discount value')
           .toJson(false),
@@ -216,7 +218,7 @@ export class VoucherService implements IVoucherService {
 
     if (startDateOnly < todayOnly) {
       throw new RpcException(
-        AppError.from(new Error('Start date cannot be in the past'))
+        AppError.from(new Error('Start date cannot be in the past'), 400)
           .withLog('Invalid start date')
           .toJson(false),
       );
@@ -224,7 +226,7 @@ export class VoucherService implements IVoucherService {
 
     if (data.endDate && data.startDate >= data.endDate) {
       throw new RpcException(
-        AppError.from(new Error('End date must be after start date'))
+        AppError.from(new Error('End date must be after start date'), 400)
           .withLog('Invalid end date')
           .toJson(false),
       );
@@ -235,6 +237,7 @@ export class VoucherService implements IVoucherService {
       throw new RpcException(
         AppError.from(
           new Error('Usage limit per user must be less than total usage limit'),
+          400,
         )
           .withLog('Invalid usage limits')
           .toJson(false),
@@ -247,7 +250,7 @@ export class VoucherService implements IVoucherService {
     );
     if (existingVouchers.length > 0) {
       throw new RpcException(
-        AppError.from(new Error('Voucher code already exists'))
+        AppError.from(new Error('Voucher code already exists'), 400)
           .withLog('Duplicate voucher code')
           .toJson(false),
       );
@@ -326,7 +329,7 @@ export class VoucherService implements IVoucherService {
 
     if (voucher.length === 0) {
       throw new RpcException(
-        AppError.from(new Error('Voucher not found'))
+        AppError.from(new Error('Voucher not found'), 404)
           .withLog('Voucher not found for update')
           .toJson(false),
       );

@@ -4,15 +4,17 @@ import {
   AGENT_EXECUTOR,
   AgentContent,
   AppError,
+  OPENAI_CHAT_MODEL,
   OPENAI_EMBEDDINGS,
   RETRIEVAL_REPOSITORY,
   VectorMetadata,
 } from '@app/contracts';
 import { AgentExecutor } from 'langchain/agents';
 import { ConfigService } from '@nestjs/config';
-import { OpenAIEmbeddings } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { Observable } from 'rxjs';
+import { FIXED_FEATURES, PhoneVariantDto } from '@app/contracts/phone';
 
 @Injectable()
 export class RagService implements IRagService {
@@ -26,13 +28,14 @@ export class RagService implements IRagService {
     @Inject(RETRIEVAL_REPOSITORY)
     private readonly retrievalRepository: IRetrievalRepository,
     private readonly configService: ConfigService,
+    @Inject(OPENAI_CHAT_MODEL) private model: ChatOpenAI,
   ) {
     this.maxContextTokens = Number(
       this.configService.get<string>('MAX_CONTEXT_TOKENS') || 4000,
     );
   }
 
-  async execute(query: string): Promise<AgentContent[]> {
+  async execute(query: string, token?: string): Promise<AgentContent[]> {
     try {
       const queryEmbedding = await this.embeddings.embedQuery(query);
 
@@ -60,6 +63,7 @@ export class RagService implements IRagService {
         input: query,
         chat_history: this.chatHistory,
         context: context,
+        token: token,
       });
 
       this.chatHistory = this.chatHistory.concat([
@@ -85,7 +89,10 @@ export class RagService implements IRagService {
     }
   }
 
-  async executeStream(query: string): Promise<Observable<AgentContent>> {
+  async executeStream(
+    query: string,
+    token?: string,
+  ): Promise<Observable<AgentContent>> {
     try {
       const queryEmbedding = await this.embeddings.embedQuery(query);
       const similarResults = await this.retrievalRepository.querySimilar(
@@ -156,6 +163,7 @@ export class RagService implements IRagService {
               input: query,
               chat_history: this.chatHistory,
               context: context,
+              token: token,
             });
 
             let buffer = '';
@@ -241,6 +249,40 @@ export class RagService implements IRagService {
         .withLog(`
                 Failed to process streaming query: ${error instanceof Error ? error.message : 'Unknown error'}
             `);
+    }
+  }
+
+  async getTopFeatures(dto: PhoneVariantDto): Promise<string> {
+    const json = JSON.stringify(dto, null, 2);
+
+    const prompt = `
+      Bạn là một chuyên gia phân tích sản phẩm điện thoại di động. Dựa trên thông tin JSON chi tiết về điện thoại được cung cấp dưới đây, hãy xác định và chọn ra tối đa 3 tính năng nổi bật nhất
+      trong danh sách cố định sau đây: ${JSON.stringify(FIXED_FEATURES)}.
+
+      Yêu cầu đầu ra:
+      1. Chọn TỐI ĐA 3 tính năng.
+      2. **CHỈ trả về** các tính năng nổi bật nhất dưới dạng **một chuỗi duy nhất**, phân cách nhau bằng dấu chấm phẩy (';'), không kèm theo bất kỳ giải thích, tiêu đề, hoặc cấu trúc JSON nào khác.
+
+      VÍ DỤ ĐỊNH DẠNG TRẢ VỀ: "Chơi game đỉnh cao; Dung lượng lưu trữ lớn; Thiết kế mỏng nhẹ"
+
+      DỮ LIỆU ĐIỆN THOẠI: ${json}
+    `;
+
+    try {
+      const messages = [new HumanMessage(prompt)];
+
+      const response = await this.model.invoke(messages);
+
+      const featuresString = response.content;
+
+      if (typeof featuresString !== 'string') {
+        throw new Error('LLM response content is not a string.');
+      }
+
+      return featuresString.trim();
+    } catch (error) {
+      this.logger.error('Error getting top features:', error);
+      return '';
     }
   }
 

@@ -11,9 +11,8 @@ services:
       - '${FRONTEND_PORT:-5000}:5000'
     environment:
       - PORT=${FRONTEND_PORT:-5000}
-      - NEXT_PUBLIC_API_URL='${NEXT_PUBLIC_API_URL:-http://api-gateway:3000/api/v1}'
-    volumes:
-      - ../../PhoneStore-Frontend/MobileShop_FrontEnd_DATN:/app:ro
+      - NEXT_PUBLIC_API_URL='${NEXT_PUBLIC_API_URL:-http://api-gateway:3000}'
+      - HOSTNAME=0.0.0.0
     networks:
       - frontend-network
     depends_on:
@@ -463,7 +462,6 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
-      - xpack.monitoring.collection.enabled=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - bootstrap.memory_lock=true
     ulimits:

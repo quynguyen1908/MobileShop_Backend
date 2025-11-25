@@ -49,6 +49,7 @@ export class VNPayService implements IVNPayService {
       hashSecret: '',
       apiUrl: '',
       returnUrl: '',
+      mobileReturnUrl: '',
       version: '',
       command: '',
       currCode: '',
@@ -122,7 +123,7 @@ export class VNPayService implements IVNPayService {
         for (const payment of payments) {
           if (payment.status === PaymentStatus.COMPLETED) {
             throw new RpcException(
-              AppError.from(new Error('Order has already been paid'))
+              AppError.from(new Error('Order has already been paid'), 400)
                 .withLog('Order has already been paid')
                 .toJson(false),
             );
@@ -167,6 +168,122 @@ export class VNPayService implements IVNPayService {
       throw new RpcException(
         AppError.from(
           new Error(`Failed to create payment URL: ${typedError.message}`),
+          400,
+        ).withLog(`Failed to create payment URL: ${typedError.message}`),
+      );
+    }
+  }
+
+  async createMobilePaymentUrl(
+    requester: Requester,
+    orderId: number,
+  ): Promise<string> {
+    try {
+      const customer = await firstValueFrom<CustomerDto>(
+        this.userServiceClient.send(
+          USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
+          requester,
+        ),
+      );
+
+      if (!customer) {
+        throw new RpcException(
+          AppError.from(ErrCustomerNotFound, 404)
+            .withLog('Customer not found for user')
+            .toJson(false),
+        );
+      }
+
+      if (typeof customer.id !== 'number') {
+        throw new RpcException(
+          AppError.from(ErrCustomerNotFound, 404)
+            .withLog('Customer ID is missing')
+            .toJson(false),
+        );
+      }
+
+      const order = await firstValueFrom<Order>(
+        this.orderServiceClient.send(ORDER_PATTERN.GET_ORDER_BY_ID, orderId),
+      );
+
+      if (!order) {
+        throw new RpcException(
+          AppError.from(ErrOrderNotFound, 404)
+            .withLog('Order not found')
+            .toJson(false),
+        );
+      }
+
+      if (typeof order.id !== 'number') {
+        throw new RpcException(
+          AppError.from(ErrOrderNotFound, 404)
+            .withLog('Order ID is missing')
+            .toJson(false),
+        );
+      }
+
+      if (order.customerId !== customer.id) {
+        throw new RpcException(
+          AppError.from(new Error('Order does not belong to customer'), 403)
+            .withLog('Order does not belong to customer')
+            .toJson(false),
+        );
+      }
+
+      const payments = await this.paymentRepository.findPaymentsByOrderId(
+        order.id,
+      );
+
+      if (payments.length > 0) {
+        for (const payment of payments) {
+          if (payment.status === PaymentStatus.COMPLETED) {
+            throw new RpcException(
+              AppError.from(new Error('Order has already been paid'), 400)
+                .withLog('Order has already been paid')
+                .toJson(false),
+            );
+          }
+        }
+      }
+
+      const dateFormat = moment().format('YYYYMMDDHHmmss');
+      const vnpParams: Record<string, string> = {
+        vnp_Version: this.vnPayConfig.version,
+        vnp_Command: this.vnPayConfig.command,
+        vnp_TmnCode: this.vnPayConfig.tmnCode,
+        vnp_Amount: (order.finalAmount * 100).toString(),
+        vnp_CreateDate: dateFormat,
+        vnp_CurrCode: this.vnPayConfig.currCode,
+        vnp_IpAddr: '13.160.92.202',
+        vnp_Locale: 'vn',
+        vnp_OrderInfo: `Thanh toan don hang #${order.orderCode}`,
+        vnp_OrderType: 'other',
+        vnp_ReturnUrl: this.vnPayConfig.mobileReturnUrl,
+        vnp_ExpireDate: moment().add(15, 'minutes').format('YYYYMMDDHHmmss'),
+        vnp_TxnRef: `${order.orderCode}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+      };
+
+      const sortedParams = this.sortObject(vnpParams);
+
+      const signData = Object.keys(sortedParams)
+        .map((key) => `${key}=${sortedParams[key]}`)
+        .join('&');
+
+      const hmac = crypto.createHmac('sha512', this.vnPayConfig.hashSecret);
+      const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+
+      const vnpUrl = `${this.vnPayConfig.apiUrl}?${signData}&vnp_SecureHash=${signed}`;
+
+      return vnpUrl;
+    } catch (error: unknown) {
+      this.logger.error(`Failed to create payment URL: ${String(error)}`);
+      const typedError =
+        error instanceof Error ? error : new Error('Unknown error');
+
+      throw new RpcException(
+        AppError.from(
+          new Error(`Failed to create payment URL: ${typedError.message}`),
+          400,
         ).withLog(`Failed to create payment URL: ${typedError.message}`),
       );
     }
@@ -272,6 +389,7 @@ export class VNPayService implements IVNPayService {
       throw new RpcException(
         AppError.from(
           new Error(`Failed to process callback: ${typedError.message}`),
+          400,
         )
           .withLog(`Failed to process callback: ${typedError.message}`)
           .toJson(false),

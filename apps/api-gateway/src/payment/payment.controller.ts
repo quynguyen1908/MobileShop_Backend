@@ -307,6 +307,120 @@ export class PaymentController {
     }
   }
 
+  @Post('vnpay/mobile/create')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({
+    summary: 'Create VNPay payment URL for mobile (requires authentication)',
+  })
+  @ApiBody({
+    description: 'Payment creation data',
+    schema: {
+      type: 'object',
+      properties: {
+        orderId: { type: 'number', example: 1 },
+      },
+      required: ['orderId'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'VNPay URL created successfully',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 200,
+          message: 'VNPay URL created successfully',
+          data: {
+            paymentUrl: 'https://vnpay.vn/paymentv2/vpcpay.html?...',
+          },
+        },
+      },
+    },
+  })
+  async createMobileVNPayPayment(
+    @Req() req: ReqWithRequester,
+    @Body() body: { orderId: number },
+    @Res() res: Response,
+  ) {
+    try {
+      const { orderId } = body;
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        string | FallbackResponse
+      >(
+        this.paymentServiceClient,
+        PAYMENT_SERVICE_NAME,
+        PAYMENT_PATTERN.CREATE_MOBILE_VNPAY_PAYMENT_URL,
+        { requester, orderId },
+        () => {
+          return {
+            fallback: true,
+            message: 'Payment service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      this.logger.log(
+        'Payment service response:',
+        JSON.stringify(result, null, 2),
+      );
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'VNPay URL created successfully',
+          { paymentUrl: result },
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Create VNPay payment URL failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Get('vnpay/mobile/callback')
+  @ApiOperation({
+    summary: 'VNPay mobile payment callback',
+    description: `Endpoint to handle VNPay payment gateway callbacks
+    Change VNPAY_RETURN_URL in environment variables to <your-https-url>/v1/payments/vnpay/mobile/callback (Can use ngrok for local testing)`,
+  })
+  async mobileVNPayCallback(@Query() params: VNPayCallbackDto) {
+    try {
+      await firstValueFrom<VNPayResultDto>(
+        this.paymentServiceClient.send(
+          PAYMENT_PATTERN.PROCESS_VNPAY_CALLBACK,
+          params,
+        ),
+      );
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const errorMessage =
+        typedError.logMessage || 'VNPay callback processing failed';
+
+      this.logger.error('Mobile VNPay callback error:', errorMessage);
+    }
+  }
+
   @Get('methods')
   @ApiOperation({ summary: 'Get all payment methods' })
   async getAllPaymentMethods(@Res() res: Response) {

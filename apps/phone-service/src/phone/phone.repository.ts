@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable } from '@nestjs/common';
 import { IPhoneRepository } from './phone.port';
 import { PhonePrismaService } from '@app/prisma';
@@ -82,6 +83,7 @@ interface PrismaPhoneVariant {
   phoneId: number;
   variantName: string;
   description: string | null;
+  features: string | null;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
@@ -1266,7 +1268,7 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
 
-    const rawModel = result[0] as RawPhoneRow;
+    const rawModel = result[0]  as RawPhoneRow;
 
     const model: Phone = {
       id: rawModel.id,
@@ -1551,6 +1553,7 @@ export class PhoneRepository implements IPhoneRepository {
       phoneId: data.phoneId,
       variantName: data.variantName,
       description: data.description,
+      features: data.features,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       isDeleted: data.isDeleted,

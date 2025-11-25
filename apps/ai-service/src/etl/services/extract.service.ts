@@ -91,28 +91,6 @@ export class ExtractService implements IExtractService {
           typeof variant.phone.id === 'number' &&
           !processedPhones.has(variant.phone.id)
         ) {
-          documents.push(
-            JSON.stringify({
-              id: `phone-${variant.phone.id}`,
-              content: `# ${variant.phone.name}
-                          ${variant.description ? variant.description : ''}
-
-                          ## Thông tin chung
-                          - Thương hiệu: ${variant.phone.brand.name}
-                          - Dòng sản phẩm: ${variant.phone.category.name}`,
-              metadata: {
-                id: `phone-${variant.phone.id}`,
-                source: 'database',
-                title: variant.phone.name,
-                tags: ['phone', 'overview', variant.phone.brand.name],
-                createdAt: new Date(),
-                phoneId: variant.phone.id,
-                brand: variant.phone.brand.name,
-                category: variant.phone.category.name,
-                type: 'phone-overview',
-              },
-            }),
-          );
           processedPhones.set(variant.phone.id, true);
         }
 
@@ -130,12 +108,18 @@ export class ExtractService implements IExtractService {
           JSON.stringify({
             id: `variant-${variant.id}`,
             content: `# ${variant.phone.name} - ${variant.variantName}
+                      Thương hiệu: ${variant.phone.brand.name}
+                      Dòng sản phẩm: ${variant.phone.category.name}
                       Màu sắc: ${colors}
-                      Giá gốc: ${formatCurrency(price)}
-                      Giảm giá: ${discount}%
                       Giá cuối: ${formatCurrency(finalPrice)}
                       
-                      ## Thông số kỹ thuật
+                      ## Mô tả:
+                      ${variant.description ? variant.description : 'N/A'}
+
+                      ## Tính năng nổi bật:
+                      ${variant.features ? variant.features : 'N/A'}
+
+                      ## Thông số kỹ thuật:
                       ${specs}`,
             metadata: {
               id: `variant-${variant.id}`,

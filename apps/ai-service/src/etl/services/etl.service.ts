@@ -121,6 +121,9 @@ export class ETLService implements IETLService {
         'REPLACE_EXISTING_VECTORS',
         true,
       );
+
+      // const replaceExisting = false;
+
       if (replaceExisting) {
         const types = new Set<string>();
         metadataList.forEach((metadata) => {

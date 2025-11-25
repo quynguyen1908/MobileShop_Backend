@@ -1,7 +1,16 @@
-import { Body, Controller, Header, Logger, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Header,
+  Logger,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { RagService } from './rag.service';
 import { AskDto } from '@app/contracts/ai/ai.dto';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import type { PhoneVariantDto } from '@app/contracts/phone';
 
 @Controller('v1/ai/rag')
 export class RagController {
@@ -13,11 +22,25 @@ export class RagController {
   @Header('Content-Type', 'text/event-stream')
   @Header('Cache-Control', 'no-cache')
   @Header('Connection', 'keep-alive')
-  async chat(@Body() dto: AskDto, @Res() res: Response): Promise<void> {
+  async chat(
+    @Body() dto: AskDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const authHeader = req.headers.authorization;
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
     try {
       res.write('data: ' + JSON.stringify({ status: 'start' }) + '\n\n');
 
-      const streamObservable = await this.ragService.executeStream(dto.query);
+      const streamObservable = await this.ragService.executeStream(
+        dto.query,
+        token,
+      );
 
       streamObservable.subscribe({
         next: (content) => {
@@ -60,5 +83,10 @@ export class RagController {
       );
       res.end();
     }
+  }
+
+  @Post('features')
+  async getTopFeatures(@Body() dto: PhoneVariantDto): Promise<string> {
+    return this.ragService.getTopFeatures(dto);
   }
 }

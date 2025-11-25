@@ -536,13 +536,11 @@ export class AuthController {
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
+      const logMessage = formatError(error);
       const statusCode =
         typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
 
-      if (
-        typedError.statusCode === HttpStatus.NOT_FOUND &&
-        typedError.logMessage === 'User not found'
-      ) {
+      if (logMessage[0].message === 'User not found') {
         const response = new ApiResponseDto(
           HttpStatus.NOT_FOUND,
           'User not found in the system. Please register an account.',

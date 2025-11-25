@@ -97,6 +97,7 @@ model PhoneVariant {
   phoneId        Int      @map("phone_id")
   variantName    String   @db.VarChar(100) @map("variant_name")
   description    String?  @db.Text
+  features       String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz()
   isDeleted      Boolean  @default(false) @map("is_deleted")

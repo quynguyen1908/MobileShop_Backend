@@ -8,12 +8,16 @@ import { ElasticsearchModule } from '@nestjs/elasticsearch';
     ElasticsearchModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
+        const username = configService.get<string>('ELASTIC_USERNAME');
         const password = configService.get<string>('ELASTIC_PASSWORD');
+
         return {
           node:
             configService.get<string>('ELASTICSEARCH_HOSTS') ||
             'http://localhost:9200',
-          auth: password ? { username: 'elastic', password } : undefined,
+          auth: password
+            ? { username: username || 'elastic', password }
+            : undefined,
           tls: {
             rejectUnauthorized: false,
           },

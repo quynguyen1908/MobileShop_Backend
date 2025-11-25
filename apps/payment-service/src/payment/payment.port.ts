@@ -25,6 +25,10 @@ export interface IVNPayService {
     requester: Requester,
     paymentCreateDto: PaymentCreateDto,
   ): Promise<string>;
+  createMobilePaymentUrl(
+    requester: Requester,
+    orderId: number,
+  ): Promise<string>;
   processCallback(params: VNPayCallbackDto): Promise<VNPayResultDto>;
 }
 
