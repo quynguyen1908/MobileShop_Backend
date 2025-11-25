@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable } from '@nestjs/common';
 import { IPhoneRepository } from './phone.port';
 import { PhonePrismaService } from '@app/prisma';
@@ -400,7 +401,7 @@ export class PhoneRepository implements IPhoneRepository {
     }
 
     const variants: PhoneVariant[] = result.map((row) => {
-      const rawRow = row;
+      const rawRow = row as RawVariantRow;
 
       return {
         id: rawRow.id,
@@ -1267,7 +1268,7 @@ export class PhoneRepository implements IPhoneRepository {
       return null;
     }
 
-    const rawModel = result[0];
+    const rawModel = result[0]  as RawPhoneRow;
 
     const model: Phone = {
       id: rawModel.id,
