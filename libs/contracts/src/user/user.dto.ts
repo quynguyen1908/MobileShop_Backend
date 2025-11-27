@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   addressSchema,
+  communeSchema,
   customerSchema,
   employeeSchema,
   notificationSchema,
+  provinceSchema,
 } from './user.model';
 import { userSchema } from '../auth/auth.model';
 import { pointHistoryDtoSchema } from '../order/order.dto';
@@ -116,6 +118,21 @@ export const notificationUpdateDtoSchema = notificationSchema
 export type NotificationUpdateDto = z.infer<typeof notificationUpdateDtoSchema>;
 
 // Address
+
+export const addressDtoSchema = addressSchema
+  .omit({
+    provinceId: true,
+    communeId: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    commune: communeSchema,
+    province: provinceSchema,
+  });
+
+export type AddressDto = z.infer<typeof addressDtoSchema>;
 
 export const addressCreateDtoSchema = addressSchema
   .pick({

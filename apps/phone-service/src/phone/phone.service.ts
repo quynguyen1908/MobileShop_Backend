@@ -69,6 +69,7 @@ import {
   BrandDeletedEvent,
   CategoryDeletedEvent,
   PhoneVariantDeletedEvent,
+  ReviewDto,
 } from '@app/contracts/phone';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { parseFloatSafe } from '@app/contracts/utils';
@@ -1516,6 +1517,17 @@ export class PhoneService implements IPhoneService {
     const reviews =
       await this.phoneRepository.findReviewsByVariantIds(variantIds);
 
+    let customerReviews: CustomerDto[] = [];
+
+    if (reviews.length > 0) {
+      const customerIds = [
+        ...new Set(reviews.map((r) => r.customerId)),
+      ];
+      customerReviews = await firstValueFrom<CustomerDto[]>(
+        this.userServiceClient.send(USER_PATTERN.GET_CUSTOMERS_BY_IDS, customerIds),
+      );
+    }
+
     const inventories =
       await this.phoneRepository.findInventoriesByVariantIds(variantIds);
 
@@ -1622,6 +1634,26 @@ export class PhoneService implements IPhoneService {
 
       const variantReviews = reviews.filter((r) => r.variantId === variant.id);
 
+      const customerReviewDtos: ReviewDto[] = variantReviews.map((r) => {
+        const customer = customerReviews.find(
+          (c) => c.id === r.customerId,
+        );
+
+        return {
+          id: r.id!,
+          variantId: r.variantId,
+          customerId: r.customerId,
+          orderId: r.orderId,
+          rating: r.rating,
+          comment: r.comment,
+          customer: customer,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          isDeleted: r.isDeleted,
+        } as ReviewDto;
+      });
+
+
       const variantInventories = inventories.filter(
         (inv) => inv.variantId === variant.id,
       );
@@ -1669,7 +1701,7 @@ export class PhoneService implements IPhoneService {
           : undefined,
         images: variantImageDtos,
         specifications: variantSpecificationDtos,
-        reviews: variantReviews,
+        reviews: customerReviewDtos,
         averageRating: averageRating,
         inventories: variantInventories,
         createdAt: variant.createdAt,

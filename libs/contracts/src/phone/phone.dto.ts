@@ -1,3 +1,4 @@
+import { customerDtoSchema } from '../user';
 import {
   brandSchema,
   categorySchema,
@@ -238,11 +239,17 @@ export type VariantColorDto = z.infer<typeof variantColorDtoSchema>;
 
 // Review
 
-const reviewDtoSchema = reviewSchema.omit({
-  createdAt: true,
-  updatedAt: true,
-  isDeleted: true,
-});
+const reviewDtoSchema = reviewSchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    isDeleted: true,
+  })
+  .extend({
+    customer: customerDtoSchema.optional(),
+  });
+
+export type ReviewDto = z.infer<typeof reviewDtoSchema>;
 
 // Phone
 

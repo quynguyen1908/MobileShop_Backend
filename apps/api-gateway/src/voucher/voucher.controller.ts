@@ -259,7 +259,7 @@ export class VoucherController {
             message: 'Voucher service is temporarily unavailable',
           } as FallbackResponse;
         },
-        { timeout: 10000 },
+        { timeout: 30000 },
       );
 
       this.logger.log(

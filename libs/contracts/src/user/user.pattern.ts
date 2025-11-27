@@ -2,6 +2,7 @@ export const USER_PATTERN = {
   LIST_CUSTOMERS: 'user.listCustomers',
   GET_CUSTOMER_BY_USER_ID: 'user.getCustomerByUserId',
   GET_CUSTOMER_BY_ID: 'user.getCustomerById',
+  GET_CUSTOMERS_BY_IDS: 'user.getCustomersByIds',
   CREATE_CUSTOMER: 'user.createCustomer',
   UPDATE_CUSTOMER: 'user.updateCustomer',
   UPDATE_CUSTOMER_PROFILE: 'user.updateCustomerProfile',

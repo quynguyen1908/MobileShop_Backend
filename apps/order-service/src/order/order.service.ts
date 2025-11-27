@@ -1275,6 +1275,10 @@ export class OrderService implements IOrderService {
       );
     }
 
+    if (itemIds.length === 0) {
+      return;
+    }
+
     await this.orderRepository.deleteCartItems(itemIds);
   }
 

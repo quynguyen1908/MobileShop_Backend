@@ -29,6 +29,11 @@ export class UserController {
     return this.userService.getCustomerById(id);
   }
 
+  @MessagePattern(USER_PATTERN.GET_CUSTOMERS_BY_IDS)
+  async getCustomersByIds(@Payload() ids: number[]) {
+    return this.userService.getCustomersByIds(ids);
+  }
+
   @MessagePattern(USER_PATTERN.UPDATE_CUSTOMER)
   async updateCustomer(
     @Payload() payload: { id: number; data: CustomerUpdateDto },

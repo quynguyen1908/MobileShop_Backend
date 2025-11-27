@@ -140,6 +140,20 @@ export class UserRepository implements IUserRepository {
     return this._toCustomerModel(customer);
   }
 
+  async findCustomersByIds(ids: number[]): Promise<Customer[]> {
+    const prismaService = this.prisma as unknown as {
+      customer: {
+        findMany: (params: {
+          where: { id: { in: number[] }; isDeleted: boolean };
+        }) => Promise<PrismaCustomer[]>;
+      };
+    };
+    const customers = await prismaService.customer.findMany({
+      where: { id: { in: ids }, isDeleted: false },
+    });
+    return customers.map((customer) => this._toCustomerModel(customer));
+  }
+
   async insertCustomer(data: Omit<Customer, 'id'>): Promise<Customer> {
     const prismaService = this.prisma as unknown as {
       customer: {

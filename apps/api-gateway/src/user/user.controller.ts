@@ -35,8 +35,8 @@ import {
   USER_SERVICE_NAME,
 } from '@app/contracts/user';
 import type {
-  Address,
   AddressCreateDto,
+  AddressDto,
   CustomerUpdateProfileDto,
 } from '@app/contracts/user';
 import { FallbackResponse, ServiceError } from '../dto/error.dto';
@@ -371,8 +371,22 @@ export class CustomerController {
               recipientName: 'John Doe',
               recipientPhone: '0123456789',
               street: '123 Main St',
-              communeId: 12345,
-              provinceId: 28,
+              commune: {
+                id: 2677,
+                code: 27043,
+                name: 'Phường Đức Nhuận',
+                divisionType: 'phường',
+                codename: 'phuong_duc_nhuan',
+                provinceCode: 79,
+              },
+              province: {
+                id: 28,
+                code: 79,
+                name: 'Thành phố Hồ Chí Minh',
+                divisionType: 'thành phố trung ương',
+                codename: 'ho_chi_minh',
+                phoneCode: 28,
+              },
               postalCode: '700000',
               isDefault: true,
               createdAt: '2024-01-01T00:00:00.000Z',
@@ -391,7 +405,7 @@ export class CustomerController {
     try {
       const requester = req.requester;
       const result = await this.circuitBreakerService.sendRequest<
-        Address[] | FallbackResponse
+        AddressDto[] | FallbackResponse
       >(
         this.userServiceClient,
         USER_SERVICE_NAME,

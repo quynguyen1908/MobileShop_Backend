@@ -2,6 +2,7 @@ import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   Address,
   AddressCreateDto,
+  AddressDto,
   AddressUpdateDto,
   Commune,
   Customer,
@@ -19,6 +20,7 @@ export interface IUserService {
   listCustomers(paging: PagingDto): Promise<Paginated<CustomerDto>>;
   getCustomerByUserId(request: Requester): Promise<CustomerDto>;
   getCustomerById(id: number): Promise<Customer>;
+  getCustomersByIds(ids: number[]): Promise<CustomerDto[]>;
   createCustomer(data: CustomerCreateDto): Promise<number>;
   updateCustomer(id: number, data: CustomerUpdateDto): Promise<void>;
   updateCustomerProfile(
@@ -35,7 +37,7 @@ export interface IUserService {
   getCommunesByIds(ids: number[]): Promise<Commune[]>;
 
   // Address
-  getAddressBooks(request: Requester): Promise<Address[]>;
+  getAddressBooks(request: Requester): Promise<AddressDto[]>;
   addAddressBook(request: Requester, data: AddressCreateDto): Promise<number>;
   updateAddressBook(
     request: Requester,
@@ -81,6 +83,7 @@ export interface IUserQueryRepository {
   listCustomers(paging: PagingDto): Promise<Paginated<Customer>>;
   findCustomerByUserId(userId: number): Promise<Customer | null>;
   findCustomerById(id: number): Promise<Customer | null>;
+  findCustomersByIds(ids: number[]): Promise<Customer[]>;
 
   // Province
   findAllProvinces(): Promise<Province[]>;

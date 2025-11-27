@@ -14,8 +14,8 @@ import {
 } from '@app/contracts';
 import { EVENT_PUBLISHER } from '@app/rabbitmq';
 import {
-  Address,
   AddressCreateDto,
+  AddressDto,
   AddressUpdateDto,
   Commune,
   Customer,
@@ -24,6 +24,8 @@ import {
   customerSchema,
   CustomerUpdateDto,
   CustomerUpdateProfileDto,
+  ErrCommuneNotFound,
+  ErrProvinceNotFound,
   Notification,
   NotificationUpdateDto,
   Province,
@@ -133,6 +135,57 @@ export class UserService implements IUserService {
     return this.toCustomerDto(customer);
   }
 
+  async getCustomersByIds(ids: number[]): Promise<CustomerDto[]> {
+    const customers = await this.userRepository.findCustomersByIds(ids);
+
+    const users = await firstValueFrom<User[]>(
+      this.authServiceClient.send(AUTH_PATTERN.GET_USERS_BY_IDS, customers.map(c => c.userId)),
+    );
+    if (!users || users.length === 0) {
+      throw new RpcException(
+        AppError.from(new Error('User not found'), 404)
+          .withLog('User not found')
+          .toJson(false),
+      );
+    }
+
+    const customerDtos: CustomerDto[] = customers.map((customer) => {
+      const user = users.find((u) => u.id === customer.userId);
+
+      if (!user) {
+        throw new RpcException(
+          AppError.from(new Error('User not found'), 404)
+            .withLog('User not found for customer id ' + customer.id)
+            .toJson(false),
+        );
+      }
+
+      const customerDto: CustomerDto = {
+        id: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        gender: customer.gender,
+        dateOfBirth: customer.dateOfBirth,
+        pointsBalance: customer.pointsBalance,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone,
+          status: user.status,
+          lastChangePass: user.lastChangePass,
+        },
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+        isDeleted: customer.isDeleted,
+      };
+      return customerDto;
+    });
+
+
+    return customerDtos;
+  }
+
   async createCustomer(customerCreateDto: CustomerCreateDto): Promise<number> {
     const data = customerSchema.parse(customerCreateDto);
 
@@ -229,7 +282,7 @@ export class UserService implements IUserService {
 
   // Address
 
-  async getAddressBooks(request: Requester): Promise<Address[]> {
+  async getAddressBooks(request: Requester): Promise<AddressDto[]> {
     const customer = await this.userRepository.findCustomerByUserId(
       request.sub,
     );
@@ -241,7 +294,61 @@ export class UserService implements IUserService {
       );
     }
 
-    return this.userRepository.findAddressesByCustomerId(customer.id!);
+    const addresses = await this.userRepository.findAddressesByCustomerId(customer.id!);
+
+    const provinceIds = Array.from(new Set(addresses.map(addr => addr.provinceId)));
+    const provinces = await this.userRepository.findProvincesByIds(provinceIds);
+
+    const communeIds = Array.from(new Set(addresses.map(addr => addr.communeId)));
+    const communes = await this.userRepository.findCommunesByIds(communeIds);
+
+    const addressDtos: AddressDto[] = addresses.map(addr => {
+      const commune = communes.find((c) => c.id === addr.communeId);
+      if (!commune) {
+        throw new RpcException(
+          AppError.from(ErrCommuneNotFound, 404)
+            .withLog('Commune not found for order')
+            .toJson(false),
+        );
+      }
+
+      const province = provinces.find((p) => p.id === addr.provinceId);
+      if (!province) {
+        throw new RpcException(
+          AppError.from(ErrProvinceNotFound, 404)
+            .withLog('Province not found for order')
+            .toJson(false),
+        );
+      }
+
+      return {
+        id: addr.id,
+        customerId: addr.customerId,
+        recipientName: addr.recipientName,
+        recipientPhone: addr.recipientPhone,
+        street: addr.street,
+        postalCode: addr.postalCode,
+        isDefault: addr.isDefault,
+        commune: {
+          id: commune.id,
+          code: commune.code,
+          name: commune.name,
+          divisionType: commune.divisionType,
+          codename: commune.codename,
+          provinceCode: commune.provinceCode,
+        },
+        province: {
+          id: province.id,
+          code: province.code,
+          name: province.name,
+          divisionType: province.divisionType,
+          codename: province.codename,
+          phoneCode: province.phoneCode,
+        },
+      };
+    });
+
+    return addressDtos;
   }
 
   async addAddressBook(

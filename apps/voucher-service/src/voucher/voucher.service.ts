@@ -80,13 +80,12 @@ export class VoucherService implements IVoucherService {
       return [];
     }
 
-    const categoryIds = [
-      ...new Set(
-        variants
-          .map((v) => v.phone?.category?.id)
-          .filter((id): id is number => id !== undefined),
+    const categoryIds = await firstValueFrom<number[]>(
+      this.phoneServiceClient.send(
+        PHONE_PATTERN.GET_PARENT_CATEGORY_IDS_BY_VARIANT_IDS,
+        variantIds,
       ),
-    ];
+    );
 
     let vouchers: Voucher[] = [];
 
