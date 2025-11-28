@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { OAuth2Client } from 'google-auth-library';
+import { Request } from 'express';
+import { Strategy as CustomStrategy } from 'passport-custom';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -35,6 +38,49 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       done(null, user);
     } catch (error) {
       done(error as Error, undefined);
+    }
+  }
+}
+
+@Injectable()
+export class GoogleTokenStrategy extends PassportStrategy(CustomStrategy, 'google-token') {
+  private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+  constructor() {
+    super();
+  }
+
+  async validate(req: Request): Promise<any> {
+    const idToken = req.body.idToken;
+
+    if (!idToken) {
+      throw new UnauthorizedException('Missing Google ID Token.');
+    }
+
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: idToken,
+        audience: process.env.GOOGLE_CLIENT_MOBILE_ID,
+      });
+
+      const payload = ticket.getPayload();
+
+      if (!payload) {
+        throw new UnauthorizedException('Invalid Google ID Token payload.');
+      }
+
+      const user = {
+        googleId: payload.sub,
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        provider: 'google',
+      };
+
+      return user;
+    } catch (error) {
+      console.error('ID Token verification failed:', error);
+      throw new UnauthorizedException('Invalid Google ID Token.');
     }
   }
 }

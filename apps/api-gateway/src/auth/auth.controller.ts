@@ -415,13 +415,24 @@ export class AuthController {
       }
     } catch (error: unknown) {
       const typedError = error as ServiceError;
+      const logMessage = formatError(error);
       const statusCode =
         typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-      const errorMessage = typedError.logMessage || 'Change password failed';
+
+      if (logMessage[0].message === 'Current password is incorrect') {
+        const response = new ApiResponseDto(
+          HttpStatus.BAD_REQUEST,
+          'Current password is incorrect',
+          null,
+          formatError(error),
+        );
+
+        return res.status(HttpStatus.BAD_REQUEST).json(response);
+      }
 
       const errorResponse = new ApiResponseDto(
         statusCode,
-        errorMessage,
+        typedError.logMessage || 'Change password failed',
         null,
         formatError(error),
       );
@@ -490,6 +501,135 @@ export class AuthController {
     },
   })
   async googleLoginCallback(@Req() req: Request, @Res() res: Response) {
+    try {
+      const googleUser = req.user as GoogleResponseDto;
+
+      const result = await this.circuitBreakerService.sendRequest<
+        AuthInterface.LoginResponse | FallbackResponse
+      >(
+        this.authServiceClient,
+        AUTH_SERVICE_NAME,
+        AUTH_PATTERN.GOOGLE_LOGIN,
+        googleUser,
+        () => {
+          return {
+            fallback: true,
+            message: 'Auth service is temporarily unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      this.logger.log(
+        'Auth Service response:',
+        JSON.stringify(result, null, 2),
+      );
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'User logged in with Google successfully',
+          {
+            userId: result.userId,
+            tokens: result.tokens,
+          },
+        );
+
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const logMessage = formatError(error);
+      const statusCode =
+        typedError.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+
+      if (logMessage[0].message === 'User not found') {
+        const response = new ApiResponseDto(
+          HttpStatus.NOT_FOUND,
+          'User not found in the system. Please register an account.',
+          {
+            googleUser: req.user,
+            isNewUser: true,
+          },
+        );
+
+        return res.status(HttpStatus.NOT_FOUND).json(response);
+      }
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        typedError.logMessage || 'Google login failed',
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
+  @Post('google/mobile/callback')
+  @UseGuards(AuthGuard('google-token'))
+  @ApiOperation({ summary: 'Google OAuth2 callback for mobile' })
+  @ApiBody({
+    description: 'Google OAuth2 callback for mobile',
+    schema: {
+      type: 'object',
+      properties: {
+        idToken: { type: 'string', example: 'idTokenFromGoogle' },
+      },
+      required: ['idToken'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User logged in with Google successfully.',
+    content: {
+      'application/json': {
+        examples: {
+          success: {
+            value: {
+              status: 200,
+              message: 'User logged in with Google successfully',
+              data: {
+                userId: 1,
+                tokens: {
+                  accessToken: 'someAccessToken',
+                  refreshToken: 'someRefreshToken',
+                  expiresIn: 3600,
+                },
+              },
+              errors: null,
+            },
+          },
+          notFound: {
+            value: {
+              status: 404,
+              message:
+                'User not found in the system. Please register an account.',
+              data: {
+                googleUser: {
+                  id: 'googleId123',
+                  email: 'example@gmail.com',
+                  firstName: 'John',
+                  lastName: 'Doe',
+                },
+                isNewUser: true,
+              },
+              errors: null,
+            },
+          },
+        },
+      },
+    },
+  })
+  async googleLoginMobileCallback(@Req() req: Request, @Res() res: Response) {
     try {
       const googleUser = req.user as GoogleResponseDto;
 
