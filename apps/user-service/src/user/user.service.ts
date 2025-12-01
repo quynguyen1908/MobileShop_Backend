@@ -477,6 +477,17 @@ export class UserService implements IUserService {
       );
     }
 
+    if (address.isDefault) {
+      throw new RpcException(
+        AppError.from(
+          new Error('Cannot delete default address'),
+          400,
+        )
+          .withLog('Cannot delete default address')
+          .toJson(false),
+      );
+    }
+
     const updateData: AddressUpdateDto = {
       isDeleted: true,
       updatedAt: new Date(),

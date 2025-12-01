@@ -2,6 +2,7 @@ export const ORDER_PATTERN = {
   GET_ORDERS_BY_CUSTOMER_ID: 'order.getOrdersByCustomerId',
   GET_ORDER_BY_ORDER_CODE: 'order.getOrderByOrderCode',
   GET_ORDER_BY_ID: 'order.getOrderById',
+  GET_CUSTOMER_ORDER_DETAIL: 'order.getCustomerOrderDetail',
   GET_ORDER_DETAIL: 'order.getOrderDetail',
   HAS_CUSTOMER_ORDERED_VARIANT: 'order.hasCustomerOrderedVariant',
   LIST_CUSTOMER_ORDERS: 'order.listCustomerOrders',

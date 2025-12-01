@@ -29,6 +29,14 @@ export class OrderController {
     return this.orderService.getOrderById(orderId);
   }
 
+  @MessagePattern(ORDER_PATTERN.GET_CUSTOMER_ORDER_DETAIL)
+  async getCustomerOrderDetail(
+    @Payload() payload: { requester: Requester; orderId: number },
+  ) {
+    const { requester, orderId } = payload;
+    return this.orderService.getCustomerOrderDetail(requester, orderId);
+  }
+
   @MessagePattern(ORDER_PATTERN.GET_ORDER_DETAIL)
   async getOrderDetail(@Payload() orderId: number) {
     return this.orderService.getOrderDetail(orderId);

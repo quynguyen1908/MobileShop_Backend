@@ -170,6 +170,24 @@ export class OrderService implements IOrderService {
     return order;
   }
 
+  async getCustomerOrderDetail(requester: Requester, orderId: number): Promise<OrderDto> {
+    const customer = await this.validateRequester(requester);
+
+    const order = await this.getOrderDetail(orderId);
+
+    if (order.customerId !== customer.id) {
+      throw new RpcException(
+        AppError.from(new Error('Unauthorized'), 403)
+          .withLog(
+            `Customer ${customer.id} is not authorized to access this order`,
+          )
+          .toJson(false),
+      );
+    }
+
+    return order;
+  }
+
   async getOrderDetail(orderId: number): Promise<OrderDto> {
     const order = await this.orderRepository.findOrderById(orderId);
     if (!order) {

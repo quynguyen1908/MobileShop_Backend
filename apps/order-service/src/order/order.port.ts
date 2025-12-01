@@ -22,6 +22,10 @@ export interface IOrderService {
   getOrdersByCustomerId(requester: Requester): Promise<OrderDto[]>;
   getOrderByOrderCode(orderCode: string): Promise<Order>;
   getOrderById(orderId: number): Promise<Order>;
+  getCustomerOrderDetail(
+    requester: Requester,
+    orderId: number,
+  ): Promise<OrderDto>;
   getOrderDetail(orderId: number): Promise<OrderDto>;
   listOrders(paging: PagingDto): Promise<Paginated<OrderDto>>;
   listCustomerOrders(

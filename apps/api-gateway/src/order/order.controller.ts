@@ -595,6 +595,186 @@ export class OrderController {
     }
   }
 
+  @Get('me/:orderId')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOperation({ summary: 'Get order details by ID for the authenticated customer' })
+  @ApiParam({
+    name: 'orderId',
+    type: Number,
+    description: 'The ID of the order to retrieve',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order details retrieved successfully',
+    content: {
+      'application/json': {
+        example: {
+          status: 200,
+          message: 'Order details retrieved successfully',
+          data: {
+            id: 1,
+            customerId: 1,
+            orderCode: 'PH0611255349',
+            orderDate: '2025-11-06T00:00:00.000Z',
+            totalAmount: 8100000,
+            discountAmount: 0,
+            shippingFee: 22000,
+            finalAmount: 8122000,
+            recipientName: 'Jane Smith',
+            recipientPhone: '0987654321',
+            street: '456 Le Loi',
+            status: 'paid',
+            postalCode: '67890',
+            commune: {
+              id: 2677,
+              code: 27043,
+              name: 'Phường Đức Nhuận',
+              divisionType: 'phường',
+              codename: 'phuong_duc_nhuan',
+              provinceCode: 79,
+            },
+            province: {
+              id: 28,
+              code: 79,
+              name: 'Thành phố Hồ Chí Minh',
+              divisionType: 'thành phố trung ương',
+              codename: 'ho_chi_minh',
+              phoneCode: 28,
+            },
+            items: [
+              {
+                id: 1,
+                orderId: 1,
+                quantity: 1,
+                price: 9000000,
+                discount: 8100000,
+                variant: {
+                  id: 8,
+                  phoneId: 5,
+                  variantName: 'F 4G 8GB 256GB',
+                  color: 'Tím',
+                  colorId: 7,
+                  name: 'OPPO Reno13',
+                  imageUrl:
+                    'https://www.oppo.com/vn/smartphones/reno13-4g/images/reno13-4g-purple.png',
+                },
+              },
+            ],
+            statusHistory: [
+              {
+                id: 1,
+                orderId: 1,
+                status: 'pending',
+                note: 'Đặt hàng thành công',
+                createdAt: '2025-10-04T07:32:50.838Z',
+              },
+              {
+                id: 2,
+                orderId: 1,
+                status: 'paid',
+                note: 'Đã thanh toán',
+                createdAt: '2025-10-04T07:32:50.838Z',
+              },
+            ],
+            transactions: [
+              {
+                id: 1,
+                customerId: 1,
+                orderId: 1,
+                type: 'earn',
+                point: 81220,
+                moneyValue: 8122000,
+                createdAt: '2025-10-04T07:34:19.622Z',
+              },
+            ],
+            shipments: [],
+            payments: [
+              {
+                id: 1,
+                orderId: 1,
+                transactionId: '15239088',
+                status: 'completed',
+                amount: 8122000,
+                paymentMethod: {
+                  id: 1,
+                  code: 'VNPAY',
+                  name: 'VNPay',
+                },
+                payDate: '2025-11-05T10:54:46.000Z',
+                createdAt: '2025-11-05T03:55:42.337Z',
+                updatedAt: '2025-11-05T03:55:42.337Z',
+                isDeleted: false,
+              },
+            ],
+            createdAt: '2025-10-04T07:32:50.835Z',
+            updatedAt: '2025-10-04T07:34:19.625Z',
+            isDeleted: false,
+          },
+        },
+      },
+    },
+  })
+  async getCustomerOrderDetails(
+    @Param('orderId') orderId: number,
+    @Req() req: ReqWithRequester,
+    @Res() res: Response,
+  ) {
+    try {
+      const requester = req.requester;
+      const result = await this.circuitBreakerService.sendRequest<
+        OrderDto | FallbackResponse
+      >(
+        this.orderServiceClient,
+        ORDER_SERVICE_NAME,
+        ORDER_PATTERN.GET_CUSTOMER_ORDER_DETAIL,
+        { requester, orderId },
+        () => {
+          return {
+            fallback: true,
+            message: 'Order service is temporary unavailable',
+          } as FallbackResponse;
+        },
+        { timeout: 10000 },
+      );
+
+      this.logger.log(
+        'Order service response:',
+        JSON.stringify(result, null, 2),
+      );
+
+      if (isFallbackResponse(result)) {
+        const fallbackResponse = new ApiResponseDto(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          result.message,
+        );
+        return res
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .json(fallbackResponse);
+      } else {
+        const response = new ApiResponseDto(
+          HttpStatus.OK,
+          'Order details retrieved successfully',
+          result,
+        );
+        return res.status(HttpStatus.OK).json(response);
+      }
+    } catch (error: unknown) {
+      const typedError = error as ServiceError;
+      const statusCode = typedError.statusCode || HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        typedError.logMessage || 'Getting order details failed';
+
+      const errorResponse = new ApiResponseDto(
+        statusCode,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(statusCode).json(errorResponse);
+    }
+  }
+
   @Get('code/:orderCode')
   @ApiOperation({ summary: 'Get order by order code' })
   @ApiParam({

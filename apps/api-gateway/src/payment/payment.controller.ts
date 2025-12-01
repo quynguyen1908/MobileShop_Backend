@@ -404,7 +404,7 @@ export class PaymentController {
     description: `Endpoint to handle VNPay payment gateway callbacks
     Change VNPAY_RETURN_URL in environment variables to <your-https-url>/v1/payments/vnpay/mobile/callback (Can use ngrok for local testing)`,
   })
-  async mobileVNPayCallback(@Query() params: VNPayCallbackDto) {
+  async mobileVNPayCallback(@Query() params: VNPayCallbackDto, @Res() res: Response) {
     try {
       await firstValueFrom<VNPayResultDto>(
         this.paymentServiceClient.send(
@@ -412,12 +412,27 @@ export class PaymentController {
           params,
         ),
       );
+
+      const response = new ApiResponseDto(
+        HttpStatus.OK,
+        'VNPay mobile callback processed successfully',
+        { success: true },
+      );
+      return res.status(HttpStatus.OK).json(response);
     } catch (error: unknown) {
       const typedError = error as ServiceError;
       const errorMessage =
         typedError.logMessage || 'VNPay callback processing failed';
 
       this.logger.error('Mobile VNPay callback error:', errorMessage);
+
+      const errorResponse = new ApiResponseDto(
+        HttpStatus.BAD_REQUEST,
+        errorMessage,
+        null,
+        formatError(error),
+      );
+      return res.status(HttpStatus.BAD_REQUEST).json(errorResponse);
     }
   }
 
