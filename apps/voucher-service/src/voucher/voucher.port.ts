@@ -1,4 +1,4 @@
-import { Paginated, PagingDto } from '@app/contracts';
+import { Paginated, PagingDto, Requester } from '@app/contracts';
 import {
   Voucher,
   VoucherCategory,
@@ -16,6 +16,10 @@ export interface IVoucherService {
   listVouchers(paging: PagingDto): Promise<Paginated<VoucherDto>>;
   getVouchersByIds(voucherIds: number[]): Promise<VoucherDto[]>;
   getVouchersByVariantIds(variantIds: number[]): Promise<VoucherDto[]>;
+  getAvailableVouchersForCustomer(
+    requester: Requester,
+    variantIds: number[],
+  ): Promise<VoucherDto[]>;
   markVouchersAsUsed(
     voucherIds: number[],
     orderId: number,

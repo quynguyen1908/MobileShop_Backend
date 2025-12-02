@@ -6,7 +6,7 @@ import type {
   VoucherCreateDto,
   VoucherUpdateRequest,
 } from '@app/contracts/voucher';
-import type { PagingDto } from '@app/contracts';
+import type { PagingDto, Requester } from '@app/contracts';
 
 @Controller()
 export class VoucherController {
@@ -27,6 +27,11 @@ export class VoucherController {
     return this.voucherService.getVouchersByIds(voucherIds);
   }
 
+  @MessagePattern(VOUCHER_PATTERN.GET_AVAILABLE_VOUCHERS_FOR_CUSTOMER)
+  async getAvailableVouchersForCustomer(@Payload() payload: { requester: Requester; variantIds: number[] }) {
+    return this.voucherService.getAvailableVouchersForCustomer(payload.requester, payload.variantIds);
+  }
+
   @MessagePattern(VOUCHER_PATTERN.CREATE_VOUCHER)
   async createVoucher(@Payload() voucherCreateDto: VoucherCreateDto) {
     return this.voucherService.createVoucher(voucherCreateDto);
@@ -34,9 +39,9 @@ export class VoucherController {
 
   @MessagePattern(VOUCHER_PATTERN.UPDATE_VOUCHER)
   async updateVoucher(
-    @Payload() data: { id: number; voucherUpdateDto: VoucherUpdateRequest },
+    @Payload() payload: { id: number; voucherUpdateDto: VoucherUpdateRequest },
   ) {
-    await this.voucherService.updateVoucher(data.id, data.voucherUpdateDto);
+    await this.voucherService.updateVoucher(payload.id, payload.voucherUpdateDto);
     return { success: true };
   }
 }

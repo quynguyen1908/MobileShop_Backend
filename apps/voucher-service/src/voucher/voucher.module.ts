@@ -6,6 +6,7 @@ import { VoucherRepository } from './voucher.repository';
 import {
   PAYMENT_SERVICE,
   PHONE_SERVICE,
+  USER_SERVICE,
   VOUCHER_REPOSITORY,
   VOUCHER_SERVICE,
 } from '@app/contracts';
@@ -31,6 +32,14 @@ import { VoucherEventHandler } from './voucher-event.handler';
       provide: PHONE_SERVICE,
       useFactory: (rmqConfigService: RabbitMQService) => {
         const serverOptions = rmqConfigService.phoneServiceOptions;
+        return ClientProxyFactory.create(serverOptions);
+      },
+      inject: [RabbitMQService],
+    },
+    {
+      provide: USER_SERVICE,
+      useFactory: (rmqConfigService: RabbitMQService) => {
+        const serverOptions = rmqConfigService.userServiceOptions;
         return ClientProxyFactory.create(serverOptions);
       },
       inject: [RabbitMQService],

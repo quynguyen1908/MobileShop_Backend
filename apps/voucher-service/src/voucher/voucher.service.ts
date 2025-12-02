@@ -6,10 +6,11 @@ import {
   PagingDto,
   PAYMENT_SERVICE,
   PHONE_SERVICE,
+  USER_SERVICE,
   VOUCHER_REPOSITORY,
 } from '@app/contracts';
 import { EVENT_PUBLISHER } from '@app/rabbitmq';
-import type { IEventPublisher } from '@app/contracts';
+import type { IEventPublisher, Requester } from '@app/contracts';
 import {
   ApplyTo,
   DiscountType,
@@ -30,12 +31,14 @@ import { firstValueFrom } from 'rxjs';
 import { Category, PHONE_PATTERN, PhoneVariantDto } from '@app/contracts/phone';
 import { PAYMENT_PATTERN, PaymentMethod } from '@app/contracts/payment';
 import { VoucherCreatedEvent } from '@app/contracts/voucher/voucher.event';
+import { CustomerDto, ErrCustomerNotFound, USER_PATTERN } from '@app/contracts/user';
 
 @Injectable()
 export class VoucherService implements IVoucherService {
   constructor(
     @Inject(VOUCHER_REPOSITORY)
     private readonly voucherRepository: IVoucherRepository,
+    @Inject(USER_SERVICE) private readonly userServiceClient: ClientProxy,
     @Inject(PHONE_SERVICE) private readonly phoneServiceClient: ClientProxy,
     @Inject(PAYMENT_SERVICE) private readonly paymentServiceClient: ClientProxy,
     @Inject(EVENT_PUBLISHER) private readonly eventPublisher: IEventPublisher,
@@ -116,6 +119,42 @@ export class VoucherService implements IVoucherService {
 
     const uniqueVouchers = Array.from(uniqueVouchersMap.values());
     return this.toVoucherDto(uniqueVouchers);
+  }
+
+  async getAvailableVouchersForCustomer(requester: Requester, variantIds: number[]): Promise<VoucherDto[]> {
+    const customer = await firstValueFrom<CustomerDto>(
+      this.userServiceClient.send(
+        USER_PATTERN.GET_CUSTOMER_BY_USER_ID,
+        requester,
+      ),
+    );
+
+    if (!customer) {
+      throw new RpcException(
+        AppError.from(ErrCustomerNotFound, 404)
+          .withLog('Customer not found for user')
+          .toJson(false),
+      );
+    }
+
+    if (typeof customer.id !== 'number') {
+      throw new RpcException(
+        AppError.from(ErrCustomerNotFound, 404)
+          .withLog('Customer ID is missing')
+          .toJson(false),
+      );
+    }
+
+    const allVouchers = await this.getVouchersByVariantIds(variantIds);
+
+    const availableVouchers: VoucherDto[] = allVouchers.filter((voucher) => {
+      const usageCount = voucher.usageHistory
+        ? voucher.usageHistory.filter((u) => u.customerId === customer.id).length
+        : 0;
+      return usageCount < (voucher.usageLimitPerUser ?? Infinity);
+    });
+
+    return availableVouchers;
   }
 
   async markVouchersAsUsed(

@@ -298,7 +298,7 @@ export class OrderService implements IOrderService {
       }
     }
 
-    const maxDiscountFromPoints = totalAmount * 0.2;
+    const maxDiscountFromPoints = totalAmount * 0.1;
 
     let discountFromPoints = 0;
     if (orderData.pointUsed) {
@@ -801,7 +801,7 @@ export class OrderService implements IOrderService {
             trackingCode: responseData.data.order_code,
             provider: 'Giao Hàng Nhanh',
             status: ShipmentStatus.PENDING,
-            fee: responseData.data.total_fee,
+            fee: order.shippingFee,
             estimatedDeliveryDate: new Date(
               responseData.data.expected_delivery_time,
             ),
