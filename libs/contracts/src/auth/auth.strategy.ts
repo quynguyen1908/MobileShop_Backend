@@ -1,9 +1,17 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { Request } from 'express';
 import { Strategy as CustomStrategy } from 'passport-custom';
+
+interface GoogleTokenRequestBody {
+  idToken?: string;
+}
+
+interface GoogleTokenRequest extends Request {
+  body: GoogleTokenRequestBody;
+}
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -50,7 +58,7 @@ export class GoogleTokenStrategy extends PassportStrategy(CustomStrategy, 'googl
     super();
   }
 
-  async validate(req: Request): Promise<any> {
+  async validate(req: GoogleTokenRequest): Promise<any> {
     const idToken = req.body.idToken;
 
     if (!idToken) {
@@ -63,7 +71,7 @@ export class GoogleTokenStrategy extends PassportStrategy(CustomStrategy, 'googl
         audience: process.env.GOOGLE_CLIENT_MOBILE_ID,
       });
 
-      const payload = ticket.getPayload();
+      const payload = ticket.getPayload() as TokenPayload;
 
       if (!payload) {
         throw new UnauthorizedException('Invalid Google ID Token payload.');
