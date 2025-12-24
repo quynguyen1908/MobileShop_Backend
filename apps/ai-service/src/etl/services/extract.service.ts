@@ -108,6 +108,7 @@ export class ExtractService implements IExtractService {
           JSON.stringify({
             id: `variant-${variant.id}`,
             content: `# ${variant.phone.name} - ${variant.variantName}
+                      ID sản phẩm: ${variant.id}
                       Thương hiệu: ${variant.phone.brand.name}
                       Dòng sản phẩm: ${variant.phone.category.name}
                       Màu sắc: ${colors}
