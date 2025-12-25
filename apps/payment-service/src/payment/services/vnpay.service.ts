@@ -131,7 +131,9 @@ export class VNPayService implements IVNPayService {
         }
       }
 
-      const dateFormat = moment().format('YYYYMMDDHHmmss');
+      const date = moment();
+      const dateFormat = date.clone().utcOffset(7).format('YYYYMMDDHHmmss');
+      const expireDate = date.clone().add(15, 'minutes').utcOffset(7).format('YYYYMMDDHHmmss');
       const vnpParams: Record<string, string> = {
         vnp_Version: this.vnPayConfig.version,
         vnp_Command: this.vnPayConfig.command,
@@ -144,7 +146,7 @@ export class VNPayService implements IVNPayService {
         vnp_OrderInfo: `Thanh toan don hang #${order.orderCode}`,
         vnp_OrderType: 'other',
         vnp_ReturnUrl: this.vnPayConfig.returnUrl,
-        vnp_ExpireDate: moment().add(15, 'minutes').format('YYYYMMDDHHmmss'),
+        vnp_ExpireDate: expireDate,
         vnp_TxnRef: `${order.orderCode}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
       };
 
@@ -246,7 +248,9 @@ export class VNPayService implements IVNPayService {
         }
       }
 
-      const dateFormat = moment().format('YYYYMMDDHHmmss');
+      const date = moment();
+      const dateFormat = date.clone().utcOffset(7).format('YYYYMMDDHHmmss');
+      const expireDate = date.clone().add(15, 'minutes').utcOffset(7).format('YYYYMMDDHHmmss');
       const vnpParams: Record<string, string> = {
         vnp_Version: this.vnPayConfig.version,
         vnp_Command: this.vnPayConfig.command,
@@ -259,7 +263,7 @@ export class VNPayService implements IVNPayService {
         vnp_OrderInfo: `Thanh toan don hang #${order.orderCode}`,
         vnp_OrderType: 'other',
         vnp_ReturnUrl: this.vnPayConfig.mobileReturnUrl,
-        vnp_ExpireDate: moment().add(15, 'minutes').format('YYYYMMDDHHmmss'),
+        vnp_ExpireDate: expireDate,
         vnp_TxnRef: `${order.orderCode}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
       };
 
